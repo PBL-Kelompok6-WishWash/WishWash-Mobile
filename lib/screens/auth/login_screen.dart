@@ -107,13 +107,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success']) {
       final int roleId = result['id_role'];
 
-      if (roleId == 1) {
+      if (roleId == 2) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const KaryawanHomeScreen()),
           (route) => false,
         );
-      } else {
+      } else if (roleId == 3){
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const PelangganHomeScreen()),

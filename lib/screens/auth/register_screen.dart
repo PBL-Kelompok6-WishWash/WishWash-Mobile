@@ -81,8 +81,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     // 💡 5. TEMBAK API GOLANG 
-    // Angka 2 berarti kita mendaftarkan user ini secara paksa sebagai Pelanggan
-    final result = await AuthService.register(username, email, password, namaLengkap, noTelp, 2);
+    // Angka 3 berarti kita mendaftarkan user ini secara paksa sebagai Pelanggan
+    final result = await AuthService.register(username, email, password, namaLengkap, noTelp, 3);
     
     // 6. Matikan Loading
     setState(() {
