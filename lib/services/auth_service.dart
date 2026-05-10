@@ -22,32 +22,41 @@ class AuthService {
       final responseData = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Jika sukses, simpan Token JWT ke memori HP
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', responseData['token']);
-        
-        // Simpan id_role untuk keperluan lain jika dibutuhkan
         await prefs.setInt('id_role', responseData['id_role']);
+        
+        // 💡 SIMPAN NAMA ASLI DI SINI (Sesuai role yang dikirim Golang)
+        if (responseData['display_name'] != null) {
+          await prefs.setString('display_name', responseData['display_name']);
+        }
 
         return {
           'success': true,
           'id_role': responseData['id_role'],
+          'display_name': responseData['display_name'], // Kirim ke UI jika perlu
           'message': responseData['message'],
         };
       } else {
-        // Jika gagal (Password salah / User tidak ada)
         return {
           'success': false,
           'message': responseData['error'] ?? 'Terjadi kesalahan saat login',
         };
       }
     } catch (e) {
-      // Jika server Golang mati / tidak bisa dihubungi
       return {
         'success': false,
         'message': 'Gagal terhubung ke server: $e',
       };
     }
+  }
+
+  // Jangan lupa di fungsi logout juga dibersihkan namanya
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwt_token');
+    await prefs.remove('id_role');
+    await prefs.remove('display_name'); 
   }
 
   // Fungsi Register
@@ -99,5 +108,6 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
     await prefs.remove('id_role');
+    await prefs.remove('display_name');
   }
 }
