@@ -51,14 +51,6 @@ class AuthService {
     }
   }
 
-  // Jangan lupa di fungsi logout juga dibersihkan namanya
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
-    await prefs.remove('id_role');
-    await prefs.remove('display_name'); 
-  }
-
   // Fungsi Register
   static Future<Map<String, dynamic>> register(
       String username, 
