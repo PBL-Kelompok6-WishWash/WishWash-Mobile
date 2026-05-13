@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../utils/constants.dart';
+import 'package:mobile/screens/splash_screen.dart';
+import 'package:mobile/widgets/navbar_pelanggan.dart';
+
+void main() {
+  runApp(
+    const MaterialApp(
+      home: const SplashScreen(),
+      debugShowCheckedModeBanner: false,
+    ),
+  );
+}
 
 class PelangganHomeScreen extends StatefulWidget {
   const PelangganHomeScreen({super.key});
@@ -9,71 +19,104 @@ class PelangganHomeScreen extends StatefulWidget {
 }
 
 class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
-  // Warna-warna khusus sesuai UI Design
   final Color _darkBlue = const Color(0xFF0F2F53);
   final Color _cyan = const Color(0xFF42C6D4);
   final Color _lightCyanBg = const Color(0xFFEAF9FA);
   final Color _greyText = const Color(0xFF7A8D9C);
 
-  int _currentIndex = 0;
+  int _currentPromoIndex = 0;
+
+  // Perubahan 1: Gunakan viewportFraction agar kartu berikutnya sedikit terlihat
+  final PageController _promoController = PageController(viewportFraction: 0.9);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      // 💡 1. BODY DENGAN BACKGROUND GRADIENT
+      extendBody: true,
+      backgroundColor: const Color(0xFFF8FBFC),
       body: Stack(
         children: [
-          // Background Gradient Biru ke Putih di atas
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: 350,
+            height: 300,
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFD4F0F7), // Biru sangat muda
-                    Colors.white,
-                  ],
+                  colors: [Color(0xFFD4F0F7), Color(0xFFF8FBFC)],
                 ),
               ),
             ),
           ),
-          
-          // Konten Utama yang bisa di-scroll
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 100), // Ruang untuk Bottom Nav
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildLocationCard(),
-                    const SizedBox(height: 24),
-                    _buildPromoBanner(),
-                    const SizedBox(height: 16),
-                    _buildDotIndicator(),
-                    const SizedBox(height: 32),
-                    _buildServicesSection(),
-                    const SizedBox(height: 32),
-                    _buildOrderStatusSection(),
-                  ],
-                ),
+              padding: const EdgeInsets.only(bottom: 65),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: _buildHeader(),
+                  ),
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: _buildLocationCard(),
+                  ),
+                  const SizedBox(height: 24),
+                  // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
+                  _buildPromoSlider(),
+                  const SizedBox(height: 12),
+                  _buildDotIndicator(),
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: _buildServicesSection(),
+                        ),
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: _buildOrderStatusSection(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
-
-      // 💡 2. CUSTOM BOTTOM NAVIGATION BAR & FAB
       floatingActionButton: Container(
         height: 64,
         width: 64,
@@ -81,9 +124,9 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: _cyan.withValues(alpha: 0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+              color: _cyan.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -95,180 +138,253 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
           child: const Icon(Icons.add, color: Colors.white, size: 32),
         ),
       ),
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        color: Colors.white,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
-        elevation: 20,
-        shadowColor: Colors.black.withValues(alpha: 0.3),
-        child: SizedBox(
-          height: 70,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildNavItem(Icons.home_filled, 'Home', 0),
-              _buildNavItem(Icons.receipt_long, 'Orders', 1),
-              const SizedBox(width: 48), // Ruang kosong untuk FAB di tengah
-              _buildNavItem(Icons.chat_bubble_outline, 'Message', 2),
-              _buildNavItem(Icons.person_outline, 'Profile', 3),
-            ],
-          ),
-        ),
+
+      bottomNavigationBar: BottomNavbar(
+        currentIndex: 0,
+        onTap: (index) {
+          print(index);
+        },
       ),
     );
   }
 
-  // =========================================================================
-  // KOMPONEN-KOMPONEN UI
-  // =========================================================================
+  // --- REVISI UTAMA: PROMO SLIDER ---
+  Widget _buildPromoSlider() {
+    return SizedBox(
+      height: 180,
+      child: PageView(
+        controller: _promoController,
+        onPageChanged: (index) => setState(() => _currentPromoIndex = index),
+        children: [
+          _buildPromoItem(
+            '20% Off Your First Order',
+            'Enjoy a special discount\non your first laundry service.',
+            const Color(0xFFE3F9FD),
+            const Color(0xFF42C6D4),
+            'assets/images/diskon.png',
+            const Color(0xFF0D47A1), // Teks biru untuk kartu biru
+          ),
+          _buildPromoItem(
+            'Free Pickup Available',
+            'Get your laundry picked up\nfor free in selected areas.',
+            const Color(0xFFFDEEF6),
+            const Color(0xFFE91E63),
+            'assets/images/free_deliv.png',
+            const Color(
+              0xFF880E4F,
+            ), // Teks pink gelap agar nyambung dengan kartu pink
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildPromoItem(
+    String title,
+    String subtitle,
+    Color bgColor,
+    Color btnColor,
+    String imagePath,
+    Color textColor, // Tambah parameter warna teks
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
+      ), // Vertical margin untuk ruang shadow
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(24),
+        // SHADOW TIPIS DI BAGIAN BAWAH
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Gambar di pojok kanan bawah
+          Positioned(
+            right: -10,
+            bottom: 0,
+            child: SizedBox(
+              width: 140,
+              height: 140,
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.shopping_bag_outlined,
+                  size: 80,
+                  color: btnColor.withOpacity(0.2),
+                ),
+              ),
+            ),
+          ),
+          // Teks di sisi kiri
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: textColor, // Menggunakan warna adaptif
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: textColor.withOpacity(
+                      0.7,
+                    ), // Mengikuti warna teks utama
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Tombol
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: btnColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: btnColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      minimumSize: const Size(100, 36),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      title.contains('Free') ? 'Check Now' : 'Claim Now',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- SISANYA TETAP SAMA (WIDGET LAINNYA) ---
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hi, Mark Lee!',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: _darkBlue,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Which laundry service do you need today?',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _darkBlue.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-        // Ikon Lonceng Notifikasi dengan Badge Merah
-        Stack(
-          children: [
-            Icon(Icons.notifications_none_rounded, color: _darkBlue, size: 32),
-            Positioned(
-              right: 2,
-              top: 2,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.redAccent,
-                  shape: BoxShape.circle,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hi, Mark Lee!',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0D47A1),
                 ),
               ),
-            )
-          ],
-        )
+              const SizedBox(height: 4),
+              Text(
+                'Which service do you need?',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: const Color(0xFF0D47A1).withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildNotificationIcon(),
+      ],
+    );
+  }
+
+  Widget _buildNotificationIcon() {
+    return Stack(
+      children: [
+        const Icon(
+          Icons.notifications_none_rounded,
+          color: Color(0xFF0D47A1),
+          size: 28,
+        ),
+
+        Positioned(
+          right: 1,
+          top: 1,
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Colors.redAccent,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildLocationCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on_outlined, color: _darkBlue, size: 24),
-          const SizedBox(width: 12),
+          Icon(Icons.location_on_outlined, color: _cyan, size: 20),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Jalan Kesana Kesini',
+              'Jalan Kesana Kesini No. 12',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: _darkBlue,
+                color: const Color(0xFF0D47A1),
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          Icon(Icons.keyboard_arrow_down_rounded, color: _darkBlue),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPromoBanner() {
-    return Container(
-      width: double.infinity,
-      height: 140,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEDFBFE), Color(0xFFD3F2F7)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '20% Off Your First Order',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: _darkBlue,
-                ),
-              ),
-              const SizedBox(height: 6),
-              SizedBox(
-                width: 200,
-                child: Text(
-                  'Enjoy a special discount on your first laundry service. Limited time only.',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: _greyText,
-                    height: 1.4,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _cyan,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Claim Now',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            ],
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: const Color(0xFF0D47A1),
+            size: 20,
           ),
-          // Placeholder untuk gambar 3D amplop (Kamu harus siapkan gambarnya di assets)
-          const Positioned(
-            right: -10,
-            top: -10,
-            bottom: -10,
-            child: Icon(Icons.email, size: 100, color: Colors.blueAccent), // Ganti dengan Image.asset nanti
-          )
         ],
       ),
     );
@@ -277,22 +393,20 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
   Widget _buildDotIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: _darkBlue, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Container(
-          width: 8,
-          height: 8,
+      children: List.generate(2, (index) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          width: _currentPromoIndex == index ? 12 : 6,
+          height: 6,
           decoration: BoxDecoration(
-            color: Colors.blueGrey.withValues(alpha: 0.3),
-            shape: BoxShape.circle,
+            color: _currentPromoIndex == index
+                ? const Color(0xFF0D47A1)
+                : Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(10),
           ),
-        ),
-      ],
+        );
+      }),
     );
   }
 
@@ -303,68 +417,112 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
         Text(
           'Our Services',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.w900,
-            color: _darkBlue,
+            color: const Color(0xFF0D47A1),
           ),
         ),
         const SizedBox(height: 16),
-        Row(
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 2.1,
           children: [
-            Expanded(child: _buildServiceCard('Wash &\nIroning', const Color(0xFFE0F7FA), const Color(0xFFB2EBF2), _darkBlue)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildServiceCard('Wash\nOnly', const Color(0xFFF3E5F5), const Color(0xFFE1BEE7), const Color(0xFF6A1B9A))),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildServiceCard('Ironing\nOnly', const Color(0xFFFFF3E0), const Color(0xFFFFE0B2), const Color(0xFFE65100))),
-            const SizedBox(width: 12),
-            Expanded(child: _buildServiceCard('Dry\nClean', const Color(0xFFE8F5E9), const Color(0xFFC8E6C9), const Color(0xFF2E7D32))),
+            _buildServiceCard(
+              'Wash &\nIroning',
+              const Color(0xFFD1F1F8),
+              const Color(0xFF0D47A1),
+              'assets/images/wash_iron.png',
+            ),
+            _buildServiceCard(
+              'Wash\nOnly',
+              const Color(0xFFF1E1FB),
+              const Color(0xFF6A1B9A),
+              'assets/images/wash_only.png',
+            ),
+            _buildServiceCard(
+              'Ironing\nOnly',
+              const Color(0xFFFCECDD),
+              const Color(0xFFE65100),
+              'assets/images/ironing.png',
+            ),
+            _buildServiceCard(
+              'Dry\nClean',
+              const Color(0xFFE2F3E4),
+              const Color(0xFF2E7D32),
+              'assets/images/dry_clean.png',
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildServiceCard(String title, Color gradStart, Color gradEnd, Color textColor) {
+  Widget _buildServiceCard(
+    String title,
+    Color bgColor,
+    Color textColor,
+    String imagePath,
+  ) {
+    // Mengubah radius menjadi 12 agar tidak terlalu bulat
+    final double cardRadius = 12.0;
+
     return Container(
-      height: 80,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: [gradStart, gradEnd],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Placeholder ikon/gambar background (Harus diganti aset gambar cucian nanti)
-          Positioned(
-            left: -10,
-            top: 0,
-            bottom: 0,
-            child: Icon(Icons.local_laundry_service, size: 60, color: Colors.white.withValues(alpha: 0.5)),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(cardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Text(
-                title,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: textColor,
-                  height: 1.2,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(cardRadius),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 5,
+              child: ShaderMask(
+                shaderCallback: (rect) {
+                  return const LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Colors.black, Colors.transparent],
+                  ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+                },
+                blendMode: BlendMode.dstIn,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  height: double.infinity,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.broken_image, size: 20),
                 ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              flex: 6,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4, right: 8),
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: textColor,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -376,179 +534,182 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
         Text(
           'Your Order Status',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 16, // Ukuran font diperkecil sedikit
             fontWeight: FontWeight.w900,
-            color: _darkBlue,
+            color: const Color(0xFF0D47A1),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ), // Padding dirapatkan
           decoration: BoxDecoration(
-            color: _lightCyanBg,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: _cyan.withValues(alpha: 0.1),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
+            color: const Color(0xFFD1F1F8).withOpacity(0.4),
+            borderRadius: BorderRadius.circular(
+              16,
+            ), // Radius diperkecil agar lebih rapi
+            border: Border.all(color: const Color(0xFFB2EBF2), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Baris Atas: Order ID & Estimasi (Warna Merah)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Order #1234',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _darkBlue),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0D47A1),
+                      fontSize: 12,
+                    ),
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 14, color: Color(0xFFD65B5B)),
+                      const Icon(
+                        Icons.access_time,
+                        size: 13,
+                        color: Colors.redAccent, // Icon Jam Merah
+                      ),
                       const SizedBox(width: 4),
-                      const Text(
+                      Text(
                         'Est: 30 April 2026',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFD65B5B)),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.redAccent, // Teks Estimasi Merah
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
+              // Jenis Layanan
               Text(
                 'Wash & Iron (1 kg)',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _darkBlue),
+                style: TextStyle(
+                  fontSize: 15, // Lebih proporsional
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0D47A1),
+                ),
               ),
-              const SizedBox(height: 24),
-              
-              // Custom Stepper
+              const SizedBox(height: 16),
+
+              // Stepper Tracker
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStep(label: 'Pick Up', isDone: true),
-                  _buildLine(isActive: true),
-                  _buildStep(label: 'Wash', isCurrent: true),
-                  _buildLine(isActive: false),
-                  _buildStep(label: 'Iron', isDone: false),
-                  _buildLine(isActive: false),
-                  _buildStep(label: 'Delivery', isDone: false),
-                  _buildLine(isActive: false),
-                  _buildStep(label: 'Success', isDone: false),
+                  _buildStepItem('Pick Up', Icons.check, true, true),
+                  _buildStepLine(true),
+                  _buildStepItem(
+                    'Wash',
+                    Icons.circle,
+                    true,
+                    false,
+                    isCurrent: true,
+                  ),
+                  _buildStepLine(false),
+                  _buildStepItem('Iron', null, false, false),
+                  _buildStepLine(false),
+                  _buildStepItem('Delivery', null, false, false),
+                  _buildStepLine(false),
+                  _buildStepItem('Success', null, false, false),
                 ],
               ),
-              
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 16),
+              // Tombol View More
               SizedBox(
                 width: double.infinity,
+                height: 40, // Tinggi tombol dikunci agar tidak kebesaran
                 child: ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: _darkBlue,
-                    elevation: 0,
+                    foregroundColor: const Color(0xFF0D47A1),
+                    elevation: 1,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    padding: EdgeInsets.zero,
                   ),
-                  child: const Text('View More', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'View More',
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                  ),
                 ),
-              )
+              ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
 
-  // Komponen pembantu untuk garis Custom Stepper
-  Widget _buildLine({required bool isActive}) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        color: isActive ? _darkBlue : Colors.white,
-      ),
-    );
-  }
-
-  // Komponen pembantu untuk titik Custom Stepper
-  Widget _buildStep({required String label, bool isDone = false, bool isCurrent = false}) {
+  // Widget Helper Ikon + Label
+  Widget _buildStepItem(
+    String label,
+    IconData? icon,
+    bool isActive,
+    bool isDone, {
+    bool isCurrent = false,
+  }) {
     return Column(
       children: [
-        if (isDone)
-          Container(
-            width: 24, height: 24,
-            decoration: BoxDecoration(color: _darkBlue, shape: BoxShape.circle),
-            child: const Icon(Icons.check, size: 16, color: Colors.white),
-          )
-        else if (isCurrent)
-          Container(
-            width: 24, height: 24,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _darkBlue, width: 2),
-            ),
-            child: Center(
-              child: Container(
-                width: 8, height: 8,
-                decoration: BoxDecoration(color: _darkBlue, shape: BoxShape.circle),
-              ),
-            ),
-          )
-        else
-          Container(
-            width: 24, height: 24,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+        Container(
+          padding: const EdgeInsets.all(3), // Ukuran bulatan diperkecil
+          decoration: BoxDecoration(
+            color: isDone ? const Color(0xFF0D47A1) : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade300,
+              width: 1.5,
             ),
           ),
-        const SizedBox(height: 8),
+          child: isCurrent
+              ? const Icon(
+                  Icons.fiber_manual_record,
+                  size: 8,
+                  color: Color(0xFF0D47A1),
+                )
+              : Icon(
+                  icon ?? Icons.circle,
+                  size: 8,
+                  color: isDone
+                      ? Colors.white
+                      : (isActive
+                            ? const Color(0xFF0D47A1)
+                            : Colors.transparent),
+                ),
+        ),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
-            fontWeight: (isDone || isCurrent) ? FontWeight.bold : FontWeight.normal,
-            color: (isDone || isCurrent) ? _darkBlue : _greyText,
+            fontSize: 9, // Font label diperkecil
+            fontWeight: isCurrent || isDone
+                ? FontWeight.bold
+                : FontWeight.normal,
+            color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade600,
           ),
-        )
+        ),
       ],
     );
   }
 
-  // Komponen pembantu untuk Bottom Navigation Item
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    bool isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? _cyan : _greyText.withValues(alpha: 0.5),
-              size: 26,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? _cyan : _greyText.withValues(alpha: 0.5),
-              ),
-            )
-          ],
-        ),
+  // Widget Helper Garis
+  Widget _buildStepLine(bool isActive) {
+    return Expanded(
+      child: Container(
+        height: 1.5,
+        margin: const EdgeInsets.only(
+          bottom: 14,
+        ), // Disesuaikan dengan ukuran font label baru
+        color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade300,
       ),
     );
   }
