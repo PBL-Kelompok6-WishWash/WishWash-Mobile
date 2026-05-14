@@ -110,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (roleId == 2) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const KaryawanHomeScreen()),
+          MaterialPageRoute(builder: (context) => const DashboardKaryawan()),
           (route) => false,
         );
       } else if (roleId == 3){
