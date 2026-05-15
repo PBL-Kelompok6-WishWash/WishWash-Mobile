@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
+import 'package:mobile/screens/pelanggan/notifikasi.dart';
+import 'package:mobile/screens/pelanggan/chat.dart';
+import 'package:mobile/screens/pelanggan/profile.dart';
 
 void main() {
   runApp(
@@ -144,7 +147,25 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
       bottomNavigationBar: BottomNavbar(
         currentIndex: 0,
         onTap: (index) {
-          print(index);
+          if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation1, animation2) => const ChatScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+              ),
+            );
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation1, animation2) => const ProfileScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+              ),
+            );
+          }
         },
       ),
     );
@@ -326,15 +347,21 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
     );
   }
 
-  Widget _buildNotificationIcon() {
-    return Stack(
+Widget _buildNotificationIcon() {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => NotificationScreen()),
+      );
+    },
+    child: Stack(
       children: [
         const Icon(
           Icons.notifications_none_rounded,
           color: Color(0xFF0D47A1),
           size: 28,
         ),
-
         Positioned(
           right: 1,
           top: 1,
@@ -348,8 +375,9 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLocationCard() {
     return Container(
