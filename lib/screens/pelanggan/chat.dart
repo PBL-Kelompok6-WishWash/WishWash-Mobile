@@ -7,7 +7,8 @@ import 'package:mobile/screens/pelanggan/profile.dart';
 import 'package:mobile/screens/pelanggan/payment.dart';
 
 class ChatScreen extends StatelessWidget {
-  const ChatScreen({super.key});
+  final bool showNavbar;
+  const ChatScreen({super.key, this.showNavbar = true});
 
   @override
   Widget build(BuildContext context) {
@@ -130,30 +131,8 @@ class ChatScreen extends StatelessWidget {
         ],
       ),
       // FAB & BottomNavbar
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: cyanColor.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: cyanColor,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 32),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavbar(
-        currentIndex: 2, // Index 2 adalah untuk Chat/Message
+      bottomNavigationBar: showNavbar ? BottomNavbar(
+        currentIndex: 3, // Index 3 adalah untuk Chat/Message
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacement(
@@ -164,7 +143,7 @@ class ChatScreen extends StatelessWidget {
                 reverseTransitionDuration: Duration.zero,
               ),
             );
-          } else if (index == 3) {
+          } else if (index == 4) {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
@@ -175,7 +154,7 @@ class ChatScreen extends StatelessWidget {
             );
           }
         },
-      ),
+      ) : null,
     );
   }
 

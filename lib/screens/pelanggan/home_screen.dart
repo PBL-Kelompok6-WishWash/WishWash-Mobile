@@ -15,7 +15,8 @@ void main() {
 }
 
 class PelangganHomeScreen extends StatefulWidget {
-  const PelangganHomeScreen({super.key});
+  final bool showNavbar;
+  const PelangganHomeScreen({super.key, this.showNavbar = true});
 
   @override
   State<PelangganHomeScreen> createState() => _PelangganHomeScreenState();
@@ -120,34 +121,19 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: _cyan.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: _cyan,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 32),
-        ),
-      ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-
-      bottomNavigationBar: BottomNavbar(
+      bottomNavigationBar: widget.showNavbar ? BottomNavbar(
         currentIndex: 0,
         onTap: (index) {
-          if (index == 2) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation1, animation2) => const PelangganHomeScreen(),
+                transitionDuration: Duration.zero,
+                reverseTransitionDuration: Duration.zero,
+              ),
+            );
+          } else if (index == 3) {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
@@ -156,7 +142,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 reverseTransitionDuration: Duration.zero,
               ),
             );
-          } else if (index == 3) {
+          } else if (index == 4) {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
@@ -167,7 +153,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
             );
           }
         },
-      ),
+      ) : null,
     );
   }
 

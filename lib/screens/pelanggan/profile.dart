@@ -5,7 +5,8 @@ import 'package:mobile/screens/pelanggan/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final bool showNavbar;
+  const ProfileScreen({super.key, this.showNavbar = true});
 
   @override
   Widget build(BuildContext context) {
@@ -81,30 +82,8 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       // FAB & BottomNavbar
-      floatingActionButton: Container(
-        height: 64,
-        width: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: cyanColor.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {},
-          backgroundColor: cyanColor,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white, size: 32),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomNavbar(
-        currentIndex: 3, // Index 3 adalah untuk Profile
+      bottomNavigationBar: showNavbar ? BottomNavbar(
+        currentIndex: 4, // Index 4 adalah untuk Profile
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacement(
@@ -115,7 +94,7 @@ class ProfileScreen extends StatelessWidget {
                 reverseTransitionDuration: Duration.zero,
               ),
             );
-          } else if (index == 2) {
+          } else if (index == 3) {
             Navigator.pushReplacement(
               context,
               PageRouteBuilder(
@@ -126,7 +105,7 @@ class ProfileScreen extends StatelessWidget {
             );
           }
         },
-      ),
+      ) : null,
     );
   }
 
