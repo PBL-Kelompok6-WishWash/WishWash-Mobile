@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
-import 'package:mobile/screens/pelanggan/home_screen.dart';
-import 'package:mobile/screens/pelanggan/roomchat.dart';
-import 'package:mobile/screens/pelanggan/profile.dart';
-import 'package:mobile/screens/pelanggan/payment.dart';
+import 'package:mobile/screens/pelanggan/home/home_screen.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat.dart';
+import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/payment.dart';
 
 class ChatScreen extends StatelessWidget {
   final bool showNavbar;

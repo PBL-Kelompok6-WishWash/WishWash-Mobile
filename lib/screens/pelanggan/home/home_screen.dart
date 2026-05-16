@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
-import 'package:mobile/screens/pelanggan/notifikasi.dart';
-import 'package:mobile/screens/pelanggan/chat.dart';
-import 'package:mobile/screens/pelanggan/profile.dart';
+import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
+import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
+import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 
 void main() {
   runApp(

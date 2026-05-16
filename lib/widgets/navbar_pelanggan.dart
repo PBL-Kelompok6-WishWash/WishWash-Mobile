@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class BottomNavbar extends StatelessWidget {
+class BottomNavbar extends StatefulWidget {
   final int currentIndex;
   final Function(int) onTap;
 
@@ -12,6 +12,63 @@ class BottomNavbar extends StatelessWidget {
   });
 
   @override
+  State<BottomNavbar> createState() => _BottomNavbarState();
+}
+
+class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _topAnimation;
+  late Animation<double> _leftAnimation;
+  
+  double _oldLeft = 0;
+  bool _isFirstBuild = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _topAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: -30.0).chain(CurveTween(curve: Curves.easeInSine)),
+        weight: 50.0,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -30.0, end: 0.0).chain(CurveTween(curve: Curves.easeOutSine)),
+        weight: 50.0,
+      ),
+    ]).animate(_controller);
+  }
+
+  @override
+  void didUpdateWidget(covariant BottomNavbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.currentIndex != oldWidget.currentIndex) {
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double itemWidth = (screenWidth - 20) / 5;
+      final double indicatorWidth = 76;
+      
+      _oldLeft = 10 + (oldWidget.currentIndex * itemWidth) + (itemWidth / 2) - (indicatorWidth / 2);
+      final double targetLeft = 10 + (widget.currentIndex * itemWidth) + (itemWidth / 2) - (indicatorWidth / 2);
+
+      _leftAnimation = Tween<double>(begin: _oldLeft, end: targetLeft).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine)
+      );
+
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     const Color activeColor = Color(0xFF0C4B8E);
     const Color inactiveColor = Color(0xFF000000);
@@ -19,13 +76,14 @@ class BottomNavbar extends StatelessWidget {
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double itemWidth = (screenWidth - 20) / 5;
-    // Calculate indicator position
     final double indicatorWidth = 76;
-    double indicatorLeft =
-        10 +
-        (currentIndex * itemWidth) +
-        (itemWidth / 2) -
-        (indicatorWidth / 2);
+    double targetLeft = 10 + (widget.currentIndex * itemWidth) + (itemWidth / 2) - (indicatorWidth / 2);
+
+    if (_isFirstBuild) {
+      _oldLeft = targetLeft;
+      _leftAnimation = Tween<double>(begin: targetLeft, end: targetLeft).animate(_controller);
+      _isFirstBuild = false;
+    }
 
     return Container(
       height: 100,
@@ -51,15 +109,18 @@ class BottomNavbar extends StatelessWidget {
         child: Stack(
           children: [
             // Smooth Curved 'Liquid' Indicator (Inside Top Edge)
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOutCubic,
-              top: 0,
-              left: indicatorLeft,
-              child: CustomPaint(
-                size: Size(indicatorWidth, 24),
-                painter: IndicatorPainter(cyanColor),
-              ),
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                return Positioned(
+                  top: _topAnimation.value,
+                  left: _leftAnimation.value,
+                  child: CustomPaint(
+                    size: Size(indicatorWidth, 24),
+                    painter: IndicatorPainter(cyanColor),
+                  ),
+                );
+              },
             ),
 
             // Navbar Content
@@ -73,8 +134,8 @@ class BottomNavbar extends StatelessWidget {
                     activeIcon: Icons.home_rounded,
                     label: 'Home',
                     index: 0,
-                    currentIndex: currentIndex,
-                    onTap: onTap,
+                    currentIndex: widget.currentIndex,
+                    onTap: widget.onTap,
                     activeColor: activeColor,
                     inactiveColor: inactiveColor,
                   ),
@@ -83,33 +144,54 @@ class BottomNavbar extends StatelessWidget {
                     activeIcon: Icons.local_laundry_service_rounded,
                     label: 'Orders',
                     index: 1,
-                    currentIndex: currentIndex,
-                    onTap: onTap,
+                    currentIndex: widget.currentIndex,
+                    onTap: widget.onTap,
                     activeColor: activeColor,
                     inactiveColor: inactiveColor,
                   ),
 
                   // Smaller Aesthetic Plus Button
-                  GestureDetector(
-                    onTap: () => onTap(2),
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: cyanColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: cyanColor.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          cyanColor.withOpacity(0.7),
+                          cyanColor,
                         ],
                       ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 32,
+                      boxShadow: [
+                        // White shiny highlight
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.6),
+                          blurRadius: 10,
+                          spreadRadius: 0,
+                          offset: const Offset(-3, -3),
+                        ),
+                        // Depth shadow
+                        BoxShadow(
+                          color: cyanColor.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => widget.onTap(2),
+                        customBorder: const CircleBorder(),
+                        splashColor: Colors.white.withOpacity(0.3),
+                        highlightColor: Colors.white.withOpacity(0.1),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 32,
+                        ),
                       ),
                     ),
                   ),
@@ -119,8 +201,8 @@ class BottomNavbar extends StatelessWidget {
                     activeIcon: Icons.message_rounded,
                     label: 'Message',
                     index: 3,
-                    currentIndex: currentIndex,
-                    onTap: onTap,
+                    currentIndex: widget.currentIndex,
+                    onTap: widget.onTap,
                     activeColor: activeColor,
                     inactiveColor: inactiveColor,
                   ),
@@ -129,8 +211,8 @@ class BottomNavbar extends StatelessWidget {
                     activeIcon: Icons.person_rounded,
                     label: 'Profile',
                     index: 4,
-                    currentIndex: currentIndex,
-                    onTap: onTap,
+                    currentIndex: widget.currentIndex,
+                    onTap: widget.onTap,
                     activeColor: activeColor,
                     inactiveColor: inactiveColor,
                   ),
@@ -162,21 +244,26 @@ class BottomNavbar extends StatelessWidget {
       splashColor: Colors.transparent,
       child: SizedBox(
         width: 60,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 12),
-            Icon(isSelected ? activeIcon : icon, color: color, size: 26),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                color: color,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOutSine,
+          transform: Matrix4.translationValues(0, isSelected ? -4.0 : 0.0, 0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 12),
+              Icon(isSelected ? activeIcon : icon, color: color, size: 26),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: color,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

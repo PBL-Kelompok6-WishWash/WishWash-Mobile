@@ -1,12 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
-import 'package:mobile/screens/pelanggan/home_screen.dart';
-import 'package:mobile/screens/pelanggan/chat.dart';
+import 'package:mobile/screens/pelanggan/home/home_screen.dart';
+import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/screens/auth/login_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
   final bool showNavbar;
   const ProfileScreen({super.key, this.showNavbar = true});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool isLoading = true;
+  String namaLengkap = '';
+  String noTelp = '';
+  String email = '';
+  String alamatLengkap = '';
+  String fotoPelanggan = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    final response = await PelangganService.getProfile();
+    if (response['success'] == true) {
+      final data = response['data'];
+      final pelanggan = data['pelanggan'] ?? {};
+      final user = pelanggan['User'] ?? {};
+
+      setState(() {
+        namaLengkap = pelanggan['nama_lengkap'] ?? 'User';
+        noTelp = pelanggan['no_telp'] ?? '-';
+        email = user['email'] ?? '';
+        alamatLengkap = data['alamat_lengkap'] ?? 'Alamat belum diatur';
+        fotoPelanggan = pelanggan['foto_pelanggan'] ?? '';
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['message'] ?? 'Gagal memuat profil')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +94,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                      const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
                       Text(
                         'Profile',
                         style: GoogleFonts.poppins(
@@ -64,17 +110,19 @@ class ProfileScreen extends StatelessWidget {
                 
                 // --- KONTEN HALAMAN ---
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), // padding bawah untuk navbar & fab
-                    children: [
-                      // Profile Card
-                      _buildProfileCard(navyColor, cyanColor),
-                      const SizedBox(height: 24),
-                      
-                      // Menu List Card
-                      _buildMenuListCard(navyColor, cyanColor),
-                    ],
-                  ),
+                  child: isLoading 
+                    ? const Center(child: CircularProgressIndicator(color: cyanColor))
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), // padding bawah untuk navbar & fab
+                        children: [
+                          // Profile Card
+                          _buildProfileCard(navyColor, cyanColor),
+                          const SizedBox(height: 24),
+                          
+                          // Menu List Card
+                          _buildMenuListCard(navyColor, cyanColor),
+                        ],
+                      ),
                 ),
               ],
             ),
@@ -82,7 +130,7 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       // FAB & BottomNavbar
-      bottomNavigationBar: showNavbar ? BottomNavbar(
+      bottomNavigationBar: widget.showNavbar ? BottomNavbar(
         currentIndex: 4, // Index 4 adalah untuk Profile
         onTap: (index) {
           if (index == 0) {
@@ -129,18 +177,25 @@ class ProfileScreen extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  'https://i.pravatar.cc/150?img=11', // Placeholder for Mark Lee image
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    width: 80,
-                    height: 80,
-                    color: Colors.grey.shade200,
-                    child: const Icon(Icons.person, size: 40, color: Colors.grey),
-                  ),
-                ),
+                child: fotoPelanggan.isNotEmpty
+                  ? Image.network(
+                      fotoPelanggan,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey.shade200,
+                        child: const Icon(Icons.person, size: 40, color: Colors.grey),
+                      ),
+                    )
+                  : Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.person, size: 40, color: Colors.grey),
+                    ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -148,7 +203,7 @@ class ProfileScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Mark Lee',
+                      namaLengkap,
                       style: GoogleFonts.poppins(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -161,7 +216,7 @@ class ProfileScreen extends StatelessWidget {
                         Icon(Icons.phone, size: 14, color: navyColor),
                         const SizedBox(width: 6),
                         Text(
-                          '081234567891',
+                          noTelp.isEmpty ? '-' : noTelp,
                           style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: navyColor,
@@ -178,7 +233,7 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            'Jalan Kesana Kesini',
+                            alamatLengkap,
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               color: navyColor,
@@ -318,9 +373,130 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent, size: 16),
-        onTap: () {},
+        onTap: _showLogoutConfirmation,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFEBEB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.waving_hand_rounded, // Ikon tangan melambai (lucu)
+                    color: Colors.redAccent,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Konfirmasi Keluar',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0F2F53),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Apakah Anda yakin ingin keluar dari akun Anda? Sesi Anda saat ini akan diakhiri.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          backgroundColor: Colors.grey.shade100,
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop(); // Tutup dialog
+                          await AuthService.logout();
+                          if (mounted) {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              (route) => false,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Colors.redAccent,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Keluar',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

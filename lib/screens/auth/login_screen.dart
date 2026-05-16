@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 import 'register_screen.dart';
-import '../pelanggan/home_screen.dart';
+import '../pelanggan/home/home_screen.dart';
 import '../pelanggan/main_pelanggan.dart';
 import '../karyawan/home_screen.dart';
 import '../../services/auth_service.dart';
