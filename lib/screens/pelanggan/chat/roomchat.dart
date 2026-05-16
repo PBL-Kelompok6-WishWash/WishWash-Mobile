@@ -91,7 +91,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(4.0), // Padding agar logo tidak terpotong
                         child: Image.asset(
-                          'assets/images/logo.png',
+                          'assets/images/brand/logo.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Center(
                             child: Text(

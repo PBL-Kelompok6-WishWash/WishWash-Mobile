@@ -177,13 +177,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 top: -250,
                 left: -100,
                 width: screenWidth * 1.5,
-                child: Image.asset('assets/images/bg_atas.png', fit: BoxFit.contain),
+                child: Image.asset('assets/images/backgrounds/bg_atas.png', fit: BoxFit.contain),
               ),
               Positioned(
                 bottom: -250,
                 left: -100,
                 width: screenWidth * 1.5,
-                child: Image.asset('assets/images/bg_bawah.png', fit: BoxFit.fitWidth),
+                child: Image.asset('assets/images/backgrounds/bg_bawah.png', fit: BoxFit.fitWidth),
               ),
               SafeArea(
                 child: LayoutBuilder(
@@ -214,7 +214,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                               Row(
                                 children: [
-                                  Image.asset('assets/images/logo.png', height: 40),
+                                  Image.asset('assets/images/brand/logo.png', height: 40),
                                   const SizedBox(width: 12),
                                   const Text(
                                     'Create Account',

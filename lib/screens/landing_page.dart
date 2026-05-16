@@ -34,7 +34,7 @@ class LandingPage extends StatelessWidget {
                 
                 // --- BAGIAN LOGO ---
                 Image.asset(
-                  'assets/images/logo.png',
+                  'assets/images/brand/logo.png',
                   height: 100,
                 ),
                 const SizedBox(height: 6), 

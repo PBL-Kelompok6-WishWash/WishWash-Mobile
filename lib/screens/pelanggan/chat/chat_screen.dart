@@ -196,7 +196,7 @@ class ChatScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(6.0), // Padding agar tidak terpotong
                 child: Image.asset(
-                  'assets/images/logo.png',
+                  'assets/images/brand/logo.png',
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Center(
                     child: Text(

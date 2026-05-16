@@ -4,6 +4,7 @@ import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
+import 'package:mobile/services/pelanggan_service.dart';
 
 void main() {
   runApp(
@@ -29,9 +30,55 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
   final Color _greyText = const Color(0xFF7A8D9C);
 
   int _currentPromoIndex = 0;
+  bool _isLocationMenuOpen = false;
 
   // Perubahan 1: Gunakan viewportFraction agar kartu berikutnya sedikit terlihat
   final PageController _promoController = PageController(viewportFraction: 0.9);
+
+  String _namaLengkap = 'User';
+  String _alamatLengkap = 'Memuat alamat...';
+  bool _isLoadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData();
+  }
+
+  Future<void> _fetchProfileData() async {
+    try {
+      final response = await PelangganService.getProfile();
+      if (response['success'] == true) {
+        final data = response['data'];
+        final pelanggan = data['pelanggan'] ?? {};
+        
+        if (mounted) {
+          setState(() {
+            _namaLengkap = pelanggan['nama_lengkap'] ?? 'User';
+            final alamat = data['alamat_lengkap'];
+            _alamatLengkap = (alamat == null || alamat.toString().trim().isEmpty) 
+                ? 'Alamat belum diatur' 
+                : alamat.toString();
+            _isLoadingProfile = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _alamatLengkap = 'Gagal memuat alamat';
+            _isLoadingProfile = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _alamatLengkap = 'Koneksi bermasalah';
+          _isLoadingProfile = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +116,22 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   const SizedBox(height: 24),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: _buildLocationCard(),
+                    child: Column(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isLocationMenuOpen = !_isLocationMenuOpen;
+                            });
+                          },
+                          child: _buildLocationCard(context),
+                        ),
+                        if (_isLocationMenuOpen) ...[
+                          const SizedBox(height: 8),
+                          _buildExpandedLocationCard(),
+                        ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
@@ -170,7 +232,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
             'Enjoy a special discount\non your first laundry service.',
             const Color(0xFFE3F9FD),
             const Color(0xFF42C6D4),
-            'assets/images/diskon.png',
+            'assets/images/promos/diskon.png',
             const Color(0xFF0D47A1), // Teks biru untuk kartu biru
           ),
           _buildPromoItem(
@@ -178,7 +240,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
             'Get your laundry picked up\nfor free in selected areas.',
             const Color(0xFFFDEEF6),
             const Color(0xFFE91E63),
-            'assets/images/free_deliv.png',
+            'assets/images/promos/free_deliv.png',
             const Color(
               0xFF880E4F,
             ), // Teks pink gelap agar nyambung dengan kartu pink
@@ -310,7 +372,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hi, Mark Lee!',
+                'Hi, $_namaLengkap!',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -365,9 +427,9 @@ Widget _buildNotificationIcon() {
   );
 }
 
-  Widget _buildLocationCard() {
+  Widget _buildLocationCard(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -381,13 +443,13 @@ Widget _buildNotificationIcon() {
       ),
       child: Row(
         children: [
-          Icon(Icons.location_on_outlined, color: _cyan, size: 20),
+          Image.asset('assets/images/icons/icon_location.png', width: 20, height: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Jalan Kesana Kesini No. 12',
+              _alamatLengkap,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFF0D47A1),
               ),
@@ -395,9 +457,66 @@ Widget _buildNotificationIcon() {
             ),
           ),
           Icon(
-            Icons.keyboard_arrow_down_rounded,
+            _isLocationMenuOpen 
+                ? Icons.keyboard_arrow_up_rounded 
+                : Icons.keyboard_arrow_down_rounded,
             color: const Color(0xFF0D47A1),
             size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandedLocationCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_alamatLengkap != 'Alamat belum diatur') ...[
+            Row(
+              children: [
+                const Icon(Icons.home_outlined, color: Color(0xFF0D47A1), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _alamatLengkap,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0D47A1),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
+          GestureDetector(
+            onTap: () {
+              // Aksi tambah alamat
+            },
+            child: Text(
+              '+ Add New Address',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0D47A1),
+              ),
+            ),
           ),
         ],
       ),
@@ -449,25 +568,25 @@ Widget _buildNotificationIcon() {
               'Wash &\nIroning',
               const Color(0xFFD1F1F8),
               const Color(0xFF0D47A1),
-              'assets/images/wash_iron.png',
+              'assets/images/services/wash_iron.png',
             ),
             _buildServiceCard(
               'Wash\nOnly',
               const Color(0xFFF1E1FB),
               const Color(0xFF6A1B9A),
-              'assets/images/wash_only.png',
+              'assets/images/services/wash_only.png',
             ),
             _buildServiceCard(
               'Ironing\nOnly',
               const Color(0xFFFCECDD),
               const Color(0xFFE65100),
-              'assets/images/ironing.png',
+              'assets/images/services/ironing.png',
             ),
             _buildServiceCard(
               'Dry\nClean',
               const Color(0xFFE2F3E4),
               const Color(0xFF2E7D32),
-              'assets/images/dry_clean.png',
+              'assets/images/services/dry_clean.png',
             ),
           ],
         ),

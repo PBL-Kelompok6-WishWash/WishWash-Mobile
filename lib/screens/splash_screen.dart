@@ -146,7 +146,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       shape: BoxShape.circle,
                     ),
                     child: Center(
-                      child: Image.asset('assets/images/logo.png', height: 45),
+                      child: Image.asset('assets/images/brand/logo.png', height: 45),
                     ),
                   ),
                 ),

@@ -7,6 +7,7 @@ import '../karyawan/home_screen.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/hover_link_text.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 class LoginScreen extends StatefulWidget {
@@ -45,6 +46,24 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       });
+    }
+
+    _loadRememberMe();
+  }
+
+  Future<void> _loadRememberMe() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isRemembered = prefs.getBool('remember_me') ?? false;
+    if (isRemembered) {
+      final savedUsername = prefs.getString('saved_username') ?? '';
+      final savedPassword = prefs.getString('saved_password') ?? '';
+      if (mounted) {
+        setState(() {
+          _rememberMe = true;
+          _usernameController.text = savedUsername;
+          _passwordController.text = savedPassword;
+        });
+      }
     }
   }
 
@@ -107,6 +126,18 @@ class _LoginScreenState extends State<LoginScreen> {
     // E. Evaluasi hasil dari Golang
     if (result['success']) {
       final int roleId = result['id_role'];
+
+      // Save or clear Remember Me data
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe) {
+        await prefs.setBool('remember_me', true);
+        await prefs.setString('saved_username', username);
+        await prefs.setString('saved_password', password);
+      } else {
+        await prefs.setBool('remember_me', false);
+        await prefs.remove('saved_username');
+        await prefs.remove('saved_password');
+      }
 
       if (roleId == 2) {
         Navigator.pushAndRemoveUntil(
@@ -199,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 left: -100,
                 width: screenWidth * 1.5,
                 child: Image.asset(
-                  'assets/images/bg_atas.png',
+                  'assets/images/backgrounds/bg_atas.png',
                   fit: BoxFit.contain,
                 ),
               ),
@@ -210,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 left: -100,
                 width: screenWidth * 1.5,
                 child: Image.asset(
-                  'assets/images/bg_bawah.png',
+                  'assets/images/backgrounds/bg_bawah.png',
                   fit: BoxFit.fitWidth,
                 ),
               ),
@@ -263,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Row(
                                 children: [
                                   Image.asset(
-                                    'assets/images/logo.png',
+                                    'assets/images/brand/logo.png',
                                     height: 40,
                                   ),
                                   const SizedBox(width: 12),

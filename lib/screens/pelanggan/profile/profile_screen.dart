@@ -307,36 +307,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.grey.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
+          const BoxShadow(
+            color: Colors.white,
+            offset: Offset(-2, -2),
+            blurRadius: 4,
+          ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.grey.withOpacity(0.15),
+            offset: const Offset(4, 4),
             blurRadius: 8,
-            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: cyanColor,
-            borderRadius: BorderRadius.circular(8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [cyanColor.withOpacity(0.7), cyanColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cyanColor.withOpacity(0.4),
+                        offset: const Offset(2, 4),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: navyColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.arrow_forward_ios_rounded, color: navyColor.withOpacity(0.5), size: 14),
+                ),
+              ],
+            ),
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        title: Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: navyColor,
-          ),
-        ),
-        trailing: Icon(Icons.arrow_forward_ios_rounded, color: navyColor, size: 16),
-        onTap: () {},
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -345,36 +385,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFEBEB),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFF3F3), Color(0xFFFFEBEB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
+          const BoxShadow(
+            color: Colors.white,
+            offset: Offset(-2, -2),
+            blurRadius: 4,
+          ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.redAccent.withOpacity(0.15),
+            offset: const Offset(4, 4),
             blurRadius: 8,
-            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.redAccent,
-            borderRadius: BorderRadius.circular(8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _showLogoutConfirmation,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF7B7B), Colors.redAccent],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withOpacity(0.4),
+                        offset: const Offset(2, 4),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    'Log Out',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.redAccent,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF0F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent.withOpacity(0.5), size: 14),
+                ),
+              ],
+            ),
           ),
-          child: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
         ),
-        title: Text(
-          'Log Out',
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.redAccent,
-          ),
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.redAccent, size: 16),
-        onTap: _showLogoutConfirmation,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -439,53 +519,98 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [Colors.grey.shade100, Colors.grey.shade300],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                          backgroundColor: Colors.grey.shade100,
+                          boxShadow: [
+                            const BoxShadow(
+                              color: Colors.white,
+                              offset: Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                            BoxShadow(
+                              color: Colors.grey.shade400.withOpacity(0.5),
+                              offset: const Offset(2, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          'Batal',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade700,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Batal',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop(); // Tutup dialog
-                          await AuthService.logout();
-                          if (mounted) {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const LoginScreen()),
-                              (route) => false,
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.redAccent,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFF7B7B), Colors.redAccent],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.5),
+                              offset: const Offset(-2, -2),
+                              blurRadius: 4,
+                            ),
+                            BoxShadow(
+                              color: Colors.redAccent.withOpacity(0.5),
+                              offset: const Offset(3, 3),
+                              blurRadius: 6,
+                            ),
+                          ],
                         ),
-                        child: Text(
-                          'Keluar',
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () async {
+                              Navigator.of(context).pop(); // Tutup dialog
+                              await AuthService.logout();
+                              if (mounted) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                  (route) => false,
+                                );
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Keluar',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
