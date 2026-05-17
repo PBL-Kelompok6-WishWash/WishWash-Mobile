@@ -7,6 +7,7 @@ import '../karyawan/main_karyawan.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/hover_link_text.dart';
+import '../../widgets/bubble_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
@@ -245,6 +246,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   fit: BoxFit.fitWidth,
                 ),
               ),
+
+              const BubbleBackground(), // Gelembung sabun animasi
 
               // Konten form login responsif
               SafeArea(

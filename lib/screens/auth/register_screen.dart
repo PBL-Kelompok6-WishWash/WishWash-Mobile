@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 import '../../widgets/hover_link_text.dart'; 
 import '../../widgets/loading_overlay.dart';
+import '../../widgets/bubble_background.dart';
 import 'login_screen.dart';
 import '../../services/auth_service.dart';
 
@@ -185,6 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 width: screenWidth * 1.5,
                 child: Image.asset('assets/images/backgrounds/bg_bawah.png', fit: BoxFit.fitWidth),
               ),
+              const BubbleBackground(), // Gelembung sabun animasi
               SafeArea(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
