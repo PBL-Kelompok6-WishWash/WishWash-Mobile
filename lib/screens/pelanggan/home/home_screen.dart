@@ -13,7 +13,7 @@ import 'dart:convert';
 void main() {
   runApp(
     const MaterialApp(
-      home: const SplashScreen(),
+      home: SplashScreen(),
       debugShowCheckedModeBanner: false,
     ),
   );
@@ -28,10 +28,7 @@ class PelangganHomeScreen extends StatefulWidget {
 }
 
 class PelangganHomeScreenState extends State<PelangganHomeScreen> {
-  final Color _darkBlue = const Color(0xFF0F2F53);
   final Color _cyan = const Color(0xFF42C6D4);
-  final Color _lightCyanBg = const Color(0xFFEAF9FA);
-  final Color _greyText = const Color(0xFF7A8D9C);
 
   int _currentPromoIndex = 0;
   bool _isLocationMenuOpen = false;
@@ -42,7 +39,6 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   String _namaLengkap = 'User';
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
-  bool _isLoadingProfile = true;
   List<dynamic> _services = [];
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;

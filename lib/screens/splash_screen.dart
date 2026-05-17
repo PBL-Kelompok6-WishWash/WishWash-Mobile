@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'landing_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -158,7 +157,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         Color(0xFFE0F7FA),     // Light Ice di tengah
                         Color(0xFF00BCD4),     // Cyan pekat di bawah
                       ],
-                      stops: const [0.2, 0.5, 1.0],
+                      stops: [0.2, 0.5, 1.0],
                     ),
                   ),
                 ),

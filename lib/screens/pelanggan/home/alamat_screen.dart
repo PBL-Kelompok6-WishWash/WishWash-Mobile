@@ -49,9 +49,11 @@ class _AlamatScreenState extends State<AlamatScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengatur alamat utama: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengatur alamat utama: $e')),
+        );
+      }
     }
   }
 
@@ -191,7 +193,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
                   Divider(color: Colors.grey.shade200, thickness: 1, height: 1),
                 ],
               );
-            }).toList(),
+            }),
         ],
       ),
     );
@@ -240,9 +242,9 @@ class _AlamatScreenState extends State<AlamatScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: cyanColor.withOpacity(0.1),
+                          color: cyanColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: cyanColor.withOpacity(0.3)),
+                          border: Border.all(color: cyanColor.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           'Terakhir Digunakan',
@@ -351,61 +353,4 @@ class _AlamatScreenState extends State<AlamatScreen> {
     );
   }
 
-  Widget _buildSuggestedItem({
-    required String distance,
-    required String title,
-    required String address,
-  }) {
-    return InkWell(
-      onTap: () {},
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 40,
-              child: Column(
-                children: [
-                  Icon(Icons.location_on_outlined, color: Colors.grey.shade500, size: 22),
-                  const SizedBox(height: 4),
-                  Text(
-                    distance,
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: Colors.grey.shade400,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: navyColor,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    address,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
 import 'register_screen.dart';
-import '../pelanggan/home/home_screen.dart';
 import '../pelanggan/main_pelanggan.dart';
 import '../karyawan/main_karyawan.dart';
 import '../../services/auth_service.dart';
@@ -139,6 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.remove('saved_username');
         await prefs.remove('saved_password');
       }
+
+      if (!mounted) return;
 
       if (roleId == 2) {
         Navigator.pushAndRemoveUntil(
