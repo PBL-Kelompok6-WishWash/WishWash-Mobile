@@ -212,36 +212,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    GestureDetector(
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const AlamatScreen()),
-                        );
-                        setState(() {
-                          isLoading = true;
-                        });
-                        _fetchProfile(); // reload
-                      },
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.location_on_outlined, size: 16, color: navyColor),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              alamatLengkap,
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: navyColor,
-                                fontWeight: FontWeight.w500,
-                                decoration: TextDecoration.underline,
-                                decorationColor: navyColor.withOpacity(0.3),
-                              ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 16, color: navyColor),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            alamatLengkap,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: navyColor,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
