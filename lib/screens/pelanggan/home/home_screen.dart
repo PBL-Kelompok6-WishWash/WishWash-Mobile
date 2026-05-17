@@ -4,6 +4,7 @@ import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
+import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 
 void main() {
@@ -20,10 +21,10 @@ class PelangganHomeScreen extends StatefulWidget {
   const PelangganHomeScreen({super.key, this.showNavbar = true});
 
   @override
-  State<PelangganHomeScreen> createState() => _PelangganHomeScreenState();
+  State<PelangganHomeScreen> createState() => PelangganHomeScreenState();
 }
 
-class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
+class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   final Color _darkBlue = const Color(0xFF0F2F53);
   final Color _cyan = const Color(0xFF42C6D4);
   final Color _lightCyanBg = const Color(0xFFEAF9FA);
@@ -37,12 +38,21 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   String _namaLengkap = 'User';
   String _alamatLengkap = 'Memuat alamat...';
+  String _tipeAlamat = 'Rumah';
   bool _isLoadingProfile = true;
 
   @override
   void initState() {
     super.initState();
     _fetchProfileData();
+  }
+
+  void closeDropdown() {
+    if (mounted && _isLocationMenuOpen) {
+      setState(() {
+        _isLocationMenuOpen = false;
+      });
+    }
   }
 
   Future<void> _fetchProfileData() async {
@@ -59,6 +69,7 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
             _alamatLengkap = (alamat == null || alamat.toString().trim().isEmpty) 
                 ? 'Alamat belum diatur' 
                 : alamat.toString();
+            _tipeAlamat = data['tipe_alamat'] ?? 'Rumah';
             _isLoadingProfile = false;
           });
         }
@@ -114,68 +125,76 @@ class _PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     child: _buildHeader(),
                   ),
                   const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isLocationMenuOpen = !_isLocationMenuOpen;
-                            });
-                          },
-                          child: _buildLocationCard(context),
-                        ),
-                        if (_isLocationMenuOpen) ...[
-                          const SizedBox(height: 8),
-                          _buildExpandedLocationCard(),
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isLocationMenuOpen = !_isLocationMenuOpen;
+                                });
+                              },
+                              child: _buildLocationCard(context),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
+                          _buildPromoSlider(),
+                          const SizedBox(height: 12),
+                          _buildDotIndicator(),
+                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: _buildServicesSection(),
+                                ),
+                                const SizedBox(height: 20),
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.04),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ],
+                                  ),
+                                  child: _buildOrderStatusSection(),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
-                  _buildPromoSlider(),
-                  const SizedBox(height: 12),
-                  _buildDotIndicator(),
-                  const SizedBox(height: 24),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: _buildServicesSection(),
+                      ),
+                      if (_isLocationMenuOpen)
+                        Positioned(
+                          top: 64, // Positioned tepat di bawah location card
+                          left: 20,
+                          right: 20,
+                          child: _buildExpandedLocationCard(),
                         ),
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: _buildOrderStatusSection(),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -427,6 +446,17 @@ Widget _buildNotificationIcon() {
   );
 }
 
+  IconData _getIconForTipeAlamat() {
+    switch (_tipeAlamat) {
+      case 'Rumah':
+        return Icons.home_outlined;
+      case 'Kantor':
+        return Icons.business_outlined;
+      default:
+        return Icons.bookmark_border_rounded;
+    }
+  }
+
   Widget _buildLocationCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -447,7 +477,7 @@ Widget _buildNotificationIcon() {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              _alamatLengkap,
+              '$_tipeAlamat - $_alamatLengkap',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -487,34 +517,60 @@ Widget _buildNotificationIcon() {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_alamatLengkap != 'Alamat belum diatur') ...[
-            Row(
-              children: [
-                const Icon(Icons.home_outlined, color: Color(0xFF0D47A1), size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    _alamatLengkap,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF0D47A1),
+            GestureDetector(
+              onTap: () {
+                setState(() => _isLocationMenuOpen = false);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AlamatScreen()),
+                ).then((_) => _fetchProfileData());
+              },
+              child: Container(
+                color: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Icon(_getIconForTipeAlamat(), color: const Color(0xFF0D47A1), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '$_tipeAlamat - $_alamatLengkap',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF0D47A1),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 20),
           ],
           GestureDetector(
             onTap: () {
-              // Aksi tambah alamat
+              setState(() {
+                _isLocationMenuOpen = false;
+              });
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AlamatScreen()),
+              ).then((_) {
+                _fetchProfileData();
+              });
             },
-            child: Text(
-              '+ Add New Address',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0D47A1),
+            child: Container(
+              width: double.infinity,
+              color: Colors.transparent,
+              padding: const EdgeInsets.only(top: 4, bottom: 4),
+              child: Text(
+                '+ Add New Address',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0D47A1),
+                ),
               ),
             ),
           ),

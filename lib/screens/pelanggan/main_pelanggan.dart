@@ -23,10 +23,12 @@ class _MainPelangganState extends State<MainPelanggan> {
     _currentIndex = widget.initialIndex;
   }
 
-  final List<Widget> _pages = [
-    const PelangganHomeScreen(showNavbar: false),
+  final GlobalKey<PelangganHomeScreenState> _homeKey = GlobalKey<PelangganHomeScreenState>();
+
+  late final List<Widget> _pages = [
+    PelangganHomeScreen(key: _homeKey, showNavbar: false),
     const OrdersScreen(showNavbar: false),
-    const Center(child: Text('Add Screen')),    // Placeholder for Plus Action
+    const Center(child: Text('Add Screen')),
     const ChatScreen(showNavbar: false),
     const ProfileScreen(showNavbar: false),
   ];
@@ -40,6 +42,11 @@ class _MainPelangganState extends State<MainPelanggan> {
       );
       return;
     }
+    
+    if (_currentIndex == 0 && index != 0) {
+      _homeKey.currentState?.closeDropdown();
+    }
+
     setState(() {
       _currentIndex = index;
     });
