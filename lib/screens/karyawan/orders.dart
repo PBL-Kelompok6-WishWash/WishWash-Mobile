@@ -39,30 +39,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    return LaundryLayout(
-      fab: FloatingActionButton(
-        onPressed: () => showKaryawanMenu(context),
-        backgroundColor: const Color(0xFF4FD1D9),
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 30, color: Colors.white),
-      ),
-      bottomNav: NavbarKaryawan(
-        currentIndex: 1,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => DashboardKaryawan()),
-            );
-          } else if (index == 3) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreenKaryawan()),
-            );
-          }
-        },
-      ),
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
@@ -91,8 +68,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
             const SizedBox(height: 100),
           ],
         ),
-      ),
-    );
+      );
   }
 
   // Widget buat bikin Section yang bisa dibuka-tutup

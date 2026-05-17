@@ -22,24 +22,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    return LaundryLayout(
-      fab: FloatingActionButton(
-        onPressed: () => showKaryawanMenu(context),
-        backgroundColor: const Color(0xFF4FD1D9),
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add, size: 30, color: Colors.white),
-      ),
-      bottomNav: NavbarKaryawan(
-        currentIndex: 3, // Index 3 untuk Profile
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => DashboardKaryawan()));
-          } else if (index == 1) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => OrderScreenKaryawan()));
-          }
-        },
-      ),
-      child: SingleChildScrollView(
+    return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
         child: Column(
           children: [
@@ -137,8 +120,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   // Widget Helper buat Input Field

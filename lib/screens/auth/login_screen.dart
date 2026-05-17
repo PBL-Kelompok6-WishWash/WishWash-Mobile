@@ -3,7 +3,7 @@ import '../../utils/constants.dart';
 import 'register_screen.dart';
 import '../pelanggan/home/home_screen.dart';
 import '../pelanggan/main_pelanggan.dart';
-import '../karyawan/home_screen.dart';
+import '../karyawan/main_karyawan.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/hover_link_text.dart';
@@ -142,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (roleId == 2) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardKaryawan()),
+          MaterialPageRoute(builder: (context) => const MainKaryawan()),
           (route) => false,
         );
       } else if (roleId == 3){

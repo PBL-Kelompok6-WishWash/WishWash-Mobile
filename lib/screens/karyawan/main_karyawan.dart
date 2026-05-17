@@ -1,0 +1,56 @@
+import 'package:flutter/material.dart';
+import 'package:mobile/widgets/background.dart';
+import 'package:mobile/widgets/navbar_karyawan.dart';
+import 'home_screen.dart';
+import 'orders.dart';
+import 'profile.dart';
+
+class MainKaryawan extends StatefulWidget {
+  final int initialIndex;
+  const MainKaryawan({super.key, this.initialIndex = 0});
+
+  @override
+  State<MainKaryawan> createState() => _MainKaryawanState();
+}
+
+class _MainKaryawanState extends State<MainKaryawan> {
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  final List<Widget> _pages = [
+    const DashboardKaryawan(),
+    const OrderScreenKaryawan(),
+    const SizedBox(), // Placeholder for + button
+    const Center(child: Text('Messages - Akan Datang')),
+    const ProfileScreenKaryawan(),
+  ];
+
+  void _onTap(int index) {
+    if (index == 2) {
+      showKaryawanMenu(context);
+      return;
+    }
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LaundryLayout(
+      bottomNav: NavbarKaryawan(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+      ),
+      child: IndexedStack(
+        index: _currentIndex,
+        children: _pages,
+      ),
+    );
+  }
+}
