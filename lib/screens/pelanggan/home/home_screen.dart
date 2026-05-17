@@ -39,6 +39,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   String _namaLengkap = 'User';
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
+  bool _isLoadingProfile = true;
   List<dynamic> _services = [];
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;
