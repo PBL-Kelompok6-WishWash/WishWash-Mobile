@@ -15,10 +15,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.showNavbar = true});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
   String namaLengkap = '';
   String noTelp = '';
@@ -30,6 +30,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _fetchProfile();
+  }
+
+  void reloadProfile() {
     _fetchProfile();
   }
 

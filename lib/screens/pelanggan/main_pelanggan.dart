@@ -24,13 +24,14 @@ class _MainPelangganState extends State<MainPelanggan> {
   }
 
   final GlobalKey<PelangganHomeScreenState> _homeKey = GlobalKey<PelangganHomeScreenState>();
+  final GlobalKey<ProfileScreenState> _profileKey = GlobalKey<ProfileScreenState>();
 
   late final List<Widget> _pages = [
     PelangganHomeScreen(key: _homeKey, showNavbar: false),
     const OrdersScreen(showNavbar: false),
     const Center(child: Text('Add Screen')),
     const ChatScreen(showNavbar: false),
-    const ProfileScreen(showNavbar: false),
+    ProfileScreen(key: _profileKey, showNavbar: false),
   ];
 
   void _onTap(int index) {
@@ -45,6 +46,12 @@ class _MainPelangganState extends State<MainPelanggan> {
     
     if (_currentIndex == 0 && index != 0) {
       _homeKey.currentState?.closeDropdown();
+    }
+
+    if (index == 0) {
+      _homeKey.currentState?.reloadProfileAndServices();
+    } else if (index == 4) {
+      _profileKey.currentState?.reloadProfile();
     }
 
     setState(() {

@@ -59,6 +59,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     }
   }
 
+  void reloadProfileAndServices() {
+    _fetchProfileData();
+    _fetchServicesData();
+  }
+
   Future<void> _fetchServicesData() async {
     try {
       final servicesData = await LayananService.getLayanan();
