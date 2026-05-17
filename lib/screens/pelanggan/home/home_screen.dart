@@ -6,6 +6,9 @@ import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/services/layanan_service.dart';
+import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
+import 'dart:convert';
 
 void main() {
   runApp(
@@ -40,11 +43,15 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
   bool _isLoadingProfile = true;
+  List<dynamic> _services = [];
+  bool _isLoadingServices = true;
+  bool _isSeeAllPressed = false;
 
   @override
   void initState() {
     super.initState();
     _fetchProfileData();
+    _fetchServicesData();
   }
 
   void closeDropdown() {
@@ -53,6 +60,52 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         _isLocationMenuOpen = false;
       });
     }
+  }
+
+  Future<void> _fetchServicesData() async {
+    try {
+      final servicesData = await LayananService.getLayanan();
+      if (mounted) {
+        setState(() {
+          _services = servicesData;
+          _isLoadingServices = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil data layanan: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingServices = false;
+        });
+      }
+    }
+  }
+
+  Color _parseHexColor(String hexString) {
+    try {
+      final buffer = StringBuffer();
+      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+      buffer.write(hexString.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (e) {
+      return const Color(0xFF00BCD4); // fallback
+    }
+  }
+
+  Color _getDarkenedTextColor(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    if (hsl.lightness > 0.45) {
+      double targetLightness = 0.30;
+      if (hsl.hue >= 45 && hsl.hue <= 65) {
+        targetLightness = 0.25; // Warm Golden Amber for Yellow
+      } else if (hsl.hue >= 70 && hsl.hue <= 150) {
+        targetLightness = 0.30; // Deep Forest Green for Green
+      } else if (hsl.hue >= 170 && hsl.hue <= 200) {
+        targetLightness = 0.35; // Rich Oceanic Teal for Cyan
+      }
+      return hsl.withLightness(targetLightness).toColor();
+    }
+    return color;
   }
 
   Future<void> _fetchProfileData() async {
@@ -603,49 +656,112 @@ Widget _buildNotificationIcon() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Our Services',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D47A1),
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 2.1,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _buildServiceCard(
-              'Wash &\nIroning',
-              const Color(0xFFD1F1F8),
-              const Color(0xFF0D47A1),
-              'assets/images/services/wash_iron.png',
+            Text(
+              'Our Services',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF0D47A1),
+              ),
             ),
-            _buildServiceCard(
-              'Wash\nOnly',
-              const Color(0xFFF1E1FB),
-              const Color(0xFF6A1B9A),
-              'assets/images/services/wash_only.png',
-            ),
-            _buildServiceCard(
-              'Ironing\nOnly',
-              const Color(0xFFFCECDD),
-              const Color(0xFFE65100),
-              'assets/images/services/ironing.png',
-            ),
-            _buildServiceCard(
-              'Dry\nClean',
-              const Color(0xFFE2F3E4),
-              const Color(0xFF2E7D32),
-              'assets/images/services/dry_clean.png',
+            GestureDetector(
+              onTapDown: (_) {
+                setState(() {
+                  _isSeeAllPressed = true;
+                });
+              },
+              onTapUp: (_) {
+                setState(() {
+                  _isSeeAllPressed = false;
+                });
+              },
+              onTapCancel: () {
+                setState(() {
+                  _isSeeAllPressed = false;
+                });
+              },
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  'See All',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _cyan,
+                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
+                    decorationColor: _cyan,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        _isLoadingServices
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            : _services.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text(
+                        'Tidak ada layanan yang tersedia',
+                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 2.1,
+                    ),
+                    itemCount: _services.length,
+                    itemBuilder: (context, index) {
+                      final service = _services[index];
+                      final String name = service['nama_layanan'] ?? '';
+                      final String hexColor = service['warna_layanan'] ?? '#00BCD4';
+                      final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
+
+                      // Parse hex color to Flutter Color
+                      final Color baseColor = _parseHexColor(hexColor);
+                      // Generate background color (soft 15% opacity) & text color
+                      final Color bgColor = baseColor.withOpacity(0.15);
+                      final Color textColor = _getDarkenedTextColor(baseColor);
+
+                      // Format name to display with newlines
+                      String formattedName = name;
+                      if (name.contains(' & ')) {
+                        formattedName = name.replaceAll(' & ', ' &\n');
+                      } else if (name.contains(' ')) {
+                        formattedName = name.replaceAll(' ', '\n');
+                      }
+
+                      return _buildServiceCard(
+                        formattedName,
+                        bgColor,
+                        textColor,
+                        imagePath,
+                      );
+                    },
+                  ),
       ],
     );
   }
@@ -656,7 +772,6 @@ Widget _buildNotificationIcon() {
     Color textColor,
     String imagePath,
   ) {
-    // Mengubah radius menjadi 12 agar tidak terlalu bulat
     final double cardRadius = 12.0;
 
     return Container(
@@ -686,13 +801,7 @@ Widget _buildNotificationIcon() {
                   ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
                 },
                 blendMode: BlendMode.dstIn,
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image, size: 20),
-                ),
+                child: _buildServiceImage(imagePath),
               ),
             ),
             Expanded(
@@ -716,14 +825,61 @@ Widget _buildNotificationIcon() {
     );
   }
 
+  Widget _buildServiceImage(String imagePath) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    } else if (imagePath.startsWith('data:image')) {
+      try {
+        final base64Content = imagePath.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.image, size: 20),
+        );
+      } catch (e) {
+        return const Icon(Icons.broken_image, size: 20);
+      }
+    } else {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    }
+  }
+
+  Color getActiveOrderColor() {
+    for (var service in _services) {
+      final name = (service['nama_layanan'] ?? '').toString().toLowerCase();
+      if ((name.contains('cuci') && name.contains('setrika')) || (name.contains('wash') && name.contains('iron'))) {
+        return _parseHexColor(service['warna_layanan'] ?? '#9C27B0');
+      }
+    }
+    return const Color(0xFF9C27B0); // Purple default for "Wash & Iron"
+  }
+
   Widget _buildOrderStatusSection() {
+    final baseOrderColor = getActiveOrderColor();
+    final orderColor = _getDarkenedTextColor(baseOrderColor);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Your Order Status',
           style: TextStyle(
-            fontSize: 16, // Ukuran font diperkecil sedikit
+            fontSize: 16,
             fontWeight: FontWeight.w900,
             color: const Color(0xFF0D47A1),
           ),
@@ -733,13 +889,11 @@ Widget _buildNotificationIcon() {
           padding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 14,
-          ), // Padding dirapatkan
+          ),
           decoration: BoxDecoration(
-            color: const Color(0xFFD1F1F8).withOpacity(0.4),
-            borderRadius: BorderRadius.circular(
-              16,
-            ), // Radius diperkecil agar lebih rapi
-            border: Border.all(color: const Color(0xFFB2EBF2), width: 1),
+            color: baseOrderColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: orderColor.withOpacity(0.3), width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,7 +906,7 @@ Widget _buildNotificationIcon() {
                     'Order #1234',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0D47A1),
+                      color: orderColor,
                       fontSize: 12,
                     ),
                   ),
@@ -761,14 +915,14 @@ Widget _buildNotificationIcon() {
                       const Icon(
                         Icons.access_time,
                         size: 13,
-                        color: Colors.redAccent, // Icon Jam Merah
+                        color: Colors.redAccent,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         'Est: 30 April 2026',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.redAccent, // Teks Estimasi Merah
+                          color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -781,9 +935,9 @@ Widget _buildNotificationIcon() {
               Text(
                 'Wash & Iron (1 kg)',
                 style: TextStyle(
-                  fontSize: 15, // Lebih proporsional
+                  fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D47A1),
+                  color: orderColor,
                 ),
               ),
               const SizedBox(height: 16),
@@ -792,21 +946,22 @@ Widget _buildNotificationIcon() {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStepItem('Pick Up', Icons.check, true, true),
-                  _buildStepLine(true),
+                  _buildStepItem('Pick Up', Icons.check, true, true, orderColor),
+                  _buildStepLine(true, orderColor),
                   _buildStepItem(
                     'Wash',
                     Icons.circle,
                     true,
                     false,
+                    orderColor,
                     isCurrent: true,
                   ),
-                  _buildStepLine(false),
-                  _buildStepItem('Iron', null, false, false),
-                  _buildStepLine(false),
-                  _buildStepItem('Delivery', null, false, false),
-                  _buildStepLine(false),
-                  _buildStepItem('Success', null, false, false),
+                  _buildStepLine(false, orderColor),
+                  _buildStepItem('Iron', null, false, false, orderColor),
+                  _buildStepLine(false, orderColor),
+                  _buildStepItem('Delivery', null, false, false, orderColor),
+                  _buildStepLine(false, orderColor),
+                  _buildStepItem('Success', null, false, false, orderColor),
                 ],
               ),
 
@@ -814,12 +969,12 @@ Widget _buildNotificationIcon() {
               // Tombol View More
               SizedBox(
                 width: double.infinity,
-                height: 40, // Tinggi tombol dikunci agar tidak kebesaran
+                height: 40,
                 child: ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF0D47A1),
+                    foregroundColor: orderColor,
                     elevation: 1,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -844,26 +999,27 @@ Widget _buildNotificationIcon() {
     String label,
     IconData? icon,
     bool isActive,
-    bool isDone, {
+    bool isDone,
+    Color themeColor, {
     bool isCurrent = false,
   }) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(3), // Ukuran bulatan diperkecil
+          padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: isDone ? const Color(0xFF0D47A1) : Colors.white,
+            color: isDone ? themeColor : Colors.white,
             shape: BoxShape.circle,
             border: Border.all(
-              color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade300,
+              color: isActive ? themeColor : Colors.grey.shade300,
               width: 1.5,
             ),
           ),
           child: isCurrent
-              ? const Icon(
+              ? Icon(
                   Icons.fiber_manual_record,
                   size: 8,
-                  color: Color(0xFF0D47A1),
+                  color: themeColor,
                 )
               : Icon(
                   icon ?? Icons.circle,
@@ -871,7 +1027,7 @@ Widget _buildNotificationIcon() {
                   color: isDone
                       ? Colors.white
                       : (isActive
-                            ? const Color(0xFF0D47A1)
+                            ? themeColor
                             : Colors.transparent),
                 ),
         ),
@@ -879,11 +1035,11 @@ Widget _buildNotificationIcon() {
         Text(
           label,
           style: TextStyle(
-            fontSize: 9, // Font label diperkecil
+            fontSize: 9,
             fontWeight: isCurrent || isDone
                 ? FontWeight.bold
                 : FontWeight.normal,
-            color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade600,
+            color: isActive ? themeColor : Colors.grey.shade600,
           ),
         ),
       ],
@@ -891,14 +1047,14 @@ Widget _buildNotificationIcon() {
   }
 
   // Widget Helper Garis
-  Widget _buildStepLine(bool isActive) {
+  Widget _buildStepLine(bool isActive, Color themeColor) {
     return Expanded(
       child: Container(
         height: 1.5,
         margin: const EdgeInsets.only(
           bottom: 14,
-        ), // Disesuaikan dengan ukuran font label baru
-        color: isActive ? const Color(0xFF0D47A1) : Colors.grey.shade300,
+        ),
+        color: isActive ? themeColor : Colors.grey.shade300,
       ),
     );
   }

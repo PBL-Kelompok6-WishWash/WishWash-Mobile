@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
+import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
+import 'dart:convert';
 
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
@@ -21,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String namaLengkap = '';
   String noTelp = '';
   String email = '';
+  String username = '';
   String alamatLengkap = '';
   String fotoPelanggan = '';
 
@@ -41,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         namaLengkap = pelanggan['nama_lengkap'] ?? 'User';
         noTelp = pelanggan['no_telp'] ?? '-';
         email = user['email'] ?? '';
+        username = user['username'] ?? '';
         alamatLengkap = data['alamat_lengkap'] ?? 'Alamat belum diatur';
         fotoPelanggan = pelanggan['foto_pelanggan'] ?? '';
         isLoading = false;
@@ -177,25 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: fotoPelanggan.isNotEmpty
-                  ? Image.network(
-                      fotoPelanggan,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey.shade200,
-                        child: const Icon(Icons.person, size: 40, color: Colors.grey),
-                      ),
-                    )
-                  : Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey.shade200,
-                      child: const Icon(Icons.person, size: 40, color: Colors.grey),
-                    ),
+                child: _buildProfileImage(cyanColor),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -226,22 +212,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: navyColor),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            alamatLengkap,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: navyColor,
-                              fontWeight: FontWeight.w500,
+                    GestureDetector(
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const AlamatScreen()),
+                        );
+                        setState(() {
+                          isLoading = true;
+                        });
+                        _fetchProfile(); // reload
+                      },
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 16, color: navyColor),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              alamatLengkap,
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: navyColor,
+                                fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                                decorationColor: navyColor.withOpacity(0.3),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -253,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: double.infinity,
             height: 45,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () => _showEditProfileBottomSheet(navyColor, cyanColor),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFEAF9FA),
                 foregroundColor: navyColor,
@@ -276,6 +276,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildProfileImage(Color cyanColor) {
+    if (fotoPelanggan.startsWith('http://') || fotoPelanggan.startsWith('https://')) {
+      return Image.network(
+        fotoPelanggan,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(cyanColor),
+      );
+    } else if (fotoPelanggan.startsWith('data:image')) {
+      try {
+        final base64Content = fotoPelanggan.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(cyanColor),
+        );
+      } catch (e) {
+        return _buildDefaultAvatar(cyanColor);
+      }
+    } else if (fotoPelanggan.isNotEmpty) {
+      return Image.asset(
+        fotoPelanggan,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(cyanColor),
+      );
+    } else {
+      return _buildDefaultAvatar(cyanColor);
+    }
+  }
+
+  Widget _buildDefaultAvatar(Color cyanColor) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: cyanColor.withOpacity(0.12),
+      ),
+      child: Icon(Icons.person, size: 42, color: cyanColor),
+    );
+  }
+
   Widget _buildMenuListCard(Color navyColor, Color cyanColor) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -292,6 +339,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
+          _buildMenuItem(
+            Icons.location_on_outlined,
+            'My Address',
+            navyColor,
+            cyanColor,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AlamatScreen()),
+              );
+              setState(() {
+                isLoading = true;
+              });
+              _fetchProfile(); // reload
+            },
+          ),
           _buildMenuItem(Icons.lock_outline_rounded, 'Change Password', navyColor, cyanColor),
           _buildMenuItem(Icons.language_rounded, 'Preferences & Language', navyColor, cyanColor),
           _buildMenuItem(Icons.receipt_long_rounded, 'Order History', navyColor, cyanColor),
@@ -303,7 +366,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title, Color navyColor, Color cyanColor) {
+  Widget _buildMenuItem(IconData icon, String title, Color navyColor, Color cyanColor, {VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
@@ -330,7 +393,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () {},
+          onTap: onTap ?? () {},
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(
@@ -622,6 +685,226 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showEditProfileBottomSheet(Color navyColor, Color cyanColor) {
+    final nameController = TextEditingController(text: namaLengkap);
+    final phoneController = TextEditingController(text: noTelp == '-' ? '' : noTelp);
+    final usernameController = TextEditingController(text: username);
+    final emailController = TextEditingController(text: email);
+    final photoController = TextEditingController(text: fotoPelanggan);
+    
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                top: 24,
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle Bar
+                    Center(
+                      child: Container(
+                        width: 50,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Title
+                    Text(
+                      'Edit Profile',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Perbarui informasi pribadi Anda dengan mudah',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Inputs
+                    _buildInputLabel('Nama Lengkap', navyColor),
+                    _buildTextField(nameController, 'Masukkan nama lengkap', Icons.person_outline),
+                    
+                    _buildInputLabel('Nomor Telepon', navyColor),
+                    _buildTextField(phoneController, 'Masukkan nomor telepon', Icons.phone_android_outlined, keyboardType: TextInputType.phone),
+                    
+                    _buildInputLabel('Username', navyColor),
+                    _buildTextField(usernameController, 'Masukkan username', Icons.alternate_email_outlined),
+                    
+                    _buildInputLabel('Email', navyColor),
+                    _buildTextField(emailController, 'Masukkan email', Icons.mail_outline, keyboardType: TextInputType.emailAddress),
+                    
+                    _buildInputLabel('URL Foto Profil (Opsional)', navyColor),
+                    _buildTextField(photoController, 'Masukkan URL foto profil', Icons.image_outlined),
+                    
+                    const SizedBox(height: 32),
+
+                    // Save Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [cyanColor, const Color(0xFF00ACC1)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: cyanColor.withOpacity(0.4),
+                              offset: const Offset(0, 4),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: isSaving ? null : () async {
+                              if (nameController.text.trim().isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Nama lengkap tidak boleh kosong')),
+                                );
+                                return;
+                              }
+                              
+                              setModalState(() {
+                                isSaving = true;
+                              });
+
+                              final response = await PelangganService.updateProfile({
+                                'nama': nameController.text.trim(),
+                                'no_telp': phoneController.text.trim(),
+                                'username': usernameController.text.trim(),
+                                'email': emailController.text.trim(),
+                                'foto_pelanggan': photoController.text.trim(),
+                              });
+
+                              if (mounted) {
+                                if (response['success'] == true) {
+                                  Navigator.pop(context); // Tutup bottom sheet
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(response['message']),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+                                  _fetchProfile(); // reload profile card
+                                } else {
+                                  setModalState(() {
+                                    isSaving = false;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(response['message']),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            child: Center(
+                              child: isSaving
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : Text(
+                                      'Simpan Perubahan',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInputLabel(String label, Color navyColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6, top: 12),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: navyColor.withOpacity(0.8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint,
+    IconData icon, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF0F2F53)),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
+          hintText: hint,
+          hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
     );
   }
 }
