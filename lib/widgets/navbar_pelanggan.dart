@@ -156,27 +156,26 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                     height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          cyanColor.withOpacity(0.7),
-                          cyanColor,
+                          Color(0xFF8CFAFF), // Light bright cyan highlight (5% brighter)
+                          Color(0xFF47B2BA), // Rich solid cyan depth (5% brighter)
                         ],
                       ),
                       boxShadow: [
-                        // White shiny highlight
+                        // 3D bottom edge line (tipis)
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.6),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                          offset: const Offset(-3, -3),
+                          color: const Color(0xFF104447).withOpacity(0.25),
+                          blurRadius: 3,
+                          offset: const Offset(0, 2),
                         ),
-                        // Depth shadow
+                        // Soft ambient glow (tipis)
                         BoxShadow(
-                          color: cyanColor.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
+                          color: const Color(0xFF47B2BA).withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),

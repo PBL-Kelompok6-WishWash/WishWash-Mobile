@@ -557,15 +557,16 @@ class ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFEBEB),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3F3),
                     shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFFFE1E1), width: 4),
                   ),
                   child: const Icon(
-                    Icons.waving_hand_rounded, // Ikon tangan melambai (lucu)
+                    Icons.logout_rounded,
                     color: Colors.redAccent,
-                    size: 40,
+                    size: 36,
                   ),
                 ),
                 const SizedBox(height: 24),

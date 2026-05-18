@@ -157,38 +157,34 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
                     height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          cyanColor.withOpacity(0.7),
-                          cyanColor,
+                          Color(0xFF8CFAFF), // Light bright cyan highlight (5% brighter)
+                          Color(0xFF47B2BA), // Rich solid cyan depth (5% brighter)
                         ],
                       ),
                       boxShadow: [
-                        // White shiny highlight
+                        // 3D bottom edge line (tipis)
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.6),
-                          blurRadius: 10,
-                          spreadRadius: 0,
-                          offset: const Offset(-3, -3),
+                          color: const Color(0xFF104447).withOpacity(0.25),
+                          blurRadius: 3,
+                          offset: const Offset(0, 2),
                         ),
-                        // Depth shadow
+                        // Soft ambient glow (tipis)
                         BoxShadow(
-                          color: cyanColor.withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
+                          color: const Color(0xFF47B2BA).withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => showKaryawanMenu(context),
-                        customBorder: const CircleBorder(),
-                        splashColor: Colors.white.withOpacity(0.3),
-                        highlightColor: Colors.white.withOpacity(0.1),
-                        child: const Icon(
+                    child: GestureDetector(
+                      onTap: () => showKaryawanMenu(context),
+                      behavior: HitTestBehavior.opaque,
+                      child: const Center(
+                        child: Icon(
                           Icons.add,
                           color: Colors.white,
                           size: 32,
@@ -275,118 +271,440 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
 void showKaryawanMenu(BuildContext context) {
   showGeneralDialog(
     context: context,
-    barrierDismissible: true,
+    barrierDismissible: false,
     barrierLabel: "Dismiss",
-    barrierColor: Colors.black.withOpacity(0.4), // Efek gelap transparan
-    transitionDuration: const Duration(milliseconds: 300),
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 350),
     pageBuilder: (context, anim1, anim2) {
-      return Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 100), // Di atas tombol +
-          child: Material(
-            color: Colors.transparent,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // 1. Menu Tambah Pesanan
-                _buildMenuRow(
-                  context,
-                  icon: Icons.shopping_bag_outlined,
-                  label: "Tambah Pesanan",
-                  onTap: () {
-                    Navigator.pop(context);
-                    print("Ke halaman Tambah Pesanan");
-                  },
-                ),
-                const SizedBox(height: 20),
-                // 2. Menu Tambah Akun
-                _buildMenuRow(
-                  context,
-                  icon: Icons.person_add_alt_1_outlined,
-                  label: "Tambah Akun",
-                  onTap: () {
-                    Navigator.pop(context); // Tutup pop-up menu dulu
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const RegisterScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-    // Animasi muncul dari bawah
-    transitionBuilder: (context, anim1, anim2, child) {
-      return SlideTransition(
-        position: Tween(begin: const Offset(0, 0.5), end: const Offset(0, 0))
-            .animate(anim1),
-        child: FadeTransition(opacity: anim1, child: child),
-      );
+      return const KaryawanMenuDialogContent();
     },
   );
 }
 
-// Widget Helper buat Baris Menu (Icon + Label di samping)
-Widget _buildMenuRow(BuildContext context,
-    {required IconData icon,
-    required String label,
-    required VoidCallback onTap}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Label di Samping
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
+class KaryawanMenuDialogContent extends StatefulWidget {
+  const KaryawanMenuDialogContent({super.key});
+
+  @override
+  State<KaryawanMenuDialogContent> createState() => _KaryawanMenuDialogContentState();
+}
+
+class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _rotationAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+  late Animation<double> _translateAnimation;
+  late Animation<double> _barrierOpacity;
+
+  String? _activeTooltip;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _translateAnimation = Tween<double>(begin: 40.0, end: 0.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+
+    _barrierOpacity = Tween<double>(begin: 0.0, end: 0.4).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _closeDialog() {
+    _controller.reverse().then((_) {
+      Navigator.pop(context);
+    });
+  }
+
+  void _handleAction(String type) {
+    setState(() {
+      _activeTooltip = null;
+    });
+    _controller.reverse().then((_) {
+      Navigator.pop(context); // Tutup dialog setelah animasi reverse selesai
+      if (type == 'pesanan') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Fitur Tambah Pesanan Karyawan - Akan Datang!')),
+        );
+      } else if (type == 'akun') {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const RegisterScreen(),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color cyanColor = Color(0xFF5ACFD6);
+    const Color navyColor = Color(0xFF0F2F53);
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTap: _closeDialog,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Container(
+              color: Colors.black.withOpacity(_barrierOpacity.value),
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // 1. Tooltip Bubble (Muncul di atas rectangle putih tepat di atas masing-masing icon)
+                  if (_activeTooltip != null)
+                    Positioned(
+                      bottom: 186,
+                      left: (screenWidth - 210) / 2,
+                      width: 210,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Tooltip Kiri (Tambah Pesanan)
+                          SizedBox(
+                            width: 80,
+                            child: Center(
+                              child: _activeTooltip == 'pesanan'
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: navyColor,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.15),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        'Tambah Pesanan',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox(),
+                            ),
+                          ),
+                          
+                          // Divider placeholder
+                          const SizedBox(width: 1.5),
+
+                          // Tooltip Kanan (Tambah Akun)
+                          SizedBox(
+                            width: 80,
+                            child: Center(
+                              child: _activeTooltip == 'akun'
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: navyColor,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.15),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        'Tambah Akun',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // 2. White Rectangle Menu (Dua Icon Bersebelahan)
+                  Positioned(
+                    bottom: 96,
+                    child: Opacity(
+                      opacity: _opacityAnimation.value,
+                      child: Transform.translate(
+                        offset: Offset(0, _translateAnimation.value),
+                        child: ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: Container(
+                            width: 210,
+                            height: 85,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: Colors.grey.shade100, width: 1.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                // Icon 1: Tambah Pesanan
+                                SizedBox(
+                                  width: 80,
+                                  child: Center(
+                                    child: Listener(
+                                      onPointerDown: (_) {
+                                        setState(() {
+                                          _activeTooltip = 'pesanan';
+                                        });
+                                      },
+                                      onPointerMove: (event) {
+                                        final isInside = event.localPosition.dx >= 0 &&
+                                            event.localPosition.dx <= 50 &&
+                                            event.localPosition.dy >= 0 &&
+                                            event.localPosition.dy <= 50;
+                                        if (!isInside && _activeTooltip == 'pesanan') {
+                                          setState(() {
+                                            _activeTooltip = null;
+                                          });
+                                        } else if (isInside && _activeTooltip == null) {
+                                          setState(() {
+                                            _activeTooltip = 'pesanan';
+                                          });
+                                        }
+                                      },
+                                      onPointerUp: (event) {
+                                        final isInside = event.localPosition.dx >= 0 &&
+                                            event.localPosition.dx <= 50 &&
+                                            event.localPosition.dy >= 0 &&
+                                            event.localPosition.dy <= 50;
+                                        if (isInside) {
+                                          _handleAction('pesanan');
+                                        } else {
+                                          setState(() {
+                                            _activeTooltip = null;
+                                          });
+                                        }
+                                      },
+                                      onPointerCancel: (_) {
+                                        setState(() {
+                                          _activeTooltip = null;
+                                        });
+                                      },
+                                      child: Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xFF8CFAFF), // Light bright highlighted cyan (solid)
+                                              Color(0xFF47B2BA), // Rich solid deep cyan (solid)
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF47B2BA).withOpacity(0.25),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.add_shopping_cart_outlined,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // Divider Vertikal
+                                Container(
+                                  width: 1.5,
+                                  height: 35,
+                                  color: Colors.grey.shade100,
+                                ),
+
+                                // Icon 2: Tambah Akun
+                                SizedBox(
+                                  width: 80,
+                                  child: Center(
+                                    child: Listener(
+                                      onPointerDown: (_) {
+                                        setState(() {
+                                          _activeTooltip = 'akun';
+                                        });
+                                      },
+                                      onPointerMove: (event) {
+                                        final isInside = event.localPosition.dx >= 0 &&
+                                            event.localPosition.dx <= 50 &&
+                                            event.localPosition.dy >= 0 &&
+                                            event.localPosition.dy <= 50;
+                                        if (!isInside && _activeTooltip == 'akun') {
+                                          setState(() {
+                                            _activeTooltip = null;
+                                          });
+                                        } else if (isInside && _activeTooltip == null) {
+                                          setState(() {
+                                            _activeTooltip = 'akun';
+                                          });
+                                        }
+                                      },
+                                      onPointerUp: (event) {
+                                        final isInside = event.localPosition.dx >= 0 &&
+                                            event.localPosition.dx <= 50 &&
+                                            event.localPosition.dy >= 0 &&
+                                            event.localPosition.dy <= 50;
+                                        if (isInside) {
+                                          _handleAction('akun');
+                                        } else {
+                                          setState(() {
+                                            _activeTooltip = null;
+                                          });
+                                        }
+                                      },
+                                      onPointerCancel: (_) {
+                                        setState(() {
+                                          _activeTooltip = null;
+                                        });
+                                      },
+                                      child: Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xFF8CFAFF), // Light bright highlighted cyan (solid)
+                                              Color(0xFF47B2BA), // Rich solid deep cyan (solid)
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: const Color(0xFF47B2BA).withOpacity(0.25),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.person_add_alt_1_outlined,
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 3. Rotating Plus Button (Hanya Ikon di dalam yang berputar, background & bayangan tetap kokoh/static)
+                  Positioned(
+                    bottom: 22,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF8CFAFF), // Light bright cyan highlight (5% brighter)
+                            Color(0xFF47B2BA), // Rich solid cyan depth (5% brighter)
+                          ],
+                        ),
+                        boxShadow: [
+                          // 3D bottom edge line (tipis)
+                          BoxShadow(
+                            color: const Color(0xFF104447).withOpacity(0.25),
+                            blurRadius: 3,
+                            offset: const Offset(0, 2),
+                          ),
+                          // Soft ambient glow (tipis)
+                          BoxShadow(
+                            color: const Color(0xFF47B2BA).withOpacity(0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: GestureDetector(
+                        onTap: _closeDialog,
+                        behavior: HitTestBehavior.opaque,
+                        child: Center(
+                          child: RotationTransition(
+                            turns: _rotationAnimation,
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: const Color(0xFF123B6B),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
+            );
+          },
         ),
-        const SizedBox(width: 15),
-        // Tombol Lingkaran Teal
-        Container(
-          width: 55,
-          height: 55,
-          decoration: const BoxDecoration(
-            color: Color(0xFF4FD1D9),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.white, size: 28),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class IndicatorPainter extends CustomPainter {
