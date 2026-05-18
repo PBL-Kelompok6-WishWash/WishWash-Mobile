@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
@@ -21,7 +22,8 @@ void main() {
 
 class PelangganHomeScreen extends StatefulWidget {
   final bool showNavbar;
-  const PelangganHomeScreen({super.key, this.showNavbar = true});
+  final bool showOrderSuccessNotification;
+  const PelangganHomeScreen({super.key, this.showNavbar = true, this.showOrderSuccessNotification = false});
 
   @override
   State<PelangganHomeScreen> createState() => PelangganHomeScreenState();
@@ -43,10 +45,21 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   List<dynamic> _services = [];
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;
+  bool _isNotificationVisible = false;
 
   @override
   void initState() {
     super.initState();
+    _isNotificationVisible = widget.showOrderSuccessNotification;
+    if (_isNotificationVisible) {
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted) {
+          setState(() {
+            _isNotificationVisible = false;
+          });
+        }
+      });
+    }
     _fetchProfileData();
     _fetchServicesData();
   }
@@ -255,6 +268,13 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               ),
             ),
           ),
+          if (_isNotificationVisible)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 20,
+              left: 20,
+              right: 20,
+              child: _buildOrderSuccessBanner(),
+            ),
         ],
       ),
       bottomNavigationBar: widget.showNavbar ? BottomNavbar(
@@ -432,6 +452,80 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOrderSuccessBanner() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'W',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF42C6D4),
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Your Order is Confirmed',
+                      style: TextStyle(
+                        color: Color(0xFF0C4B8E),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      'please proceed with payment',
+                      style: TextStyle(
+                        color: const Color(0xFF0C4B8E).withOpacity(0.8),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

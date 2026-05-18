@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'wash_ironing.dart';
+import 'wash_only.dart';
+import 'ironing_only.dart';
+import 'dry_clean.dart';
 class CreateOrderScreen extends StatelessWidget {
   const CreateOrderScreen({super.key});
 
@@ -34,28 +37,54 @@ class CreateOrderScreen extends StatelessWidget {
           children: [
             _buildOrderOption(
               icon: Icons.local_laundry_service,
-              title: 'Cuci Kiloan',
-              subtitle: 'Cuci dan setrika pakaian harian',
+              title: 'Wash & Ironing',
+              subtitle: 'Complete washing and ironing service',
               color: cyanColor,
               onTap: () {
-                // Navigasi ke form cuci kiloan
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                );
               },
             ),
             const SizedBox(height: 16),
             _buildOrderOption(
-              icon: Icons.dry_cleaning,
-              title: 'Setrika Saja',
-              subtitle: 'Hanya jasa setrika pakaian',
+              icon: Icons.wash,
+              title: 'Wash Only',
+              subtitle: 'Washing service without ironing',
               color: const Color(0xFF5ACFD6),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                );
+              },
             ),
             const SizedBox(height: 16),
             _buildOrderOption(
-              icon: Icons.roller_shades_closed, 
-              title: 'Cuci Sepatu',
-              subtitle: 'Perawatan cuci sepatu premium',
+              icon: Icons.dry_cleaning, 
+              title: 'Ironing Only',
+              subtitle: 'Professional ironing service',
               color: const Color(0xFF28A0A8),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildOrderOption(
+              icon: Icons.checkroom, 
+              title: 'Dry Clean',
+              subtitle: 'Premium dry cleaning service',
+              color: const Color(0xFF70D6E3),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                );
+              },
             ),
           ],
         ),
