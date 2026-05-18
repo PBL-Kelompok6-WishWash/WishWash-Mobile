@@ -8,7 +8,12 @@ import '../../widgets/navbar_pelanggan.dart';
 
 class MainPelanggan extends StatefulWidget {
   final int initialIndex;
-  const MainPelanggan({super.key, this.initialIndex = 0});
+  final bool showOrderSuccessNotification;
+  const MainPelanggan({
+    super.key, 
+    this.initialIndex = 0,
+    this.showOrderSuccessNotification = false,
+  });
 
   @override
   State<MainPelanggan> createState() => _MainPelangganState();
@@ -27,7 +32,11 @@ class _MainPelangganState extends State<MainPelanggan> {
   final GlobalKey<ProfileScreenState> _profileKey = GlobalKey<ProfileScreenState>();
 
   late final List<Widget> _pages = [
-    PelangganHomeScreen(key: _homeKey, showNavbar: false),
+    PelangganHomeScreen(
+      key: _homeKey, 
+      showNavbar: false, 
+      showOrderSuccessNotification: widget.showOrderSuccessNotification,
+    ),
     const OrdersScreen(showNavbar: false),
     const Center(child: Text('Add Screen')),
     const ChatScreen(showNavbar: false),

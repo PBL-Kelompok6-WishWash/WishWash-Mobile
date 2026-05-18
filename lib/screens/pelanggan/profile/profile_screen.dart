@@ -217,6 +217,24 @@ class ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 4),
                     Row(
+                      children: [
+                        Icon(Icons.email_outlined, size: 14, color: navyColor),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            email.isEmpty ? '-' : email,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: navyColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.location_on_outlined, size: 16, color: navyColor),

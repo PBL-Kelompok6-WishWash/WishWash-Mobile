@@ -9,6 +9,10 @@ import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/wash_ironing.dart';
+import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
+import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
+import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'dart:convert';
 
 void main() {
@@ -850,11 +854,42 @@ Widget _buildNotificationIcon() {
                         formattedName = name.replaceAll(' ', '\n');
                       }
 
-                      return _buildServiceCard(
-                        formattedName,
-                        bgColor,
-                        textColor,
-                        imagePath,
+                      return GestureDetector(
+                        onTap: () {
+                          final String lowerName = name.toLowerCase();
+                          if (lowerName.contains('ironing') && lowerName.contains('wash')) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                            );
+                          } else if (lowerName.contains('wash')) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                            );
+                          } else if (lowerName.contains('ironing')) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                            );
+                          } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+                            );
+                          }
+                        },
+                        child: _buildServiceCard(
+                          formattedName,
+                          bgColor,
+                          textColor,
+                          imagePath,
+                        ),
                       );
                     },
                   ),

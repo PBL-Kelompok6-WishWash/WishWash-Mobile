@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
+import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 
 class ReviewWashOnlyScreen extends StatefulWidget {
   const ReviewWashOnlyScreen({super.key});
@@ -473,7 +474,7 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
                     Navigator.pushAndRemoveUntil(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const PelangganHomeScreen(
+                        builder: (context) => const MainPelanggan(
                           showOrderSuccessNotification: true,
                         ),
                       ),
