@@ -184,52 +184,75 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                       topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
                     ),
-                    child: _isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(),
-                          )
-                        : _services.isEmpty
-                            ? Center(
-                                child: Text(
-                                  TranslationService.translate('no_services'),
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.bold,
+                    child: RefreshIndicator(
+                      color: const Color(0xFF0C4B8E),
+                      backgroundColor: Colors.white,
+                      onRefresh: _fetchServices,
+                      child: _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(),
+                            )
+                          : _services.isEmpty
+                              ? ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  children: [
+                                    SizedBox(
+                                      height: MediaQuery.of(context).size.height * 0.6,
+                                      child: Center(
+                                        child: Text(
+                                          TranslationService.translate('no_services'),
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : SingleChildScrollView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 20),
+                                  child: Column(
+                                    children: _services.map((service) {
+                                      final String name = service['nama_layanan'] ?? '';
+                                      return _buildServiceCard(service, () {
+                                        final String lowerName = name.toLowerCase();
+                                        final bool hasWash = lowerName.contains('wash') || lowerName.contains('cuci');
+                                        final bool hasIron = lowerName.contains('iron') || lowerName.contains('setrika');
+                                        final bool hasDry = lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('lipat');
+
+                                        if (hasWash && hasIron) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                                          );
+                                        } else if (hasWash && hasDry) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                                          );
+                                        } else if (hasWash) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                                          );
+                                        } else if (hasIron) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                                          );
+                                        } else {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                                          );
+                                        }
+                                      });
+                                    }).toList(),
                                   ),
                                 ),
-                              )
-                            : SingleChildScrollView(
-                                padding: const EdgeInsets.fromLTRB(24, 30, 24, 20),
-                                child: Column(
-                                  children: _services.map((service) {
-                                    final String name = service['nama_layanan'] ?? '';
-                                    return _buildServiceCard(service, () {
-                                      final String lowerName = name.toLowerCase();
-                                      if (lowerName.contains('ironing') && lowerName.contains('wash')) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                                        );
-                                      } else if (lowerName.contains('wash')) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                                        );
-                                      } else if (lowerName.contains('ironing')) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                                        );
-                                      } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                        );
-                                      }
-                                    });
-                                  }).toList(),
-                                ),
-                              ),
+                    ),
                   ),
                 ),
               ),
