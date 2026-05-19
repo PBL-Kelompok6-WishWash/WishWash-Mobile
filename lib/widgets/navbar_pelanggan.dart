@@ -73,7 +73,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     const Color activeColor = Color(0xFF0C4B8E);
-    const Color inactiveColor = Color(0xFF000000); // Black for inactive state
+    const Color inactiveColor = Color(0xFF8E9AA6); // Grey for inactive state
     const Color cyanColor = Color(0xFF5ACFD6);
 
     final double screenWidth = MediaQuery.of(context).size.width;
