@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
@@ -44,6 +45,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   final PageController _promoController = PageController(viewportFraction: 0.9);
 
   String _namaLengkap = 'User';
+  String _fotoPelanggan = '';
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
   bool _isLoadingProfile = true;
@@ -141,6 +143,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         if (mounted) {
           setState(() {
             _namaLengkap = pelanggan['nama_lengkap'] ?? 'User';
+            _fotoPelanggan = pelanggan['foto_pelanggan'] ?? '';
             final alamat = data['alamat_lengkap'];
             _alamatLengkap = (alamat == null || alamat.toString().trim().isEmpty) 
                 ? 'Alamat belum diatur' 
@@ -181,13 +184,13 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             top: 0,
             left: 0,
             right: 0,
-            height: 300,
+            height: 350,
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Color(0xFFD4F0F7), Color(0xFFF8FBFC)],
+                  colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
                 ),
               ),
             ),
@@ -581,72 +584,164 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     );
   }
 
+  Widget _buildProfileAvatar() {
+    ImageProvider? imageProvider;
+    if (_fotoPelanggan.startsWith('http://') || _fotoPelanggan.startsWith('https://')) {
+      imageProvider = NetworkImage(_fotoPelanggan);
+    } else if (_fotoPelanggan.startsWith('data:image')) {
+      try {
+        final base64Content = _fotoPelanggan.split(',').last;
+        final bytes = base64Decode(base64Content);
+        imageProvider = MemoryImage(bytes);
+      } catch (e) {
+        debugPrint("Error base64 avatar: $e");
+      }
+    } else if (_fotoPelanggan.isNotEmpty) {
+      imageProvider = AssetImage(_fotoPelanggan);
+    }
+
+    return Container(
+      width: 55,
+      height: 55,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: CircleAvatar(
+        radius: 24,
+        backgroundColor: const Color(0xFFEBF8FA),
+        backgroundImage: imageProvider,
+        child: imageProvider == null
+            ? const Icon(
+                Icons.person_rounded,
+                color: Color(0xFF0C4B8E),
+                size: 26,
+              )
+            : null,
+      ),
+    );
+  }
+
   // --- SISANYA TETAP SAMA (WIDGET LAINNYA) ---
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        // Left: Avatar + Welcome Text (Vertically Centered)
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                '${TranslationService.translate('welcome')}, $_namaLengkap!',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D47A1),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                TranslationService.currentLang == 'en' 
-                    ? 'Which service do you need?' 
-                    : 'Layanan apa yang Anda butuhkan?',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: const Color(0xFF0C4B8E).withOpacity(0.6),
+              _buildProfileAvatar(),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_namaLengkap!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0D47A1),
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      TranslationService.currentLang == 'en'
+                          ? 'Which laundry service do you need today?'
+                          : 'Layanan laundry mana yang Anda butuhkan hari ini?',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF0C4B8E).withValues(alpha: 0.65),
+                        
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
+        const SizedBox(width: 12),
+        // Right: Circular Notification Icon
         _buildNotificationIcon(),
       ],
     );
   }
 
-Widget _buildNotificationIcon() {
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => NotificationScreen()),
-      );
-    },
-    child: Stack(
-      children: [
-        const Icon(
-          Icons.notifications_none_rounded,
-          color: Color(0xFF0C4B8E),
-          size: 28,
-        ),
-        Positioned(
-          right: 1,
-          top: 1,
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: Colors.redAccent,
-              shape: BoxShape.circle,
+  Widget _buildNotificationIcon() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => NotificationScreen()),
+        );
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
+          ],
+          border: Border.all(color: const Color(0xFFE3F2FD), width: 1.5),
         ),
-      ],
-    ),
-  );
-}
+        alignment: Alignment.center,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(
+              Icons.notifications_none_rounded,
+              color: Color(0xFF0C4B8E),
+              size: 26,
+            ),
+            Positioned(
+              top: -1,
+              right: -1,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   IconData _getIconForTipeAlamat() {
     switch (_tipeAlamat) {

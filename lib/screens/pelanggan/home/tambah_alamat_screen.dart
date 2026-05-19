@@ -283,7 +283,9 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                       if (context.mounted) {
                         CustomDialog.showSuccess(
                           context: context,
-                          title: 'Berhasil Disimpan',
+                          title: widget.alamatToEdit != null
+                              ? (TranslationService.currentLang == 'en' ? 'Updated Successfully' : 'Berhasil Diubah')
+                              : (TranslationService.currentLang == 'en' ? 'Saved Successfully' : 'Berhasil Disimpan'),
                           message: widget.alamatToEdit != null 
                               ? TranslationService.translate('address_updated') 
                               : TranslationService.translate('address_added'),
@@ -295,7 +297,9 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                       if (context.mounted) {
                         CustomDialog.showError(
                           context: context,
-                          title: 'Simpan Gagal',
+                          title: widget.alamatToEdit != null
+                              ? (TranslationService.currentLang == 'en' ? 'Update Failed' : 'Gagal Mengubah')
+                              : (TranslationService.currentLang == 'en' ? 'Save Failed' : 'Simpan Gagal'),
                           message: e.toString(),
                         );
                       }

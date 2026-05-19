@@ -56,8 +56,10 @@ class _AlamatScreenState extends State<AlamatScreen> {
       if (mounted) {
         CustomDialog.showError(
           context: context,
-          title: 'Gagal',
-          message: 'Gagal mengatur alamat utama: $e',
+          title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+          message: TranslationService.currentLang == 'en'
+              ? 'Failed to set primary address: $e'
+              : 'Gagal mengatur alamat utama: $e',
         );
       }
     }
@@ -66,10 +68,12 @@ class _AlamatScreenState extends State<AlamatScreen> {
   Future<void> _deleteAlamat(int idAlamat) async {
     final confirm = await CustomDialog.showConfirm(
       context: context,
-      title: 'Hapus Alamat',
-      message: 'Apakah Anda yakin ingin menghapus alamat ini dari daftar?',
-      confirmText: 'Hapus',
-      cancelText: 'Batal',
+      title: TranslationService.currentLang == 'en' ? 'Delete Address' : 'Hapus Alamat',
+      message: TranslationService.currentLang == 'en'
+          ? 'Are you sure you want to delete this address from the list?'
+          : 'Apakah Anda yakin ingin menghapus alamat ini dari daftar?',
+      confirmText: TranslationService.currentLang == 'en' ? 'Delete' : 'Hapus',
+      cancelText: TranslationService.currentLang == 'en' ? 'Cancel' : 'Batal',
     );
     if (confirm != true) return;
 
@@ -79,8 +83,10 @@ class _AlamatScreenState extends State<AlamatScreen> {
       if (success && mounted) {
         CustomDialog.showSuccess(
           context: context,
-          title: 'Hapus Berhasil',
-          message: 'Alamat Anda telah berhasil dihapus dari sistem.',
+          title: TranslationService.currentLang == 'en' ? 'Delete Success' : 'Hapus Berhasil',
+          message: TranslationService.currentLang == 'en'
+              ? 'Your address has been successfully deleted from the system.'
+              : 'Alamat Anda telah berhasil dihapus dari sistem.',
         );
         _fetchAlamat();
       }
@@ -88,7 +94,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
       if (mounted) {
         CustomDialog.showError(
           context: context,
-          title: 'Gagal Menghapus',
+          title: TranslationService.currentLang == 'en' ? 'Failed to Delete' : 'Gagal Menghapus',
           message: e.toString(),
         );
         setState(() => _isLoading = false);

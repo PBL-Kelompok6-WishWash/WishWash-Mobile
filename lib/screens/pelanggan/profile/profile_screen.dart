@@ -845,29 +845,31 @@ class ProfileScreenState extends State<ProfileScreen> {
                                 'nama': nameController.text.trim(),
                                 'no_telp': phoneController.text.trim(),
                                 'username': usernameController.text.trim(),
-                                'email': emailController.text.trim(),
+                                  'email': emailController.text.trim(),
                                 'foto_pelanggan': photoController.text.trim(),
                               });
 
                               if (mounted) {
-                                if (response['success'] == true) {
-                                  Navigator.pop(context); // Tutup bottom sheet
-                                  CustomDialog.showSuccess(
-                                    context: context,
-                                    title: 'Berhasil',
-                                    message: response['message'] ?? 'Profil berhasil diperbarui!',
-                                  );
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-                                  _fetchProfile(); // reload profile card
-                                } else {
-                                  setModalState(() {
-                                    isSaving = false;
-                                  });
-                                  CustomDialog.showError(
-                                    context: context,
-                                    title: 'Gagal',
+                                  if (response['success'] == true) {
+                                    Navigator.pop(context); // Tutup bottom sheet
+                                    CustomDialog.showSuccess(
+                                      context: context,
+                                      title: TranslationService.currentLang == 'en' ? 'Success' : 'Berhasil',
+                                      message: TranslationService.currentLang == 'en'
+                                          ? 'Profile updated successfully!'
+                                          : 'Profil berhasil diperbarui!',
+                                    );
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+                                    _fetchProfile(); // reload profile card
+                                  } else {
+                                    setModalState(() {
+                                      isSaving = false;
+                                    });
+                                    CustomDialog.showError(
+                                      context: context,
+                                      title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
                                     message: response['message'] ?? 'Terjadi kesalahan.',
                                   );
                                 }
