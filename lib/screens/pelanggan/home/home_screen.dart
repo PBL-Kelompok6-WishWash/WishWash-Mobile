@@ -87,7 +87,10 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       final servicesData = await LayananService.getLayanan();
       if (mounted) {
         setState(() {
-          _services = servicesData;
+          _services = servicesData.where((s) {
+            final status = s['status_layanan']?.toString() ?? 'Aktif';
+            return status.toLowerCase() == 'aktif';
+          }).toList();
           _isLoadingServices = false;
         });
       }
@@ -190,52 +193,62 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 65),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: _buildHeader(),
-                  ),
-                  const SizedBox(height: 24),
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Column(
-                        children: [
-                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
+            child: RefreshIndicator(
+              color: const Color(0xFF0C4B8E),
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                await Future.wait([
+                  _fetchProfileData(),
+                  _fetchServicesData(),
+                ]);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 65),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: _buildHeader(),
+                    ),
+                    const SizedBox(height: 24),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Column(
+                          children: [
+                             Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
-                                  splashColor: const Color(0xFF0C4B8E).withOpacity(0.12),
-                                  highlightColor: const Color(0xFF0C4B8E).withOpacity(0.06),
-                                  onTap: () {
-                                    setState(() {
-                                      _isLocationMenuOpen = !_isLocationMenuOpen;
-                                    });
-                                  },
-                                  child: _buildLocationCard(context),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    splashColor: const Color(0xFF0C4B8E).withValues(alpha: 0.12),
+                                    highlightColor: const Color(0xFF0C4B8E).withValues(alpha: 0.06),
+                                    onTap: () {
+                                      setState(() {
+                                        _isLocationMenuOpen = !_isLocationMenuOpen;
+                                      });
+                                    },
+                                    child: _buildLocationCard(context),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           const SizedBox(height: 24),
                           // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
                           _buildPromoSlider(),
@@ -303,6 +316,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               ),
             ),
           ),
+        ),
           if (_isNotificationVisible)
             Positioned(
               top: MediaQuery.of(context).padding.top + 20,

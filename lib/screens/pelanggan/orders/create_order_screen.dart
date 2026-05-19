@@ -30,7 +30,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     try {
       final list = await LayananService.getLayanan();
       setState(() {
-        _services = list;
+        _services = list.where((s) {
+          final status = s['status_layanan']?.toString() ?? 'Aktif';
+          return status.toLowerCase() == 'aktif';
+        }).toList();
         _isLoading = false;
       });
     } catch (e) {

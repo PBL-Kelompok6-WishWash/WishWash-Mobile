@@ -4,6 +4,7 @@ import 'register_screen.dart';
 import '../pelanggan/main_pelanggan.dart';
 import '../karyawan/main_karyawan.dart';
 import '../../services/auth_service.dart';
+import '../../services/translation_service.dart';
 import '../landing_page.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/hover_link_text.dart';
@@ -154,6 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const MainPelanggan()),
           (route) => false,
         );
+      } else if (roleId == 1) {
+        final errMsg = TranslationService.currentLang == 'id'
+            ? "Akun Admin tidak diizinkan masuk ke aplikasi mobile."
+            : "Admin account is not allowed to log into the mobile app.";
+        _showAutoClearError(errMsg);
       }
     } else {
       // F. Tampilkan error Golang secara inline dan auto-clear
