@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/utils/constants.dart';
 
 class OrderService {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/v1/order';
+  static const String baseUrl = '${Constants.baseUrl}/order';
 
   static Future<List<dynamic>> getOrders() async {
     final prefs = await SharedPreferences.getInstance();
