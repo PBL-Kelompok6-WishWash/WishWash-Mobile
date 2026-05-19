@@ -86,4 +86,25 @@ class AlamatService {
 
     return response.statusCode == 200;
   }
+
+  static Future<bool> deleteAlamat(int idAlamat) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token == null) throw Exception('No token found');
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/$idAlamat'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      final data = jsonDecode(response.body);
+      throw Exception(data['error'] ?? 'Gagal menghapus alamat');
+    }
+  }
 }

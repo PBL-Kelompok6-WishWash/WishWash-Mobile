@@ -4,6 +4,8 @@ import 'register_screen.dart';
 import '../pelanggan/main_pelanggan.dart';
 import '../karyawan/main_karyawan.dart';
 import '../../services/auth_service.dart';
+import '../../services/translation_service.dart';
+import '../landing_page.dart';
 import '../../widgets/loading_overlay.dart';
 import '../../widgets/hover_link_text.dart';
 import '../../widgets/bubble_background.dart';
@@ -153,6 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const MainPelanggan()),
           (route) => false,
         );
+      } else if (roleId == 1) {
+        final errMsg = TranslationService.currentLang == 'id'
+            ? "Akun Admin tidak diizinkan masuk ke aplikasi mobile."
+            : "Admin account is not allowed to log into the mobile app.";
+        _showAutoClearError(errMsg);
       }
     } else {
       // F. Tampilkan error Golang secara inline dan auto-clear
@@ -216,13 +223,26 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const LandingPage()),
+          );
+        }
       },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: LoadingOverlay(
+      child: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.white,
+          body: LoadingOverlay(
           isLoading: _isLoading,
           child: Stack(
             children: [
@@ -267,9 +287,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               const SizedBox(height: 16),
 
-                              // Tombol kembali
                               GestureDetector(
-                                onTap: () => Navigator.pop(context),
+                                onTap: () {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.pop(context);
+                                  } else {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const LandingPage()),
+                                    );
+                                  }
+                                },
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -460,44 +488,45 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 55,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF4DD0E1), Color(0xFF00BCD4)], // Primary Cyan face
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Constants.colorCyan.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      blurRadius: 15,
-                                      offset: const Offset(0, 5),
+                                      color: const Color(0xFF0097A7), // Dark Cyan shadow simulating the 3D edge directly
+                                      blurRadius: 0,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
-                                child: ElevatedButton(
-                                  // Matikan tombol jika sedang loading
-                                  onPressed: _isLoading ? null : _handleLogin,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Constants.colorCyan,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: _isLoading ? null : _handleLogin,
+                                    splashColor: Colors.white.withValues(alpha: 0.25),
+                                    child: Center(
+                                      child: _isLoading
+                                          ? const SizedBox(
+                                              height: 24,
+                                              width: 24,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Sign In',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                     ),
                                   ),
-                                  // Ganti teks dengan animasi loading
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Sign In',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
                                 ),
                               ),
                               const SizedBox(height: 40),
@@ -566,6 +595,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
+    ),);
   }
 }

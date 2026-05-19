@@ -92,7 +92,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       children: [
         Text(
           title,
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: navyColor.withOpacity(0.8)),
+          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: navyColor.withValues(alpha: 0.8)),
         ),
         const SizedBox(height: 12),
         // Render List Card
@@ -126,7 +126,6 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   Widget _buildOrderCard(BuildContext context, String id, String nama, String layanan, String harga, String status, Color defaultStatusBg, Color defaultStatusText) {
     Color bg = defaultStatusBg;
     Color text = defaultStatusText;
-    Color? border;
 
     if (status == "PickUp") {
       bg = const Color(0xFFFFF3A3); // Latar kuning terang
@@ -178,7 +177,6 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                 decoration: BoxDecoration(
                   color: bg, 
                   borderRadius: BorderRadius.circular(20),
-                  border: border != null ? Border.all(color: border, width: 2.0) : null,
                 ),
                 child: Text(status, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: text)),
               ),

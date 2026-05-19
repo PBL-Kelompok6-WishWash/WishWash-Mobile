@@ -87,7 +87,10 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       final servicesData = await LayananService.getLayanan();
       if (mounted) {
         setState(() {
-          _services = servicesData;
+          _services = servicesData.where((s) {
+            final status = s['status_layanan']?.toString() ?? 'Aktif';
+            return status.toLowerCase() == 'aktif';
+          }).toList();
           _isLoadingServices = false;
         });
       }
@@ -190,33 +193,62 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 65),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: _buildHeader(),
-                  ),
-                  const SizedBox(height: 24),
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isLocationMenuOpen = !_isLocationMenuOpen;
-                                });
-                              },
-                              child: _buildLocationCard(context),
+            child: RefreshIndicator(
+              color: const Color(0xFF0C4B8E),
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                await Future.wait([
+                  _fetchProfileData(),
+                  _fetchServicesData(),
+                ]);
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 65),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: _buildHeader(),
+                    ),
+                    const SizedBox(height: 24),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Column(
+                          children: [
+                             Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    splashColor: const Color(0xFF0C4B8E).withValues(alpha: 0.12),
+                                    highlightColor: const Color(0xFF0C4B8E).withValues(alpha: 0.06),
+                                    onTap: () {
+                                      setState(() {
+                                        _isLocationMenuOpen = !_isLocationMenuOpen;
+                                      });
+                                    },
+                                    child: _buildLocationCard(context),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
                           const SizedBox(height: 24),
                           // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
                           _buildPromoSlider(),
@@ -263,19 +295,28 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                           ),
                         ],
                       ),
-                      if (_isLocationMenuOpen)
-                        Positioned(
-                          top: 64, // Positioned tepat di bawah location card
-                          left: 20,
-                          right: 20,
-                          child: _buildExpandedLocationCard(),
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOutBack,
+                        top: _isLocationMenuOpen ? 64 : 35,
+                        left: 20,
+                        right: 20,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 250),
+                          opacity: _isLocationMenuOpen ? 1.0 : 0.0,
+                          child: IgnorePointer(
+                            ignoring: !_isLocationMenuOpen,
+                            child: _buildExpandedLocationCard(),
+                          ),
                         ),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
           ),
+        ),
           if (_isNotificationVisible)
             Positioned(
               top: MediaQuery.of(context).padding.top + 20,
@@ -626,19 +667,8 @@ Widget _buildNotificationIcon() {
   }
 
   Widget _buildLocationCard(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Row(
         children: [
           Image.asset('assets/images/icons/icon_location.png', width: 20, height: 20),
@@ -648,10 +678,10 @@ Widget _buildNotificationIcon() {
               _alamatLengkap == 'Alamat belum diatur' 
                   ? TranslationService.translate('address_not_set')
                   : '${_getTranslatedTipeAlamat(_tipeAlamat)} - $_alamatLengkap',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF0C4B8E),
+                color: Color(0xFF0C4B8E),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -671,75 +701,107 @@ Widget _buildNotificationIcon() {
   Widget _buildExpandedLocationCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+        border: Border.all(color: const Color(0xFF0C4B8E).withOpacity(0.08)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_alamatLengkap != 'Alamat belum diatur') ...[
-            GestureDetector(
-              onTap: () {
-                setState(() => _isLocationMenuOpen = false);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AlamatScreen()),
-                ).then((_) => _fetchProfileData());
-              },
-              child: Container(
-                color: Colors.transparent,
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Icon(_getIconForTipeAlamat(), color: const Color(0xFF0C4B8E), size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${_getTranslatedTipeAlamat(_tipeAlamat)} - $_alamatLengkap',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF0C4B8E),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  setState(() => _isLocationMenuOpen = false);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AlamatScreen()),
+                  ).then((_) => _fetchProfileData());
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0C4B8E).withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(_getIconForTipeAlamat(), color: const Color(0xFF0C4B8E), size: 18),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          '${_getTranslatedTipeAlamat(_tipeAlamat)} - $_alamatLengkap',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0C4B8E),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Divider(color: Colors.grey.shade100, height: 1),
+            ),
           ],
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isLocationMenuOpen = false;
-              });
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AlamatScreen()),
-              ).then((_) {
-                _fetchProfileData();
-              });
-            },
-            child: Container(
-              width: double.infinity,
-              color: Colors.transparent,
-              padding: const EdgeInsets.only(top: 4, bottom: 4),
-              child: Text(
-                '+ ${TranslationService.translate('add_new_address')}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0C4B8E),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () {
+                setState(() {
+                  _isLocationMenuOpen = false;
+                });
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AlamatScreen()),
+                ).then((_) {
+                  _fetchProfileData();
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE0F7FA),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.add_location_alt_rounded, color: Color(0xFF42C6D4), size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '+ ${TranslationService.translate('add_new_address')}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF42C6D4),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -791,21 +853,25 @@ Widget _buildNotificationIcon() {
                   _isSeeAllPressed = true;
                 });
               },
-              onTapUp: (_) {
-                setState(() {
-                  _isSeeAllPressed = false;
-                });
-              },
               onTapCancel: () {
                 setState(() {
                   _isSeeAllPressed = false;
                 });
               },
               onTap: () {
+                setState(() {
+                  _isSeeAllPressed = true;
+                });
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
-                );
+                ).then((_) {
+                  if (mounted) {
+                    setState(() {
+                      _isSeeAllPressed = false;
+                    });
+                  }
+                });
               },
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -815,7 +881,7 @@ Widget _buildNotificationIcon() {
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _cyan,
-                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
+                    decoration: TextDecoration.underline,
                     decorationColor: _cyan,
                   ),
                 ),
@@ -871,42 +937,42 @@ Widget _buildNotificationIcon() {
                         formattedName = name.replaceAll(' ', '\n');
                       }
 
-                      return GestureDetector(
-                        onTap: () {
-                          final String lowerName = name.toLowerCase();
-                          if (lowerName.contains('ironing') && lowerName.contains('wash')) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                            );
-                          } else if (lowerName.contains('wash')) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                            );
-                          } else if (lowerName.contains('ironing')) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                            );
-                          } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
-                            );
-                          }
-                        },
-                        child: _buildServiceCard(
-                          formattedName,
-                          bgColor,
-                          textColor,
-                          imagePath,
-                        ),
+                      final VoidCallback cardOnTap = () {
+                        final String lowerName = name.toLowerCase();
+                        if (lowerName.contains('ironing') && lowerName.contains('wash')) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                          );
+                        } else if (lowerName.contains('wash')) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                          );
+                        } else if (lowerName.contains('ironing')) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                          );
+                        } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+                          );
+                        }
+                      };
+
+                      return _buildServiceCard(
+                        formattedName,
+                        bgColor,
+                        textColor,
+                        imagePath,
+                        cardOnTap,
                       );
                     },
                   ),
@@ -919,6 +985,7 @@ Widget _buildNotificationIcon() {
     Color bgColor,
     Color textColor,
     String imagePath,
+    VoidCallback onTap,
   ) {
     final double cardRadius = 12.0;
 
@@ -936,42 +1003,50 @@ Widget _buildNotificationIcon() {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(cardRadius),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 5,
-              child: ShaderMask(
-                shaderCallback: (rect) {
-                  return const LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [Colors.black, Colors.transparent],
-                  ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
-                },
-                blendMode: BlendMode.dstIn,
-                child: _buildServiceImage(imagePath),
-              ),
-            ),
-            Expanded(
-              flex: 6,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 20, right: 8),
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.left,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: textColor,
-                      height: 1.1,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            splashColor: textColor.withOpacity(0.15),
+            highlightColor: textColor.withOpacity(0.05),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: ShaderMask(
+                    shaderCallback: (rect) {
+                      return const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Colors.black, Colors.transparent],
+                      ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
+                    },
+                    blendMode: BlendMode.dstIn,
+                    child: _buildServiceImage(imagePath),
+                  ),
+                ),
+                Expanded(
+                  flex: 6,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 20, right: 8),
+                      child: Text(
+                        title,
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

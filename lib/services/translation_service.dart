@@ -101,6 +101,10 @@ class TranslationService {
       'fill_all_fields': 'Please fill in all fields completely',
       'address_added': 'Address successfully added',
       'address_updated': 'Address successfully updated',
+      'cuci_kering_lipat_desc': 'Complete package: washed, dried, and neatly folded.',
+      'cuci_kering_desc': 'Thoroughly washed and dried, without ironing.',
+      'cuci_dan_setrika_desc': 'Complete package: washed, fragrant, and neatly ironed.',
+      'setrika_desc': 'Only neatly ironed and sprayed with premium fragrance.',
     },
     'id': {
       'welcome': 'Selamat Datang',
@@ -167,6 +171,10 @@ class TranslationService {
       'fill_all_fields': 'Harap isi semua data dengan lengkap',
       'address_added': 'Alamat berhasil ditambahkan',
       'address_updated': 'Alamat berhasil diubah',
+      'cuci_kering_lipat_desc': 'Paket lengkap cuci bersih, kering, dan dilipat rapi.',
+      'cuci_kering_desc': 'Dicuci bersih dan dikeringkan, tanpa disetrika.',
+      'cuci_dan_setrika_desc': 'Dicuci bersih, diberi pewangi premium, dan disetrika rapi.',
+      'setrika_desc': 'Hanya disetrika rapi dan diberi pewangi premium.',
     }
   };
 
