@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/screens/karyawan/pesanan.dart';
+import 'package:mobile/screens/karyawan/pesanan_diproses.dart';
+import 'package:mobile/screens/karyawan/pesanan_diantar.dart';
+import 'package:mobile/screens/karyawan/pesanan_selesai.dart';
 
-class DashboardKaryawan extends StatelessWidget {
+class DashboardKaryawan extends StatefulWidget {
   const DashboardKaryawan({super.key});
+
+  @override
+  State<DashboardKaryawan> createState() => _DashboardKaryawanState();
+}
+
+class _DashboardKaryawanState extends State<DashboardKaryawan> {
+  int orderCount = 3;
+  int prosesCount = 0;
+  int antarCount = 0;
+  int selesaiCount = 8;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +50,7 @@ class DashboardKaryawan extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _buildStatusGrid(),
+          _buildStatusGrid(context),
           const SizedBox(height: 30),
 
           // --- AKTIVITAS TERKINI ---
@@ -243,7 +257,7 @@ class DashboardKaryawan extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusGrid() {
+  Widget _buildStatusGrid(BuildContext context) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -252,18 +266,49 @@ class DashboardKaryawan extends StatelessWidget {
       mainAxisSpacing: 16,
       childAspectRatio: 1.15, // slightly wider than tall
       children: [
-        _buildGridCard("ORDER", "3", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded),
-        _buildGridCard("PROSES", "0", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded),
-        _buildGridCard("ANTAR", "0", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded),
-        _buildGridCard("SELESAI", "8", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded),
+        _buildGridCard("ORDER", "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
+          final acceptedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananScreen()));
+          if (acceptedCount != null && acceptedCount is int && acceptedCount > 0) {
+            setState(() {
+              orderCount -= acceptedCount;
+              if (orderCount < 0) orderCount = 0;
+              prosesCount += acceptedCount;
+            });
+          }
+        }),
+        _buildGridCard("PROSES", "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
+          final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
+          if (finishedCount != null && finishedCount is int && finishedCount > 0) {
+            setState(() {
+              prosesCount -= finishedCount;
+              if (prosesCount < 0) prosesCount = 0;
+              antarCount += finishedCount;
+            });
+          }
+        }),
+        _buildGridCard("ANTAR", "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
+          final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen()));
+          if (finishedCount != null && finishedCount is int && finishedCount > 0) {
+            setState(() {
+              antarCount -= finishedCount;
+              if (antarCount < 0) antarCount = 0;
+              selesaiCount += finishedCount;
+            });
+          }
+        }),
+        _buildGridCard("SELESAI", "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
+        }),
       ],
     );
   }
 
-  Widget _buildGridCard(String title, String count, Color bgColor, Color iconColor, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+  Widget _buildGridCard(String title, String count, Color bgColor, Color iconColor, IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: bgColor, width: 2),
         boxShadow: [
@@ -327,7 +372,7 @@ class DashboardKaryawan extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildRecentActivities(Color navyColor, Color tealColor) {

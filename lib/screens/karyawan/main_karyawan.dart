@@ -4,6 +4,7 @@ import 'package:mobile/widgets/navbar_karyawan.dart';
 import 'home_screen.dart';
 import 'orders.dart';
 import 'profile.dart';
+import 'chat/chat_screen.dart';
 
 class MainKaryawan extends StatefulWidget {
   final int initialIndex;
@@ -26,7 +27,7 @@ class _MainKaryawanState extends State<MainKaryawan> {
     const DashboardKaryawan(),
     const OrderScreenKaryawan(),
     const SizedBox(), // Placeholder for + button
-    const Center(child: Text('Messages - Akan Datang')),
+    const KaryawanChatScreen(),
     const ProfileScreenKaryawan(),
   ];
 
@@ -43,14 +44,8 @@ class _MainKaryawanState extends State<MainKaryawan> {
   @override
   Widget build(BuildContext context) {
     return LaundryLayout(
-      bottomNav: NavbarKaryawan(
-        currentIndex: _currentIndex,
-        onTap: _onTap,
-      ),
-      child: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      bottomNav: NavbarKaryawan(currentIndex: _currentIndex, onTap: _onTap),
+      child: IndexedStack(index: _currentIndex, children: _pages),
     );
   }
 }

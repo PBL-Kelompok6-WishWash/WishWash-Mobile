@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/auth/register_screen.dart';
+import 'package:mobile/screens/karyawan/orders/create_order_screen.dart';
 
 class NavbarKaryawan extends StatefulWidget {
   final int currentIndex;
@@ -278,7 +279,13 @@ void showKaryawanMenu(BuildContext context) {
     pageBuilder: (context, anim1, anim2) {
       return const KaryawanMenuDialogContent();
     },
-  );
+  ).then((value) {
+    if (value == 'pesanan') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateOrderScreen()));
+    } else if (value == 'akun') {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+    }
+  });
 }
 
 class KaryawanMenuDialogContent extends StatefulWidget {
@@ -346,19 +353,7 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
       _activeTooltip = null;
     });
     _controller.reverse().then((_) {
-      Navigator.pop(context); // Tutup dialog setelah animasi reverse selesai
-      if (type == 'pesanan') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Fitur Tambah Pesanan Karyawan - Akan Datang!')),
-        );
-      } else if (type == 'akun') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const RegisterScreen(),
-          ),
-        );
-      }
+      Navigator.pop(context, type);
     });
   }
 
@@ -395,31 +390,32 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                           SizedBox(
                             width: 80,
                             child: Center(
-                              child: _activeTooltip == 'pesanan'
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: navyColor,
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.15),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
+                              child: GestureDetector(
+                                onTap: () => _handleAction('pesanan'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: navyColor,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
                                       ),
-                                      child: Text(
-                                        'Tambah Pesanan',
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox(),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Tambah Pesanan',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                           
@@ -430,31 +426,32 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                           SizedBox(
                             width: 80,
                             child: Center(
-                              child: _activeTooltip == 'akun'
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: navyColor,
-                                        borderRadius: BorderRadius.circular(10),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.15),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
+                              child: GestureDetector(
+                                onTap: () => _handleAction('akun'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: navyColor,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
                                       ),
-                                      child: Text(
-                                        'Tambah Akun',
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : const SizedBox(),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    'Tambah Akun',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -492,45 +489,8 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                 SizedBox(
                                   width: 80,
                                   child: Center(
-                                    child: Listener(
-                                      onPointerDown: (_) {
-                                        setState(() {
-                                          _activeTooltip = 'pesanan';
-                                        });
-                                      },
-                                      onPointerMove: (event) {
-                                        final isInside = event.localPosition.dx >= 0 &&
-                                            event.localPosition.dx <= 50 &&
-                                            event.localPosition.dy >= 0 &&
-                                            event.localPosition.dy <= 50;
-                                        if (!isInside && _activeTooltip == 'pesanan') {
-                                          setState(() {
-                                            _activeTooltip = null;
-                                          });
-                                        } else if (isInside && _activeTooltip == null) {
-                                          setState(() {
-                                            _activeTooltip = 'pesanan';
-                                          });
-                                        }
-                                      },
-                                      onPointerUp: (event) {
-                                        final isInside = event.localPosition.dx >= 0 &&
-                                            event.localPosition.dx <= 50 &&
-                                            event.localPosition.dy >= 0 &&
-                                            event.localPosition.dy <= 50;
-                                        if (isInside) {
-                                          _handleAction('pesanan');
-                                        } else {
-                                          setState(() {
-                                            _activeTooltip = null;
-                                          });
-                                        }
-                                      },
-                                      onPointerCancel: (_) {
-                                        setState(() {
-                                          _activeTooltip = null;
-                                        });
-                                      },
+                                    child: GestureDetector(
+                                      onTap: () => _handleAction('pesanan'),
                                       child: Container(
                                         width: 50,
                                         height: 50,
@@ -573,45 +533,8 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                 SizedBox(
                                   width: 80,
                                   child: Center(
-                                    child: Listener(
-                                      onPointerDown: (_) {
-                                        setState(() {
-                                          _activeTooltip = 'akun';
-                                        });
-                                      },
-                                      onPointerMove: (event) {
-                                        final isInside = event.localPosition.dx >= 0 &&
-                                            event.localPosition.dx <= 50 &&
-                                            event.localPosition.dy >= 0 &&
-                                            event.localPosition.dy <= 50;
-                                        if (!isInside && _activeTooltip == 'akun') {
-                                          setState(() {
-                                            _activeTooltip = null;
-                                          });
-                                        } else if (isInside && _activeTooltip == null) {
-                                          setState(() {
-                                            _activeTooltip = 'akun';
-                                          });
-                                        }
-                                      },
-                                      onPointerUp: (event) {
-                                        final isInside = event.localPosition.dx >= 0 &&
-                                            event.localPosition.dx <= 50 &&
-                                            event.localPosition.dy >= 0 &&
-                                            event.localPosition.dy <= 50;
-                                        if (isInside) {
-                                          _handleAction('akun');
-                                        } else {
-                                          setState(() {
-                                            _activeTooltip = null;
-                                          });
-                                        }
-                                      },
-                                      onPointerCancel: (_) {
-                                        setState(() {
-                                          _activeTooltip = null;
-                                        });
-                                      },
+                                    child: GestureDetector(
+                                      onTap: () => _handleAction('akun'),
                                       child: Container(
                                         width: 50,
                                         height: 50,

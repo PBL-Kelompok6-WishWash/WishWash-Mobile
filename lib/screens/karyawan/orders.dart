@@ -4,6 +4,10 @@ import 'package:mobile/widgets/background.dart';
 import 'package:mobile/widgets/navbar_karyawan.dart';
 import 'package:mobile/screens/karyawan/home_screen.dart';
 import 'package:mobile/screens/karyawan/profile.dart';
+import 'package:mobile/screens/karyawan/pesanan.dart';
+import 'package:mobile/screens/karyawan/pesanan_diproses.dart';
+import 'package:mobile/screens/karyawan/pesanan_diantar.dart';
+import 'package:mobile/screens/karyawan/pesanan_selesai.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -49,6 +53,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
             // --- SECTION KASIR ---
             _buildExpandableSection(
+              context,
               title: "Aktivitas Kasir",
               data: kasirData,
               isExpanded: _isKasirExpanded,
@@ -59,6 +64,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
             // --- SECTION KURIR ---
             _buildExpandableSection(
+              context,
               title: "Tugas Kurir",
               data: kurirData,
               isExpanded: _isKurirExpanded,
@@ -72,7 +78,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   // Widget buat bikin Section yang bisa dibuka-tutup
-  Widget _buildExpandableSection({
+  Widget _buildExpandableSection(BuildContext context, {
     required String title,
     required List<Map<String, String>> data,
     required bool isExpanded,
@@ -91,6 +97,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         const SizedBox(height: 12),
         // Render List Card
         ...data.take(displayCount).map((item) => _buildOrderCard(
+              context,
               item['id']!,
               item['nama']!,
               item['layanan']!,
@@ -116,7 +123,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     );
   }
 
-  Widget _buildOrderCard(String id, String nama, String layanan, String harga, String status, Color defaultStatusBg, Color defaultStatusText) {
+  Widget _buildOrderCard(BuildContext context, String id, String nama, String layanan, String harga, String status, Color defaultStatusBg, Color defaultStatusText) {
     Color bg = defaultStatusBg;
     Color text = defaultStatusText;
     Color? border;
@@ -129,15 +136,27 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       text = const Color(0xFF0288D1); // Teks biru gelap
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Row(
+    return GestureDetector(
+      onTap: () {
+        if (status == "LUNAS") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
+        } else if (status == "PENDING") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
+        } else if (status == "PickUp") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen(initialIsPickup: true)));
+        } else if (status == "Delivery") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen(initialIsPickup: false)));
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(
         children: [
           Expanded(
             child: Column(
@@ -167,6 +186,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
