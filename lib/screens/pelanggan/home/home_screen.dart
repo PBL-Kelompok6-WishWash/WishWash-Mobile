@@ -827,11 +827,11 @@ Widget _buildNotificationIcon() {
                 : GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 2.1,
+                      childAspectRatio: MediaQuery.of(context).size.width < 360 ? 1.75 : 2.1,
                     ),
                     itemCount: _services.length,
                     itemBuilder: (context, index) {

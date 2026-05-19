@@ -122,8 +122,11 @@ class _AlamatScreenState extends State<AlamatScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 Text(
                   'Alamat Saya',
@@ -143,10 +146,11 @@ class _AlamatScreenState extends State<AlamatScreen> {
                       _fetchAlamat(); // Refresh list jika berhasil nambah
                     }
                   },
-                  child: Row(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
                     children: [
                       Icon(Icons.add_circle, color: navyColor, size: 18),
-                      const SizedBox(width: 4),
                       Text(
                         'Tambahkan Alamat Baru',
                         style: GoogleFonts.poppins(
@@ -227,7 +231,10 @@ class _AlamatScreenState extends State<AlamatScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Text(
                       label,
@@ -237,8 +244,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
                         color: navyColor,
                       ),
                     ),
-                    if (isPrimary) ...[
-                      const SizedBox(width: 8),
+                    if (isPrimary)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -255,7 +261,6 @@ class _AlamatScreenState extends State<AlamatScreen> {
                           ),
                         ),
                       ),
-                    ],
                   ],
                 ),
                 const SizedBox(height: 8),

@@ -213,12 +213,12 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _buildLabelChip('Rumah', Icons.home_outlined),
-                      const SizedBox(width: 8),
                       _buildLabelChip('Kantor', Icons.business_outlined),
-                      const SizedBox(width: 8),
                       _buildLabelChip('Lainnya', Icons.bookmark_border_rounded),
                     ],
                   ),

@@ -243,6 +243,7 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
           Positioned(
             bottom: MediaQuery.of(context).size.height * 0.30 + 16,
             left: 16,
+            right: 72,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -253,13 +254,17 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
                 ],
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Salah Nama Lokasi? Ubah di sini',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey.shade700,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      'Salah Nama Lokasi? Ubah di sini',
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 4),
