@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/screens/pelanggan/orders/payment.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -62,6 +63,20 @@ class NotificationScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(24, 30, 24, 10),
                 children: [
                   _buildNotificationCard(
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: "Your Order is Confirmed",
+                    description: "please proceed with payment",
+                    time: "Just now",
+                    iconBg: const Color(0xFFFFF3E0),
+                    iconColor: const Color(0xFFFF9800),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PaymentScreen()),
+                      );
+                    },
+                  ),
+                  _buildNotificationCard(
                     icon: Icons.shopping_bag_outlined,
                     title: "Order Processed",
                     description: "Pesanan #1234 sedang diproses oleh tim kami. Mohon tunggu ya!",
@@ -109,8 +124,11 @@ class NotificationScreen extends StatelessWidget {
     required String time,
     required Color iconBg,
     required Color iconColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -142,15 +160,21 @@ class NotificationScreen extends StatelessWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0F2F53),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF0F2F53),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       time,
                       style: GoogleFonts.poppins(
@@ -174,6 +198,7 @@ class NotificationScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -4,7 +4,6 @@ import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/roomchat.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
-import 'package:mobile/screens/pelanggan/orders/payment.dart';
 
 class ChatScreen extends StatelessWidget {
   final bool showNavbar;
@@ -98,19 +97,11 @@ class ChatScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   
                   // Courier Cards
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const PaymentScreen()),
-                      );
-                    },
-                    child: _buildCourierCard(
-                      name: 'Jibran Kagabuming',
-                      message: 'titidije, bos',
-                      time: '11:11 am',
-                      navyColor: navyColor,
-                    ),
+                  _buildCourierCard(
+                    name: 'Jibran Kagabuming',
+                    message: 'titidije, bos',
+                    time: '11:11 am',
+                    navyColor: navyColor,
                   ),
                   _buildCourierCard(
                     name: 'Sugeng Saklar',
