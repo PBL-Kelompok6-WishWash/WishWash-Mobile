@@ -23,7 +23,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
   String statusKetersediaan = '';
   String fotoKaryawan = '';
 
-  final Color navyColor = const Color(0xFF0F2F53);
+  final Color navyColor = const Color(0xFF0C4B8E);
   final Color tealColor = const Color(0xFF1E9A9F);
   final Color bgGrey = const Color(0xFFF8FBFC);
 

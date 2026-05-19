@@ -11,7 +11,7 @@ class RoomChatScreen extends StatefulWidget {
 }
 
 class _RoomChatScreenState extends State<RoomChatScreen> {
-  final Color navyColor = const Color(0xFF0F2F53);
+  final Color navyColor = const Color(0xFF0C4B8E);
   final Color cyanColor = const Color(0xFF42C6D4);
   bool _isMenuOpen = false;
 
@@ -272,7 +272,7 @@ class _RoomChatScreenState extends State<RoomChatScreen> {
             label,
             style: GoogleFonts.poppins(
               fontSize: 11,
-              color: const Color(0xFF0F2F53),
+              color: const Color(0xFF0C4B8E),
               fontWeight: FontWeight.w600,
             ),
           ),

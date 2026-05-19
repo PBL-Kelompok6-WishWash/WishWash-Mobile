@@ -13,7 +13,7 @@ class PilihAlamatScreen extends StatefulWidget {
 }
 
 class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
-  final Color _navyColor = const Color(0xFF0F2F53);
+  final Color _navyColor = const Color(0xFF0C4B8E);
   final Color _cyanColor = const Color(0xFF42C6D4);
   
   final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();

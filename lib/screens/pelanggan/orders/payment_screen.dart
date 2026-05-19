@@ -5,128 +5,138 @@ import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:typed_data';
 
-class PaymentScreen extends StatelessWidget {
-  const PaymentScreen({super.key});
+class PaymentScreenNew extends StatelessWidget {
+  const PaymentScreenNew({super.key});
 
   @override
   Widget build(BuildContext context) {
     const Color navyColor = Color(0xFF0C4B8E);
-    const Color cyanColor = Color(0xFF42C6D4);
     const Color bgGrey = Color(0xFFF8FBFC);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFBCEFF2),
-      body: Column(
+      backgroundColor: bgGrey,
+      body: Stack(
         children: [
-          // --- HEADER & APPBAR ---
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Text(
-                    'Payment',
-                    style: GoogleFonts.poppins(
-                      color: navyColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 48), // Spacer
-                ],
+          // Background Gradient at the top (Seperti orders_screen)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 350,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 10),
 
-          // --- KONTEN HALAMAN (Sheet Putih) ---
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: bgGrey,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
-              ),
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-                children: [
-                  // QRIS Section
-                  _buildSectionTitle('QRIS', navyColor),
-                  const SizedBox(height: 20),
-                  
-                  // QR Code Box
-                  Center(
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // --- HEADER & APPBAR ---
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      child: Image.network(
-                        'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WISHWASH_PAYMENT_1232',
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.qr_code_2_rounded,
-                          size: 150,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Download QRIS Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 45,
-                    child: ElevatedButton(
-                      onPressed: () => _downloadQRIS(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE8F5E9), // Light Green
-                        foregroundColor: const Color(0xFF2E7D32), // Dark Green
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Download QRIS',
+                      Text(
+                        'Payment',
                         style: GoogleFonts.poppins(
+                          color: navyColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 20,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 48), // Spacer
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                  
-                  // Receipt Section
-                  _buildSectionTitle('Receipt', navyColor),
-                  const SizedBox(height: 20),
-                  
-                  // Receipt Card
-                  _buildReceiptCard(navyColor),
-                  const SizedBox(height: 30),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+
+                // --- KONTEN HALAMAN ---
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    children: [
+                      // QRIS Section
+                      _buildSectionTitle('QRIS', navyColor),
+                      const SizedBox(height: 20),
+                      
+                      // QR Code Box
+                      Center(
+                        child: Container(
+                          width: 220,
+                          height: 220,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 15,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Image.network(
+                            'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WISHWASH_PAYMENT_1232',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.qr_code_2_rounded,
+                              size: 150,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      // Download QRIS Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: () => _downloadQRIS(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE8F5E9), // Light Green
+                            foregroundColor: const Color(0xFF2E7D32), // Dark Green
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Download QRIS',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 30),
+                      
+                      // Receipt Section
+                      _buildSectionTitle('Receipt', navyColor),
+                      const SizedBox(height: 20),
+                      
+                      // Receipt Card
+                      _buildReceiptCard(navyColor),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -166,9 +176,11 @@ class PaymentScreen extends StatelessWidget {
         }
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Downloading QRIS...')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Downloading QRIS...')),
+        );
+      }
 
       final url = Uri.parse('https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=WISHWASH_PAYMENT_1232');
       final response = await http.get(url);
@@ -198,7 +210,7 @@ class PaymentScreen extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: \$e')),
+          SnackBar(content: Text('Error: $e')),
         );
       }
     }
@@ -233,7 +245,7 @@ class PaymentScreen extends StatelessWidget {
                 'Order #1232',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: navyColor,
                 ),
               ),
