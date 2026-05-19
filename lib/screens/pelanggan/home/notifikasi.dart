@@ -7,7 +7,7 @@ class NotificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
     const Color cyanColor = Color(0xFF42C6D4);
 
     return Scaffold(
@@ -162,16 +162,12 @@ class NotificationScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F2F53),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    Text(
+                      title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F2F53),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -190,7 +186,7 @@ class NotificationScreen extends StatelessWidget {
                   description,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: const Color(0xFF0F2F53).withOpacity(0.6),
+                    color: const Color(0xFF0C4B8E).withOpacity(0.6),
                     height: 1.4,
                   ),
                 ),

@@ -5,7 +5,6 @@ import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'dart:convert';
-
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
@@ -67,7 +66,7 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
     const Color cyanColor = Color(0xFF42C6D4);
     const Color bgGrey = Color(0xFFF8FBFC);
 
@@ -196,7 +195,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                       namaLengkap,
                       style: GoogleFonts.poppins(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: navyColor,
                       ),
                     ),
@@ -273,7 +272,7 @@ class ProfileScreenState extends State<ProfileScreen> {
               child: Text(
                 'Edit Profile',
                 style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
               ),
@@ -575,7 +574,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F2F53),
+                    color: const Color(0xFF0C4B8E),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -905,7 +904,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF0F2F53)),
+        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF0C4B8E)),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
           hintText: hint,

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
-import 'package:mobile/screens/pelanggan/chat/roomchat.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_admin.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_kurir.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/payment.dart';
 
 class ChatScreen extends StatelessWidget {
   final bool showNavbar;
@@ -11,7 +13,7 @@ class ChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
     const Color cyanColor = Color(0xFF42C6D4);
 
     return Scaffold(
@@ -97,20 +99,34 @@ class ChatScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   
                   // Courier Cards
-                  _buildCourierCard(
-                    name: 'Jibran Kagabuming',
-                    message: 'titidije, bos',
-                    time: '11:11 am',
-                    navyColor: navyColor,
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const PaymentScreen()),
+                      );
+                    },
+                    child: _buildCourierCard(
+                      context: context,
+                      name: 'Jibran Kagabuming',
+                      platNomor: 'BP 1234 AB',
+                      message: 'titidije, bos',
+                      time: '11:11 am',
+                      navyColor: navyColor,
+                    ),
                   ),
                   _buildCourierCard(
+                    context: context,
                     name: 'Sugeng Saklar',
+                    platNomor: 'BP 5678 CD',
                     message: 'sdh di dpan qq',
                     time: '11:11 am',
                     navyColor: navyColor,
                   ),
                   _buildCourierCard(
+                    context: context,
                     name: 'Dika Acikiwir',
+                    platNomor: 'BP 9012 EF',
                     message: 'Y, ok',
                     time: '11:11 am',
                     navyColor: navyColor,
@@ -214,7 +230,7 @@ class ChatScreen extends StatelessWidget {
                   'Atmint Mahesa',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     color: navyColor,
                   ),
                 ),
@@ -239,12 +255,26 @@ class ChatScreen extends StatelessWidget {
   }
 
   Widget _buildCourierCard({
+    required BuildContext context,
     required String name,
+    required String platNomor,
     required String message,
     required String time,
     required Color navyColor,
   }) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RoomChatKurirScreen(
+              courierName: name,
+              platNomor: platNomor,
+            ),
+          ),
+        );
+      },
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -279,7 +309,7 @@ class ChatScreen extends StatelessWidget {
                       name,
                       style: GoogleFonts.poppins(
                         fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: navyColor,
                       ),
                     ),
@@ -305,6 +335,7 @@ class ChatScreen extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

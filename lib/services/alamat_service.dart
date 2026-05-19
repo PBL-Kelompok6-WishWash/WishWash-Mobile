@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AlamatService {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/v1/alamat';
+  static const String baseUrl = 'http://192.168.1.13:8080/api/v1/alamat';
 
   static Future<List<dynamic>> getAlamat() async {
     final prefs = await SharedPreferences.getInstance();

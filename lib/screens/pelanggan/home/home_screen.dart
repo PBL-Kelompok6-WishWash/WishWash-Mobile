@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
@@ -331,7 +331,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             const Color(0xFFE3F9FD),
             const Color(0xFF42C6D4),
             'assets/images/promos/diskon.png',
-            const Color(0xFF0D47A1), // Teks biru untuk kartu biru
+            const Color(0xFF0C4B8E), // Teks biru untuk kartu biru
           ),
           _buildPromoItem(
             'Free Pickup Available',
@@ -547,8 +547,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 'Hi, $_namaLengkap!',
                 style: TextStyle(
                   fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D47A1),
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0C4B8E),
                 ),
               ),
               const SizedBox(height: 4),
@@ -556,7 +556,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 'Which service do you need?',
                 style: TextStyle(
                   fontSize: 13,
-                  color: const Color(0xFF0D47A1).withOpacity(0.6),
+                  color: const Color(0xFF0C4B8E).withOpacity(0.6),
                 ),
               ),
             ],
@@ -579,7 +579,7 @@ Widget _buildNotificationIcon() {
       children: [
         const Icon(
           Icons.notifications_none_rounded,
-          color: Color(0xFF0D47A1),
+          color: Color(0xFF0C4B8E),
           size: 28,
         ),
         Positioned(
@@ -634,7 +634,7 @@ Widget _buildNotificationIcon() {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: const Color(0xFF0D47A1),
+                color: const Color(0xFF0C4B8E),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -643,7 +643,7 @@ Widget _buildNotificationIcon() {
             _isLocationMenuOpen 
                 ? Icons.keyboard_arrow_up_rounded 
                 : Icons.keyboard_arrow_down_rounded,
-            color: const Color(0xFF0D47A1),
+            color: const Color(0xFF0C4B8E),
             size: 20,
           ),
         ],
@@ -683,7 +683,7 @@ Widget _buildNotificationIcon() {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Icon(_getIconForTipeAlamat(), color: const Color(0xFF0D47A1), size: 20),
+                    Icon(_getIconForTipeAlamat(), color: const Color(0xFF0C4B8E), size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -691,7 +691,7 @@ Widget _buildNotificationIcon() {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF0D47A1),
+                          color: const Color(0xFF0C4B8E),
                         ),
                       ),
                     ),
@@ -722,7 +722,7 @@ Widget _buildNotificationIcon() {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0D47A1),
+                  color: const Color(0xFF0C4B8E),
                 ),
               ),
             ),
@@ -743,7 +743,7 @@ Widget _buildNotificationIcon() {
           height: 6,
           decoration: BoxDecoration(
             color: _currentPromoIndex == index
-                ? const Color(0xFF0D47A1)
+                ? const Color(0xFF0C4B8E)
                 : Colors.grey.shade300,
             borderRadius: BorderRadius.circular(10),
           ),
@@ -765,7 +765,7 @@ Widget _buildNotificationIcon() {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D47A1),
+                color: const Color(0xFF0C4B8E),
               ),
             ),
             GestureDetector(
@@ -1012,7 +1012,7 @@ Widget _buildNotificationIcon() {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D47A1),
+            color: const Color(0xFF0C4B8E),
           ),
         ),
         const SizedBox(height: 12),

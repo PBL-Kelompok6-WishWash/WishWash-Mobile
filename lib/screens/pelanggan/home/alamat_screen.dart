@@ -11,7 +11,7 @@ class AlamatScreen extends StatefulWidget {
 }
 
 class _AlamatScreenState extends State<AlamatScreen> {
-  final Color navyColor = const Color(0xFF0F2F53);
+  final Color navyColor = const Color(0xFF0C4B8E);
   final Color cyanColor = const Color(0xFF42C6D4);
   final Color bgColor = const Color(0xFFF8FBFC);
 

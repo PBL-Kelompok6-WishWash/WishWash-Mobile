@@ -10,7 +10,7 @@ class CreateOrderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color cyanColor = Color(0xFF42C6D4);
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFC),
@@ -138,7 +138,7 @@ class CreateOrderScreen extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F2F53),
+                          color: const Color(0xFF0C4B8E),
                         ),
                       ),
                       const SizedBox(height: 4),
