@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/pilih_alamat_screen.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/widgets/custom_dialog.dart';
 
 class TambahAlamatScreen extends StatefulWidget {
   final Map<String, dynamic>? alamatToEdit;
@@ -254,8 +255,10 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                 ? null
                 : () async {
                     if (_nameController.text.isEmpty || _phoneController.text.isEmpty || _detailController.text.isEmpty || (_selectedLabel == 'Lainnya' && _customLabelController.text.isEmpty)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(TranslationService.translate('fill_all_fields'))),
+                      CustomDialog.showError(
+                        context: context,
+                        title: 'Formulir Belum Lengkap',
+                        message: TranslationService.translate('fill_all_fields'),
                       );
                       return;
                     }
@@ -278,15 +281,22 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                       }
                       
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(widget.alamatToEdit != null ? TranslationService.translate('address_updated') : TranslationService.translate('address_added'))),
-                        );
-                        Navigator.pop(context, true); // return true to indicate success
+                        CustomDialog.showSuccess(
+                          context: context,
+                          title: 'Berhasil Disimpan',
+                          message: widget.alamatToEdit != null 
+                              ? TranslationService.translate('address_updated') 
+                              : TranslationService.translate('address_added'),
+                        ).then((_) {
+                          if (mounted) Navigator.pop(context, true); // return true to indicate success
+                        });
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.toString())),
+                        CustomDialog.showError(
+                          context: context,
+                          title: 'Simpan Gagal',
+                          message: e.toString(),
                         );
                       }
                     } finally {

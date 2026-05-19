@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/pelanggan/home/tambah_alamat_screen.dart';
 import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/widgets/custom_dialog.dart';
 
 class AlamatScreen extends StatefulWidget {
   const AlamatScreen({super.key});
@@ -35,8 +36,10 @@ class _AlamatScreenState extends State<AlamatScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+        CustomDialog.showError(
+          context: context,
+          title: 'Error',
+          message: e.toString(),
         );
         setState(() => _isLoading = false);
       }
@@ -47,13 +50,48 @@ class _AlamatScreenState extends State<AlamatScreen> {
     try {
       final success = await AlamatService.setPrimaryAlamat(idAlamat);
       if (success && mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengatur alamat utama: $e')),
+        CustomDialog.showError(
+          context: context,
+          title: 'Gagal',
+          message: 'Gagal mengatur alamat utama: $e',
         );
+      }
+    }
+  }
+
+  Future<void> _deleteAlamat(int idAlamat) async {
+    final confirm = await CustomDialog.showConfirm(
+      context: context,
+      title: 'Hapus Alamat',
+      message: 'Apakah Anda yakin ingin menghapus alamat ini dari daftar?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+    );
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await AlamatService.deleteAlamat(idAlamat);
+      if (success && mounted) {
+        CustomDialog.showSuccess(
+          context: context,
+          title: 'Hapus Berhasil',
+          message: 'Alamat Anda telah berhasil dihapus dari sistem.',
+        );
+        _fetchAlamat();
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomDialog.showError(
+          context: context,
+          title: 'Gagal Menghapus',
+          message: e.toString(),
+        );
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -182,20 +220,27 @@ class _AlamatScreenState extends State<AlamatScreen> {
             )
           else
             ..._alamatList.map((alamat) {
+              final String tipe = alamat['tipe_alamat'] ?? 'Rumah';
+              String displayLabel = tipe;
+              if (tipe == 'Rumah') {
+                displayLabel = TranslationService.translate('home_tag');
+              } else if (tipe == 'Kantor') {
+                displayLabel = TranslationService.translate('office_tag');
+              } else if (tipe == 'Lainnya') {
+                displayLabel = TranslationService.translate('other_tag');
+              }
+
               return Column(
                 children: [
-                  InkWell(
-                    onTap: () => _setPrimary(alamat['id_alamat']),
-                    child: _buildSavedAddressItem(
-                      alamat: alamat,
-                      icon: alamat['tipe_alamat'] == 'Kantor' 
-                          ? Icons.business_outlined 
-                          : (alamat['tipe_alamat'] == 'Rumah' ? Icons.home_outlined : Icons.bookmark_border_rounded),
-                      label: alamat['tipe_alamat'] ?? 'Rumah',
-                      isPrimary: alamat['is_primary'] ?? false,
-                      address: alamat['alamat_lengkap'] ?? '',
-                      contact: '${alamat['nama_penerima'] ?? ''} | ${alamat['nohp_penerima'] ?? ''}',
-                    ),
+                  _buildSavedAddressItem(
+                    alamat: alamat,
+                    icon: tipe == 'Kantor' 
+                        ? Icons.business_outlined 
+                        : (tipe == 'Rumah' ? Icons.home_outlined : Icons.bookmark_border_rounded),
+                    label: displayLabel,
+                    isPrimary: alamat['is_primary'] ?? false,
+                    address: alamat['alamat_lengkap'] ?? '',
+                    contact: '${alamat['nama_penerima'] ?? ''} | ${alamat['nohp_penerima'] ?? ''}',
                   ),
                   Divider(color: Colors.grey.shade200, thickness: 1, height: 1),
                 ],
@@ -214,96 +259,124 @@ class _AlamatScreenState extends State<AlamatScreen> {
     required String address,
     required String contact,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon
-          SizedBox(
-            width: 40,
-            child: Column(
-              children: [
-                Icon(icon, color: navyColor, size: 24),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Address Details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _setPrimary(alamat['id_alamat']),
+        splashColor: cyanColor.withOpacity(0.12),
+        highlightColor: cyanColor.withOpacity(0.06),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Icon
+              SizedBox(
+                width: 40,
+                child: Column(
                   children: [
-                    Text(
-                      label,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
-                      ),
-                    ),
-                    if (isPrimary)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: cyanColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: cyanColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(
-                          TranslationService.translate('last_used'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: cyanColor,
-                          ),
-                        ),
-                      ),
+                    Icon(icon, color: navyColor, size: 24),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  address,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                    height: 1.4,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              // Address Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        if (isPrimary)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: cyanColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: cyanColor.withOpacity(0.3)),
+                            ),
+                            child: Text(
+                              TranslationService.translate('last_used'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: cyanColor,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      address,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      contact,
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  contact,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
+              ),
+              const SizedBox(width: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    child: IconButton(
+                      icon: Icon(Icons.edit_outlined, color: Colors.grey.shade400, size: 20),
+                      splashColor: cyanColor.withOpacity(0.2),
+                      highlightColor: cyanColor.withOpacity(0.1),
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => TambahAlamatScreen(alamatToEdit: alamat)),
+                        );
+                        if (result == true) {
+                          _fetchAlamat(); // Refresh list after edit
+                        }
+                      },
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 4),
+                  Material(
+                    color: Colors.transparent,
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                      splashColor: Colors.redAccent.withOpacity(0.2),
+                      highlightColor: Colors.redAccent.withOpacity(0.1),
+                      onPressed: () => _deleteAlamat(alamat['id_alamat']),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Edit Icon
-          IconButton(
-            icon: Icon(Icons.edit_outlined, color: Colors.grey.shade400, size: 20),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => TambahAlamatScreen(alamatToEdit: alamat)),
-              );
-              if (result == true) {
-                _fetchAlamat(); // Refresh list after edit
-              }
-            },
-            alignment: Alignment.topRight,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ],
+        ),
       ),
     );
   }

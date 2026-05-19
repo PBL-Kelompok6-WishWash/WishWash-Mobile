@@ -96,13 +96,13 @@ class LandingPage extends StatelessWidget {
                                 width: double.infinity,
                                 height: 55,
                                 decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white, width: 1.5),
                                   gradient: const LinearGradient(
                                     colors: [Color(0xFF80DEEA), Color(0xFF00BCD4)], // Cyan terang ke dalam
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.white, width: 1.5),
                                 ),
                                 child: Material(
                                   color: Colors.transparent,
@@ -137,13 +137,13 @@ class LandingPage extends StatelessWidget {
                                 width: double.infinity,
                                 height: 55,
                                 decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Constants.colorDarkBlue, width: 1.5),
                                   gradient: const LinearGradient(
                                     colors: [Colors.white, Color(0xFFF0F8FF)], // Putih ke biru es sangat pudar
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Constants.colorDarkBlue, width: 1.5),
                                 ),
                                 child: Material(
                                   color: Colors.transparent,

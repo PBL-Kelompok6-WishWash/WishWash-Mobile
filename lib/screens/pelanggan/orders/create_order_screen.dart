@@ -16,7 +16,7 @@ class CreateOrderScreen extends StatefulWidget {
 }
 
 class _CreateOrderScreenState extends State<CreateOrderScreen> {
-  final Color navyColor = const Color(0xFF0F2F53);
+  final Color navyColor = const Color(0xFF0C4B8E);
   List<dynamic> _services = [];
   bool _isLoading = true;
 
@@ -61,8 +61,19 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Color _getDarkenedTextColor(Color color) {
-    HSLColor hsl = HSLColor.fromColor(color);
-    return hsl.withLightness((hsl.lightness - 0.25).clamp(0.0, 1.0)).toColor();
+    final hsl = HSLColor.fromColor(color);
+    if (hsl.lightness > 0.45) {
+      double targetLightness = 0.30;
+      if (hsl.hue >= 45 && hsl.hue <= 65) {
+        targetLightness = 0.25; // Warm Golden Amber for Yellow
+      } else if (hsl.hue >= 70 && hsl.hue <= 150) {
+        targetLightness = 0.30; // Deep Forest Green for Green
+      } else if (hsl.hue >= 170 && hsl.hue <= 200) {
+        targetLightness = 0.35; // Rich Oceanic Teal for Cyan
+      }
+      return hsl.withLightness(targetLightness).toColor();
+    }
+    return color;
   }
 
   String _formatPrice(double price) {
@@ -117,73 +128,113 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FBFC),
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF0F2F53), size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: Text(
-              TranslationService.translate('create_order'),
-              style: GoogleFonts.poppins(
-                color: navyColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            centerTitle: true,
-          ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : _services.isEmpty
-              ? Center(
-                  child: Text(
-                    TranslationService.translate('no_services'),
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: _services.map((service) {
-                      final String name = service['nama_layanan'] ?? '';
-                      return _buildServiceCard(service, () {
-                        final String lowerName = name.toLowerCase();
-                        if (lowerName.contains('ironing') && lowerName.contains('wash')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                          );
-                        } else if (lowerName.contains('wash')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                          );
-                        } else if (lowerName.contains('ironing')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                          );
-                        } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                          );
-                        }
-                      });
-                    }).toList(),
+          backgroundColor: const Color(0xFFBCEFF2),
+          body: Column(
+            children: [
+              // --- HEADER & APPBAR ---
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Text(
+                        TranslationService.translate('create_order'),
+                        style: GoogleFonts.poppins(
+                          color: navyColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 48), // Balancing spacer
+                    ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 10),
+
+              // --- CONTENT CONTAINER SHEET ---
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FBFC),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, -5),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : _services.isEmpty
+                            ? Center(
+                                child: Text(
+                                  TranslationService.translate('no_services'),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(24, 30, 24, 20),
+                                child: Column(
+                                  children: _services.map((service) {
+                                    final String name = service['nama_layanan'] ?? '';
+                                    return _buildServiceCard(service, () {
+                                      final String lowerName = name.toLowerCase();
+                                      if (lowerName.contains('ironing') && lowerName.contains('wash')) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                                        );
+                                      } else if (lowerName.contains('wash')) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                                        );
+                                      } else if (lowerName.contains('ironing')) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                                        );
+                                      } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                                        );
+                                      }
+                                    });
+                                  }).toList(),
+                                ),
+                              ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
-  },
-);
   }
 
   Widget _buildServiceCard(
@@ -195,13 +246,22 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
     final double price = (service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
     final String unit = service['jenis_satuan'] ?? 'Kg';
+    final String dbDesc = service['deskripsi_layanan'] ?? '';
+
+    // Multi-language translation support
+    String description = dbDesc;
+    final key = name.toLowerCase().replaceAll(' ', '_').replaceAll('&', 'and');
+    final localKey = '${key}_desc';
+    if (TranslationService.translate(localKey) != localKey) {
+      description = TranslationService.translate(localKey);
+    }
 
     final Color baseColor = _parseHexColor(hexColor);
     final Color bgColor = baseColor.withOpacity(0.12);
     final Color textColor = _getDarkenedTextColor(baseColor);
 
     return Container(
-      height: 110,
+      height: 125,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -244,26 +304,43 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                 // Text details in center
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                            if (description.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                  height: 1.25,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 6),
                         Text(
                           '${_formatPrice(price)} / $unit',
                           style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: textColor.withOpacity(0.8),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
                           ),
                         ),
                       ],

@@ -271,25 +271,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 height: 55,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF4DD0E1), Color(0xFF00BCD4)], // Primary Cyan face
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                  ),
                                   boxShadow: [
-                                    BoxShadow(color: Constants.colorCyan.withValues(alpha:0.3), blurRadius: 15, offset: const Offset(0, 5)),
+                                    BoxShadow(
+                                      color: const Color(0xFF0097A7), // Dark Cyan shadow simulating the 3D edge directly
+                                      blurRadius: 0,
+                                      offset: const Offset(0, 4),
+                                    ),
                                   ],
                                 ),
-                                child: ElevatedButton(
-                                  onPressed: _isLoading ? null : _handleRegister,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Constants.colorCyan,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: _isLoading ? null : _handleRegister,
+                                    splashColor: Colors.white.withValues(alpha: 0.25),
+                                    child: Center(
+                                      child: _isLoading
+                                          ? const SizedBox(
+                                              height: 24,
+                                              width: 24,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Create Account',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                    ),
                                   ),
-                                  child: _isLoading
-                                      ? const SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                        )
-                                      : const Text('Create Account', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 ),
                               ),
                               const SizedBox(height: 40),

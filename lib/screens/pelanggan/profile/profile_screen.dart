@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
+import 'package:mobile/widgets/custom_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool showNavbar;
@@ -421,6 +422,8 @@ class ProfileScreenState extends State<ProfileScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap ?? () {},
+          splashColor: cyanColor.withOpacity(0.12),
+          highlightColor: cyanColor.withOpacity(0.06),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(
@@ -499,6 +502,8 @@ class ProfileScreenState extends State<ProfileScreen> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: _showLogoutConfirmation,
+          splashColor: Colors.redAccent.withOpacity(0.12),
+          highlightColor: Colors.redAccent.withOpacity(0.06),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(
@@ -824,8 +829,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                             borderRadius: BorderRadius.circular(16),
                             onTap: isSaving ? null : () async {
                               if (nameController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Nama lengkap tidak boleh kosong')),
+                                CustomDialog.showError(
+                                  context: context,
+                                  title: 'Gagal',
+                                  message: 'Nama lengkap tidak boleh kosong',
                                 );
                                 return;
                               }
@@ -845,11 +852,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                               if (mounted) {
                                 if (response['success'] == true) {
                                   Navigator.pop(context); // Tutup bottom sheet
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(response['message']),
-                                      backgroundColor: Colors.green,
-                                    ),
+                                  CustomDialog.showSuccess(
+                                    context: context,
+                                    title: 'Berhasil',
+                                    message: response['message'] ?? 'Profil berhasil diperbarui!',
                                   );
                                   setState(() {
                                     isLoading = true;
@@ -859,11 +865,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                                   setModalState(() {
                                     isSaving = false;
                                   });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(response['message']),
-                                      backgroundColor: Colors.redAccent,
-                                    ),
+                                  CustomDialog.showError(
+                                    context: context,
+                                    title: 'Gagal',
+                                    message: response['message'] ?? 'Terjadi kesalahan.',
                                   );
                                 }
                               }
