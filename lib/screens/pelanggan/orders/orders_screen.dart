@@ -6,6 +6,11 @@ import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/screens/pelanggan/orders/wash_ironing.dart';
+import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
+import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
+import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
+import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool showNavbar;
@@ -396,7 +401,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
             width: double.infinity,
             height: 40,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OrderDetailScreen(),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: orderColor,

@@ -16,6 +16,7 @@ import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
 import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
 import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'dart:convert';
+import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 
 void main() {
   runApp(
@@ -1290,25 +1291,35 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               const SizedBox(height: 16),
               // Tombol View More
               SizedBox(
-                width: double.infinity,
-                height: 40,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: orderColor,
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: const Text(
-                    'View More',
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                  ),
-                ),
-              ),
+  width: double.infinity,
+  height: 40,
+  child: ElevatedButton(
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OrderDetailScreen(),
+        ),
+      );
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.white,
+      foregroundColor: orderColor,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: EdgeInsets.zero,
+    ),
+    child: const Text(
+      'View More',
+      style: TextStyle(
+        fontWeight: FontWeight.w900,
+        fontSize: 14,
+      ),
+    ),
+  ),
+),
             ],
           ),
         ),
