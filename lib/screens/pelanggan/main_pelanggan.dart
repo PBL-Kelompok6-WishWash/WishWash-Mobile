@@ -5,6 +5,7 @@ import 'profile/profile_screen.dart';
 import 'orders/orders_screen.dart';
 import 'orders/create_order_screen.dart';
 import '../../widgets/navbar_pelanggan.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class MainPelanggan extends StatefulWidget {
   final int initialIndex;
@@ -70,15 +71,20 @@ class _MainPelangganState extends State<MainPelanggan> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
-      bottomNavigationBar: BottomNavbar(
-        currentIndex: _currentIndex,
-        onTap: _onTap,
-      ),
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          body: IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+          bottomNavigationBar: BottomNavbar(
+            currentIndex: _currentIndex,
+            onTap: _onTap,
+          ),
+        );
+      },
     );
   }
 }

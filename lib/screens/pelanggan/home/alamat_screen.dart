@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/pelanggan/home/tambah_alamat_screen.dart';
 import 'package:mobile/services/alamat_service.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class AlamatScreen extends StatefulWidget {
   const AlamatScreen({super.key});
@@ -59,29 +60,32 @@ class _AlamatScreenState extends State<AlamatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Container(
-          height: 42,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300, width: 0.5),
-          ),
-          child: TextField(
-            style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
-            decoration: InputDecoration(
-              hintText: 'Cari lokasi',
-              hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: bgColor,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            titleSpacing: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Container(
+              height: 42,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300, width: 0.5),
+              ),
+              child: TextField(
+                style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+                decoration: InputDecoration(
+                  hintText: TranslationService.translate('search_location'),
+                  hintStyle: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 14),
               prefixIcon: Icon(Icons.search, color: Colors.grey.shade500, size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -111,6 +115,8 @@ class _AlamatScreenState extends State<AlamatScreen> {
               ),
             ),
     );
+  },
+);
   }
 
   Widget _buildMyAddressSection(BuildContext context) {
@@ -122,14 +128,11 @@ class _AlamatScreenState extends State<AlamatScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Alamat Saya',
+                  TranslationService.translate('my_address'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -146,13 +149,13 @@ class _AlamatScreenState extends State<AlamatScreen> {
                       _fetchAlamat(); // Refresh list jika berhasil nambah
                     }
                   },
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 4,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.add_circle, color: navyColor, size: 18),
+                      const SizedBox(width: 4),
                       Text(
-                        'Tambahkan Alamat Baru',
+                        TranslationService.translate('add_new_address'),
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -172,7 +175,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
               padding: const EdgeInsets.all(20),
               child: Center(
                 child: Text(
-                  'Belum ada alamat tersimpan.',
+                  TranslationService.translate('no_saved_addresses'),
                   style: GoogleFonts.poppins(color: Colors.grey.shade500),
                 ),
               ),
@@ -253,7 +256,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
                           border: Border.all(color: cyanColor.withValues(alpha: 0.3)),
                         ),
                         child: Text(
-                          'Terakhir Digunakan',
+                          TranslationService.translate('last_used'),
                           style: GoogleFonts.poppins(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
@@ -315,7 +318,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Saran Lokasi Terdekat',
+              TranslationService.translate('suggested_locations'),
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -333,7 +336,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
                   Icon(Icons.location_disabled_rounded, color: Colors.grey.shade300, size: 48),
                   const SizedBox(height: 12),
                   Text(
-                    'Belum ada saran lokasi terdekat.',
+                    TranslationService.translate('no_suggested_locations'),
                     style: GoogleFonts.poppins(
                       color: Colors.grey.shade600,
                       fontSize: 14,
@@ -342,7 +345,7 @@ class _AlamatScreenState extends State<AlamatScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Saran lokasi akan muncul ketika Anda mengaktifkan GPS dan sering menggunakan aplikasi di area ini.',
+                    TranslationService.translate('suggested_locations_desc'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       color: Colors.grey.shade400,

@@ -3,8 +3,33 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 
+import 'package:mobile/services/order_service.dart';
+
 class ReviewWashOnlyScreen extends StatefulWidget {
-  const ReviewWashOnlyScreen({super.key});
+  final Map<String, dynamic> pickupAddress;
+  final Map<String, dynamic> deliveryAddress;
+  final Map<String, dynamic> perfume;
+  final String package;
+  final int packageId;
+  final double packageFee;
+  final String date; // YYYY-MM-DD
+  final String timeSlot;
+  final String type; // Daily Wear or Bedding
+  final String instruction;
+
+  const ReviewWashOnlyScreen({
+    super.key,
+    required this.pickupAddress,
+    required this.deliveryAddress,
+    required this.perfume,
+    required this.package,
+    required this.packageId,
+    required this.packageFee,
+    required this.date,
+    required this.timeSlot,
+    required this.type,
+    required this.instruction,
+  });
 
   @override
   State<ReviewWashOnlyScreen> createState() => _ReviewWashOnlyScreenState();
@@ -14,6 +39,79 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
   final Color navyColor = const Color(0xFF0C4B8E);
   final Color textGrey = const Color(0xFF596063);
   String selectedPayment = 'Cash on Delivery';
+  bool _isPlacingOrder = false;
+
+  String formatFriendlyDate(String isoDate) {
+    try {
+      final parts = isoDate.split('-');
+      if (parts.length < 3) return isoDate;
+      final year = parts[0];
+      final monthInt = int.parse(parts[1]);
+      final day = parts[2];
+      final List<String> months = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      return '$day ${months[monthInt]} $year';
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  String calculateDeliveryDate(String isoDate, String package) {
+    try {
+      final date = DateTime.parse(isoDate);
+      DateTime deliveryDate;
+      if (package == 'Express' || package == 'Kilat') {
+        deliveryDate = date.add(const Duration(days: 1));
+      } else {
+        deliveryDate = date.add(const Duration(days: 2));
+      }
+      return deliveryDate.toIso8601String().split('T')[0];
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  Future<void> _placeOrder() async {
+    setState(() => _isPlacingOrder = true);
+    try {
+      final double basePrice = 5000.0;
+      final double totalBayar = basePrice + widget.packageFee;
+
+      final orderData = {
+        'id_paket_layanan': widget.packageId,
+        'id_alamat_pengambilan': widget.pickupAddress['id_alamat'],
+        'id_alamat_penyerahan': widget.deliveryAddress['id_alamat'],
+        'id_parfum': widget.perfume['id'],
+        'id_layanan': 2, // Wash Only (Cuci Kering) is ID 2
+        'keterangan_lokasi': widget.pickupAddress['tipe_alamat'] ?? 'Rumah',
+        'jadwal_pickup': '${widget.date} ${widget.timeSlot == 'Morning' ? '08:00' : '13:00'}',
+        'tipe_logistik': 'Courier Delivery',
+        'harga_saat_ini': basePrice,
+        'kuantitas': 0.0,
+        'total_bayar': totalBayar,
+        'catatan_order': widget.instruction,
+      };
+
+      await OrderService.createOrder(orderData);
+      
+      setState(() => _isPlacingOrder = false);
+      if (mounted) {
+        _showConfirmationDialog();
+      }
+    } catch (e) {
+      setState(() => _isPlacingOrder = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuat pesanan: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +240,9 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
   }
 
   Widget _buildServiceDetailsCard() {
+    final friendlyPickUpDate = formatFriendlyDate(widget.date);
+    final friendlyDeliveryDate = formatFriendlyDate(calculateDeliveryDate(widget.date, widget.package));
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -186,9 +287,9 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
                   children: [
                     Text('Pick Up', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('16 April 2026', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(friendlyPickUpDate, style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
-                    Text('08:00 - 12:00 am', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
+                    Text(widget.timeSlot == 'Morning' ? '08:00 - 12:00 am' : '12:00 - 04:00 pm', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                   ],
                 ),
               ),
@@ -198,7 +299,7 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
                   children: [
                     Text('Pick Up Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(widget.pickupAddress['alamat_lengkap'] ?? '', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -212,9 +313,9 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              _buildTag('Daily Wear', const Color(0xFFF3E5F5), const Color(0xFF8E24AA)),
+              _buildTag(widget.type, const Color(0xFFF3E5F5), const Color(0xFF8E24AA)),
               const SizedBox(width: 8),
-              _buildTag('Standard', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
+              _buildTag(widget.package, const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
             ],
           ),
           const SizedBox(height: 12),
@@ -224,7 +325,7 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
             children: [
               const Icon(Icons.local_florist_outlined, color: Color(0xFF8E24AA), size: 14),
               const SizedBox(width: 4),
-              Text('Lavender', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(widget.perfume['name'] ?? '', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 11, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 12),
@@ -237,7 +338,7 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('-', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(widget.instruction.isNotEmpty ? widget.instruction : '-', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           Divider(color: Colors.grey.shade300),
@@ -259,8 +360,8 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('20 April 2026', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text('08:00 - 12:00 am', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
+                  Text(friendlyDeliveryDate, style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(widget.timeSlot == 'Morning' ? '08:00 - 12:00 am' : '12:00 - 04:00 pm', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                 ],
               ),
             ],
@@ -281,7 +382,7 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Delivery Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
-                  Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(widget.deliveryAddress['alamat_lengkap'] ?? '', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -422,23 +523,30 @@ class _ReviewWashOnlyScreenState extends State<ReviewWashOnlyScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          _showConfirmationDialog();
-        },
+        onPressed: _isPlacingOrder ? null : _placeOrder,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFD6F6D5),
           padding: const EdgeInsets.symmetric(vertical: 14),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text(
-          'Make Order',
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF1E821B),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isPlacingOrder
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E821B)),
+                ),
+              )
+            : Text(
+                'Make Order',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF1E821B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }

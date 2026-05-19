@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/roomchat.dart';
+import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 
 class ChatScreen extends StatelessWidget {
@@ -14,21 +15,24 @@ class ChatScreen extends StatelessWidget {
     const Color navyColor = Color(0xFF0F2F53);
     const Color cyanColor = Color(0xFF42C6D4);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFBCEFF2),
-      extendBody: true,
-      body: Column(
-        children: [
-          // --- HEADER & APPBAR ---
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Message',
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFBCEFF2),
+          extendBody: true,
+          body: Column(
+            children: [
+              // --- HEADER & APPBAR ---
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        TranslationService.translate('message'),
                     style: GoogleFonts.poppins(
                       color: navyColor,
                       fontWeight: FontWeight.bold,
@@ -78,7 +82,7 @@ class ChatScreen extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        'Courier',
+                        TranslationService.translate('courier'),
                         style: GoogleFonts.poppins(
                           color: navyColor,
                           fontSize: 18,
@@ -147,6 +151,8 @@ class ChatScreen extends StatelessWidget {
         },
       ) : null,
     );
+  },
+);
   }
 
   Widget _buildAdminCard(Color navyColor, Color cyanColor) {

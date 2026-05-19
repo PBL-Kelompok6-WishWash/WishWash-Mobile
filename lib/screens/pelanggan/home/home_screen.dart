@@ -4,6 +4,7 @@ import 'package:mobile/screens/splash_screen.dart';
 import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
+import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
@@ -165,10 +166,13 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBody: true,
-      backgroundColor: const Color(0xFFF8FBFC),
-      body: Stack(
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          extendBody: true,
+          backgroundColor: const Color(0xFFF8FBFC),
+          body: Stack(
         children: [
           Positioned(
             top: 0,
@@ -315,6 +319,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         },
       ) : null,
     );
+  },
+);
   }
 
   // --- REVISI UTAMA: PROMO SLIDER ---
@@ -544,16 +550,18 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hi, $_namaLengkap!',
-                style: TextStyle(
+                '${TranslationService.translate('welcome')}, $_namaLengkap!',
+                style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
-                  color: const Color(0xFF0D47A1),
+                  color: Color(0xFF0D47A1),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Which service do you need?',
+                TranslationService.currentLang == 'en' 
+                    ? 'Which service do you need?' 
+                    : 'Layanan apa yang Anda butuhkan?',
                 style: TextStyle(
                   fontSize: 13,
                   color: const Color(0xFF0D47A1).withOpacity(0.6),
@@ -610,6 +618,13 @@ Widget _buildNotificationIcon() {
     }
   }
 
+  String _getTranslatedTipeAlamat(String tipe) {
+    if (tipe == 'Rumah') return TranslationService.translate('home_tag');
+    if (tipe == 'Kantor') return TranslationService.translate('office_tag');
+    if (tipe == 'Lainnya') return TranslationService.translate('other_tag');
+    return tipe;
+  }
+
   Widget _buildLocationCard(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -630,7 +645,9 @@ Widget _buildNotificationIcon() {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '$_tipeAlamat - $_alamatLengkap',
+              _alamatLengkap == 'Alamat belum diatur' 
+                  ? TranslationService.translate('address_not_set')
+                  : '${_getTranslatedTipeAlamat(_tipeAlamat)} - $_alamatLengkap',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -687,7 +704,7 @@ Widget _buildNotificationIcon() {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        '$_tipeAlamat - $_alamatLengkap',
+                        '${_getTranslatedTipeAlamat(_tipeAlamat)} - $_alamatLengkap',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -718,7 +735,7 @@ Widget _buildNotificationIcon() {
               color: Colors.transparent,
               padding: const EdgeInsets.only(top: 4, bottom: 4),
               child: Text(
-                '+ Add New Address',
+                '+ ${TranslationService.translate('add_new_address')}',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
@@ -761,11 +778,11 @@ Widget _buildNotificationIcon() {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'Our Services',
-              style: TextStyle(
+              TranslationService.translate('our_services'),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D47A1),
+                color: Color(0xFF0D47A1),
               ),
             ),
             GestureDetector(
@@ -793,7 +810,7 @@ Widget _buildNotificationIcon() {
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
-                  'See All',
+                  TranslationService.currentLang == 'en' ? 'See All' : 'Lihat Semua',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -937,15 +954,19 @@ Widget _buildNotificationIcon() {
             ),
             Expanded(
               flex: 6,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4, right: 8),
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
-                    height: 1.1,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 8),
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                      height: 1.1,
+                    ),
                   ),
                 ),
               ),
@@ -1008,11 +1029,11 @@ Widget _buildNotificationIcon() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Your Order Status',
-          style: TextStyle(
+          TranslationService.currentLang == 'en' ? 'Your Order Status' : 'Status Pesanan Anda',
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D47A1),
+            color: Color(0xFF0D47A1),
           ),
         ),
         const SizedBox(height: 12),

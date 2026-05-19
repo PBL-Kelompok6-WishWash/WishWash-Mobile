@@ -4,6 +4,8 @@ import 'package:mobile/widgets/navbar_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
+import 'package:mobile/screens/pelanggan/profile/preferences_language_screen.dart';
+import 'package:mobile/services/translation_service.dart';
 import 'dart:convert';
 
 import 'package:mobile/services/pelanggan_service.dart';
@@ -71,42 +73,45 @@ class ProfileScreenState extends State<ProfileScreen> {
     const Color cyanColor = Color(0xFF42C6D4);
     const Color bgGrey = Color(0xFFF8FBFC);
 
-    return Scaffold(
-      backgroundColor: bgGrey,
-      extendBody: true,
-      body: Stack(
-        children: [
-          // Background Gradient at the top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 350,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: bgGrey,
+          extendBody: true,
+          body: Stack(
+            children: [
+              // Background Gradient at the top
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 350,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          
-          SafeArea(
-            child: Column(
-              children: [
-                // --- HEADER & APPBAR ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
-                      Text(
-                        'Profile',
-                        style: GoogleFonts.poppins(
-                          color: navyColor,
+              
+              SafeArea(
+                child: Column(
+                  children: [
+                    // --- HEADER & APPBAR ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
+                          Text(
+                            TranslationService.translate('profile'),
+                            style: GoogleFonts.poppins(
+                              color: navyColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
@@ -163,6 +168,8 @@ class ProfileScreenState extends State<ProfileScreen> {
         },
       ) : null,
     );
+  },
+);
   }
 
   Widget _buildProfileCard(Color navyColor, Color cyanColor) {
@@ -241,7 +248,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            alamatLengkap,
+                            alamatLengkap == 'Alamat belum diatur' 
+                                ? TranslationService.translate('address_not_set') 
+                                : alamatLengkap,
                             style: GoogleFonts.poppins(
                               fontSize: 13,
                               color: navyColor,
@@ -271,7 +280,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               child: Text(
-                'Edit Profile',
+                TranslationService.translate('edit_profile'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -349,7 +358,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         children: [
           _buildMenuItem(
             Icons.location_on_outlined,
-            'My Address',
+            TranslationService.translate('my_address'),
             navyColor,
             cyanColor,
             onTap: () async {
@@ -363,11 +372,22 @@ class ProfileScreenState extends State<ProfileScreen> {
               _fetchProfile(); // reload
             },
           ),
-          _buildMenuItem(Icons.lock_outline_rounded, 'Change Password', navyColor, cyanColor),
-          _buildMenuItem(Icons.language_rounded, 'Preferences & Language', navyColor, cyanColor),
-          _buildMenuItem(Icons.receipt_long_rounded, 'Order History', navyColor, cyanColor),
-          _buildMenuItem(Icons.credit_card_rounded, 'Payment History', navyColor, cyanColor),
-          _buildMenuItem(Icons.help_outline_rounded, 'FAQ', navyColor, cyanColor),
+          _buildMenuItem(Icons.lock_outline_rounded, TranslationService.translate('change_password'), navyColor, cyanColor),
+          _buildMenuItem(
+            Icons.language_rounded,
+            TranslationService.translate('preferences_language'),
+            navyColor,
+            cyanColor,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PreferencesLanguageScreen()),
+              );
+            },
+          ),
+          _buildMenuItem(Icons.receipt_long_rounded, TranslationService.translate('order_history'), navyColor, cyanColor),
+          _buildMenuItem(Icons.credit_card_rounded, TranslationService.translate('payment_history'), navyColor, cyanColor),
+          _buildMenuItem(Icons.help_outline_rounded, TranslationService.translate('faq'), navyColor, cyanColor),
           _buildLogoutItem(),
         ],
       ),
@@ -506,7 +526,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Log Out',
+                    TranslationService.translate('logout'),
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,

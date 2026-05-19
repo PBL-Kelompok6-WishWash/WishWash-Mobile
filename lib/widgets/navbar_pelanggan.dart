@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class BottomNavbar extends StatefulWidget {
   final int currentIndex;
@@ -85,8 +86,11 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
       _isFirstBuild = false;
     }
 
-    return Container(
-      height: 100,
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Container(
+          height: 100,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
@@ -132,7 +136,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   _buildNavItem(
                     icon: Icons.home_outlined,
                     activeIcon: Icons.home_rounded,
-                    label: 'Home',
+                    label: TranslationService.translate('home'),
                     index: 0,
                     currentIndex: widget.currentIndex,
                     onTap: widget.onTap,
@@ -142,7 +146,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   _buildNavItem(
                     icon: Icons.local_laundry_service_outlined,
                     activeIcon: Icons.local_laundry_service_rounded,
-                    label: 'Orders',
+                    label: TranslationService.translate('orders'),
                     index: 1,
                     currentIndex: widget.currentIndex,
                     onTap: widget.onTap,
@@ -198,7 +202,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   _buildNavItem(
                     icon: Icons.message_outlined,
                     activeIcon: Icons.message_rounded,
-                    label: 'Message',
+                    label: TranslationService.translate('message'),
                     index: 3,
                     currentIndex: widget.currentIndex,
                     onTap: widget.onTap,
@@ -208,7 +212,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   _buildNavItem(
                     icon: Icons.person_outline_rounded,
                     activeIcon: Icons.person_rounded,
-                    label: 'Profile',
+                    label: TranslationService.translate('profile'),
                     index: 4,
                     currentIndex: widget.currentIndex,
                     onTap: widget.onTap,
@@ -222,6 +226,8 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
         ),
       ),
     );
+  },
+);
   }
 
   Widget _buildNavItem({

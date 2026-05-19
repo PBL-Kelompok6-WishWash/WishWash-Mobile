@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/services/alamat_service.dart';
+import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'review_wash_only.dart';
 
 class WashOnlyScreen extends StatefulWidget {
@@ -15,40 +17,111 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
 
   String selectedType = 'Daily Wear';
   String selectedPackage = 'Standard';
-  String selectedPerfume = 'Lavender';
+  String selectedPerfume = 'Lavender Bliss';
   int selectedDateIndex = 0;
   String selectedTime = 'Morning';
 
+  List<dynamic> addresses = [];
+  Map<String, dynamic>? selectedPickupAddress;
+  Map<String, dynamic>? selectedDeliveryAddress;
+  bool isLoadingAddresses = true;
+  final TextEditingController instructionController = TextEditingController();
+  List<Map<String, String>> dates = [];
+
+  final Map<String, int> packageIds = {
+    'Standard': 4,
+    'Premium': 5,
+    'Express': 6,
+  };
+
+  final Map<String, double> packageFees = {
+    'Standard': 0.0,
+    'Premium': 3000.0,
+    'Express': 7000.0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _generateDates();
+    _loadAddresses();
+  }
+
+  Future<void> _loadAddresses() async {
+    try {
+      final list = await AlamatService.getAlamat();
+      setState(() {
+        addresses = list;
+        if (list.isNotEmpty) {
+          final primary = list.firstWhere((element) => element['is_primary'] == true, orElse: () => list.first);
+          selectedPickupAddress = primary;
+          selectedDeliveryAddress = primary;
+        }
+        isLoadingAddresses = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoadingAddresses = false;
+      });
+    }
+  }
+
+  void _generateDates() {
+    final now = DateTime.now();
+    final List<String> months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    final List<String> days = ['', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+    List<Map<String, String>> tempDates = [];
+    for (int i = 0; i < 5; i++) {
+      final date = now.add(Duration(days: i));
+      tempDates.add({
+        'month': months[date.month - 1],
+        'date': date.day.toString(),
+        'day': days[date.weekday],
+        'fullDate': date.toIso8601String().split('T')[0],
+      });
+    }
+    setState(() {
+      dates = tempDates;
+    });
+  }
+
+  Future<void> _chooseAddress(bool isDelivery) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AlamatScreen()),
+    );
+    _loadAddresses();
+  }
+
   final List<Map<String, dynamic>> perfumes = [
     {
-      'name': 'Lavender',
-      'desc': 'Calming botanical notes for deep relaxation.',
+      'id': 2,
+      'name': 'Lavender Bliss',
+      'desc': 'Calming lavender notes for deep relaxation.',
       'icon': Icons.local_florist_outlined
     },
     {
-      'name': 'Aqua',
+      'id': 5,
+      'name': 'Ocean Breeze',
       'desc': 'Crisp, salt-air freshness for active wear.',
       'icon': Icons.water_drop_outlined
     },
     {
-      'name': 'Vanilla',
-      'desc': 'Warm, sweet comforting notes for linens.',
-      'icon': Icons.spa_outlined
-    },
-    {
-      'name': 'Unscented',
+      'id': 4,
+      'name': 'Fresh Cotton',
       'desc': 'Hypoallergenic purity for sensitive skin.',
       'icon': Icons.block
     },
+    {
+      'id': 1,
+      'name': 'Malaikat Subuh',
+      'desc': 'Warm, comforting traditional notes.',
+      'icon': Icons.spa_outlined
+    },
   ];
 
-  final List<Map<String, String>> dates = [
-    {'month': 'APR', 'date': '14', 'day': 'MON'},
-    {'month': 'APR', 'date': '15', 'day': 'TUE'},
-    {'month': 'APR', 'date': '16', 'day': 'WED'},
-    {'month': 'APR', 'date': '17', 'day': 'THU'},
-    {'month': 'APR', 'date': '18', 'day': 'FRI'},
-  ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -354,6 +427,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
         ],
       ),
       child: TextField(
+        controller: instructionController,
         maxLines: 3,
         decoration: InputDecoration.collapsed(
           hintText: 'Special instructions for the Courier or Washer ....',
@@ -365,6 +439,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
   }
 
   Widget _buildLocationCard({required bool isDelivery}) {
+    final address = isDelivery ? selectedDeliveryAddress : selectedPickupAddress;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -388,7 +463,6 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
             ),
             child: Stack(
               children: [
-                // Simulated map lines for placeholder effect
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.3,
@@ -409,7 +483,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Address',
+                      isDelivery ? 'Delivery Address' : 'Pick Up Address',
                       style: GoogleFonts.poppins(
                         color: textGrey,
                         fontWeight: FontWeight.bold,
@@ -418,7 +492,11 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Jalan Kesana Kesini, No. 12, Semarang, Central Java, 123456',
+                      isLoadingAddresses
+                          ? 'Loading address...'
+                          : address != null
+                              ? '${address['alamat_lengkap']} (${address['tipe_alamat']}) - Penerima: ${address['nama_penerima']}'
+                              : 'No address set. Tap below to select or add.',
                       style: GoogleFonts.poppins(
                         color: Colors.grey.shade600,
                         fontSize: 11,
@@ -426,7 +504,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () => _chooseAddress(isDelivery),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFE3E9EC),
                         foregroundColor: textGrey,
@@ -437,7 +515,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: Text(
-                        'Edit Address',
+                        address != null ? 'Change Address' : 'Add Address',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                           fontSize: 11,
@@ -641,9 +719,37 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
       width: double.infinity,
       child: ElevatedButton(
         onPressed: () {
+          if (selectedPickupAddress == null || selectedDeliveryAddress == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Silakan pilih alamat terlebih dahulu!'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+            return;
+          }
+
+          final perf = perfumes.firstWhere((p) => p['name'] == selectedPerfume, orElse: () => perfumes.first);
+          final fee = packageFees[selectedPackage] ?? 0.0;
+          final pId = packageIds[selectedPackage] ?? 4;
+          final dateStr = dates[selectedDateIndex]['fullDate'] ?? DateTime.now().toIso8601String().split('T')[0];
+
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ReviewWashOnlyScreen()),
+            MaterialPageRoute(
+              builder: (context) => ReviewWashOnlyScreen(
+                pickupAddress: selectedPickupAddress!,
+                deliveryAddress: selectedDeliveryAddress!,
+                perfume: perf,
+                package: selectedPackage,
+                packageId: pId,
+                packageFee: fee,
+                date: dateStr,
+                timeSlot: selectedTime,
+                type: selectedType,
+                instruction: instructionController.text,
+              ),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(

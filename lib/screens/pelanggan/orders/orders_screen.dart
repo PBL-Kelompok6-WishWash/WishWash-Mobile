@@ -5,6 +5,7 @@ import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool showNavbar;
@@ -84,40 +85,43 @@ class _OrdersScreenState extends State<OrdersScreen> {
     const Color cyanColor = Color(0xFF42C6D4);
     const Color bgGrey = Color(0xFFF8FBFC);
 
-    return Scaffold(
-      backgroundColor: bgGrey,
-      extendBody: true,
-      body: Stack(
-        children: [
-          // Background Gradient at the top (DESAIN YANG SAMA PERSIS)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 350,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: bgGrey,
+          extendBody: true,
+          body: Stack(
+            children: [
+              // Background Gradient at the top (DESAIN YANG SAMA PERSIS)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 350,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          SafeArea(
-            child: Column(
-              children: [
-                // --- HEADER & APPBAR (Tanpa Button Back, Dengan Icon Notifikasi) ---
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const SizedBox(width: 40), // Balancer untuk meratakan teks di tengah
-                      Text(
-                        'Orders',
+              SafeArea(
+                child: Column(
+                  children: [
+                    // --- HEADER & APPBAR (Tanpa Button Back, Dengan Icon Notifikasi) ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SizedBox(width: 40), // Balancer untuk meratakan teks di tengah
+                          Text(
+                            TranslationService.translate('orders'),
                         style: GoogleFonts.poppins(
                           color: navyColor,
                           fontWeight: FontWeight.bold,
@@ -180,6 +184,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
             )
           : null,
     );
+  },
+);
   }
 
   Widget _buildTabSelector(Color navyColor, Color cyanColor) {

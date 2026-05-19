@@ -1,0 +1,178 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class TranslationService {
+  static final ValueNotifier<String> languageNotifier = ValueNotifier<String>('en');
+
+  static const String prefKey = 'pref_language';
+
+  // Initialize language from SharedPreferences
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    String savedLang = prefs.getString(prefKey) ?? 'en';
+    if (savedLang == 'Bahasa Indonesia' || savedLang.toLowerCase().contains('indo') || savedLang.toLowerCase().contains('id')) {
+      savedLang = 'id';
+    } else {
+      savedLang = 'en';
+    }
+    languageNotifier.value = savedLang;
+  }
+
+  // Update language and notify listeners
+  static Future<void> setLanguage(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    String normalizedCode = code;
+    if (code == 'Bahasa Indonesia' || code.toLowerCase().contains('indo') || code.toLowerCase().contains('id')) {
+      normalizedCode = 'id';
+    } else {
+      normalizedCode = 'en';
+    }
+    await prefs.setString(prefKey, normalizedCode);
+    languageNotifier.value = normalizedCode;
+  }
+
+  // Current selected code
+  static String get currentLang => languageNotifier.value;
+
+  // The translation dictionary
+  static final Map<String, Map<String, String>> _localizedValues = {
+    'en': {
+      'welcome': 'Welcome',
+      'our_services': 'Our Services',
+      'active_orders': 'Active Orders',
+      'create_order': 'Create New Order',
+      'my_address': 'My Address',
+      'change_password': 'Change Password',
+      'preferences_language': 'Preferences & Language',
+      'order_history': 'Order History',
+      'payment_history': 'Payment History',
+      'faq': 'FAQ',
+      'logout': 'Log Out',
+      'edit_profile': 'Edit Profile',
+      'no_services': 'No services available',
+      'failed_to_load': 'Failed to load services',
+      'message': 'Message',
+      'courier': 'Courier',
+      'preferences': 'Preferences & Language',
+      'language_bahasa': 'LANGUAGE / BAHASA',
+      'notifications': 'NOTIFICATIONS',
+      'push_notif': 'Push Notifications',
+      'push_notif_sub': 'Receive instant updates on your screen',
+      'email_notif': 'Email Notifications',
+      'email_notif_sub': 'Get invoices and receipts in your inbox',
+      'status_notif': 'Order Status Updates',
+      'status_notif_sub': 'Track washing and courier status',
+      'app_settings': 'APPLICATION SETTINGS',
+      'dark_theme': 'Dark Theme',
+      'dark_theme_sub': 'Reduce eye strain in low-light environment',
+      'sound_effects': 'Sound Effects',
+      'sound_effects_sub': 'Play interactive sound alerts inside the app',
+      'active_order_empty': 'No active order',
+      'active_order_empty_sub': 'Your active laundry order will appear here.',
+      'make_order_btn': 'Make Order',
+      'profile': 'Profile',
+      'home': 'Home',
+      'orders': 'Orders',
+      'address_not_set': 'Address not set yet',
+      'phone': 'Phone',
+      'email': 'Email',
+      'address': 'Address',
+      'add_new_address': 'Add New Address',
+      'no_saved_addresses': 'No saved addresses yet.',
+      'last_used': 'Last Used',
+      'suggested_locations': 'Suggested Nearby Locations',
+      'no_suggested_locations': 'No suggested locations yet.',
+      'suggested_locations_desc': 'Suggested locations will appear when you enable GPS and frequently use the app in this area.',
+      'edit_address': 'Edit Address',
+      'select_address': 'Select Address',
+      'address_details': 'Address Details',
+      'address_details_hint': 'e.g. Block, House No., Landmark',
+      'address_helper_text': 'Enter House No. (if any), so the Courier can deliver the order easily',
+      'recipient_name': 'Recipient Name',
+      'recipient_name_hint': 'Enter Recipient Name',
+      'phone_number': 'Phone Number',
+      'tag_as': 'Tag As',
+      'home_tag': 'Home',
+      'office_tag': 'Office',
+      'other_tag': 'Other',
+      'custom_tag_hint': 'e.g. Apartment, Kos, etc.',
+      'save_address': 'Save Address',
+      'search_location': 'Search location',
+      'fill_all_fields': 'Please fill in all fields completely',
+      'address_added': 'Address successfully added',
+      'address_updated': 'Address successfully updated',
+    },
+    'id': {
+      'welcome': 'Selamat Datang',
+      'our_services': 'Layanan Kami',
+      'active_orders': 'Pesanan Aktif',
+      'create_order': 'Buat Pesanan Baru',
+      'my_address': 'Alamat Saya',
+      'change_password': 'Ubah Kata Sandi',
+      'preferences_language': 'Preferensi & Bahasa',
+      'order_history': 'Riwayat Pesanan',
+      'payment_history': 'Riwayat Pembayaran',
+      'faq': 'Pertanyaan Umum (FAQ)',
+      'logout': 'Keluar',
+      'edit_profile': 'Edit Profil',
+      'no_services': 'Tidak ada layanan tersedia',
+      'failed_to_load': 'Gagal memuat layanan',
+      'message': 'Pesan',
+      'courier': 'Kurir',
+      'preferences': 'Preferensi & Bahasa',
+      'language_bahasa': 'BAHASA / LANGUAGE',
+      'notifications': 'NOTIFIKASI',
+      'push_notif': 'Notifikasi Push',
+      'push_notif_sub': 'Terima pembaruan instan langsung di layar Anda',
+      'email_notif': 'Notifikasi Email',
+      'email_notif_sub': 'Dapatkan tagihan dan tanda terima di email Anda',
+      'status_notif': 'Pembaruan Status Pesanan',
+      'status_notif_sub': 'Lacak status pencucian dan pengiriman kurir',
+      'app_settings': 'PENGATURAN APLIKASI',
+      'dark_theme': 'Tema Gelap',
+      'dark_theme_sub': 'Kurangi kelelahan mata dalam kondisi minim cahaya',
+      'sound_effects': 'Efek Suara',
+      'sound_effects_sub': 'Mainkan peringatan suara interaktif dalam aplikasi',
+      'active_order_empty': 'Tidak ada pesanan aktif',
+      'active_order_empty_sub': 'Pesanan laundry aktif Anda akan muncul di sini.',
+      'make_order_btn': 'Buat Pesanan',
+      'profile': 'Profil',
+      'home': 'Beranda',
+      'orders': 'Pesanan',
+      'address_not_set': 'Alamat belum diatur',
+      'phone': 'Telepon',
+      'email': 'Email',
+      'address': 'Alamat',
+      'add_new_address': 'Tambahkan Alamat Baru',
+      'no_saved_addresses': 'Belum ada alamat tersimpan.',
+      'last_used': 'Terakhir Digunakan',
+      'suggested_locations': 'Saran Lokasi Terdekat',
+      'no_suggested_locations': 'Belum ada saran lokasi terdekat.',
+      'suggested_locations_desc': 'Saran lokasi akan muncul ketika Anda mengaktifkan GPS dan sering menggunakan aplikasi di area ini.',
+      'edit_address': 'Edit Alamat',
+      'select_address': 'Pilih Alamat',
+      'address_details': 'Rincian Alamat',
+      'address_details_hint': 'Cth. Blok, No. Rumah, Patokan',
+      'address_helper_text': 'Masukkan No. Rumah (jika ada), agar Kurir bisa mengantarkan pesanan dengan mudah',
+      'recipient_name': 'Nama Penerima',
+      'recipient_name_hint': 'Masukkan Nama Penerima',
+      'phone_number': 'No. Handphone',
+      'tag_as': 'Tandai Sebagai',
+      'home_tag': 'Rumah',
+      'office_tag': 'Kantor',
+      'other_tag': 'Lainnya',
+      'custom_tag_hint': 'Cth. Apartemen, Kos, dll',
+      'save_address': 'Simpan Alamat',
+      'search_location': 'Cari lokasi',
+      'fill_all_fields': 'Harap isi semua data dengan lengkap',
+      'address_added': 'Alamat berhasil ditambahkan',
+      'address_updated': 'Alamat berhasil diubah',
+    }
+  };
+
+  // Helper function to translate a key
+  static String translate(String key) {
+    final lang = languageNotifier.value;
+    return _localizedValues[lang]?[key] ?? key;
+  }
+}

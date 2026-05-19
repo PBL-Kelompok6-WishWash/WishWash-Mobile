@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/pilih_alamat_screen.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class TambahAlamatScreen extends StatefulWidget {
   final Map<String, dynamic>? alamatToEdit;
@@ -58,73 +59,78 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: _navyColor, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Tambah Alamat Baru',
-          style: GoogleFonts.poppins(
-            color: _navyColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: _bgColor,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: _navyColor, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              widget.alamatToEdit != null 
+                ? TranslationService.translate('edit_address') 
+                : TranslationService.translate('add_new_address'),
+              style: GoogleFonts.poppins(
+                color: _navyColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            centerTitle: true,
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Pilih Alamat Button
-            InkWell(
-              onTap: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PilihAlamatScreen()),
-                );
-                if (result != null && result is Map) {
-                  setState(() {
-                    _detailController.text = result['alamat'];
-                    _latitude = result['latitude'];
-                    _longitude = result['longitude'];
-                  });
-                }
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Pilih Alamat Button
+                InkWell(
+                  onTap: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PilihAlamatScreen()),
+                    );
+                    if (result != null && result is Map) {
+                      setState(() {
+                        _detailController.text = result['alamat'];
+                        _latitude = result['latitude'];
+                        _longitude = result['longitude'];
+                      });
+                    }
+                  },
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.location_on_rounded, color: _cyanColor, size: 24),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Pilih Alamat',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: _navyColor,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
+                      ],
                     ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on_rounded, color: _cyanColor, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            TranslationService.translate('select_address'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: _navyColor,
+                            ),
+                          ),
+                        ),
                     Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade400, size: 16),
                   ],
                 ),
@@ -149,8 +155,8 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildTextField(
-                    label: 'Rincian Alamat',
-                    hint: 'Cth. Blok, No. Rumah, Patokan',
+                    label: TranslationService.translate('address_details'),
+                    hint: TranslationService.translate('address_details_hint'),
                     controller: _detailController,
                     maxLines: 2,
                   ),
@@ -159,7 +165,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     color: const Color(0xFFFFF9E6), // Light yellow tint
                     child: Text(
-                      'Masukkan No. Rumah (jika ada), agar Kurir bisa mengantarkan pesanan dengan mudah',
+                      TranslationService.translate('address_helper_text'),
                       style: GoogleFonts.poppins(
                         fontSize: 12,
                         color: Colors.black87,
@@ -168,14 +174,14 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                   ),
                   Divider(color: Colors.grey.shade200, height: 1),
                   _buildTextField(
-                    label: 'Nama Lengkap',
-                    hint: 'Masukkan Nama Lengkap',
+                    label: TranslationService.translate('recipient_name'),
+                    hint: TranslationService.translate('recipient_name_hint'),
                     controller: _nameController,
                     isRequired: true,
                   ),
                   Divider(color: Colors.grey.shade200, height: 1),
                   _buildTextField(
-                    label: 'No. Handphone',
+                    label: TranslationService.translate('phone_number'),
                     hint: 'Contoh: 081234567890',
                     controller: _phoneController,
                     isRequired: true,
@@ -206,7 +212,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Tandai Sebagai',
+                    TranslationService.translate('tag_as'),
                     style: GoogleFonts.poppins(
                       fontSize: 13,
                       color: Colors.grey.shade500,
@@ -226,8 +232,8 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                     const SizedBox(height: 16),
                     Divider(color: Colors.grey.shade200, height: 1),
                     _buildTextField(
-                      label: 'Label Alamat',
-                      hint: 'Cth. Apartemen, Kos, dll',
+                      label: TranslationService.translate('tag_as'),
+                      hint: TranslationService.translate('custom_tag_hint'),
                       controller: _customLabelController,
                       isRequired: true,
                       horizontalPadding: 0,
@@ -249,7 +255,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                 : () async {
                     if (_nameController.text.isEmpty || _phoneController.text.isEmpty || _detailController.text.isEmpty || (_selectedLabel == 'Lainnya' && _customLabelController.text.isEmpty)) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Harap isi semua data dengan lengkap')),
+                        SnackBar(content: Text(TranslationService.translate('fill_all_fields'))),
                       );
                       return;
                     }
@@ -273,7 +279,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                       
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(widget.alamatToEdit != null ? 'Alamat berhasil diubah' : 'Alamat berhasil ditambahkan')),
+                          SnackBar(content: Text(widget.alamatToEdit != null ? TranslationService.translate('address_updated') : TranslationService.translate('address_added'))),
                         );
                         Navigator.pop(context, true); // return true to indicate success
                       }
@@ -301,7 +307,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                   child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                 )
               : Text(
-                  'Konfirmasi',
+                  TranslationService.translate('save_address'),
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -312,6 +318,8 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
         ),
       ),
     );
+  },
+);
   }
 
   Widget _buildTextField({
@@ -374,12 +382,17 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
     );
   }
 
-  Widget _buildLabelChip(String label, IconData icon) {
-    final bool isSelected = _selectedLabel == label;
+  Widget _buildLabelChip(String value, IconData icon) {
+    final bool isSelected = _selectedLabel == value;
+    String displayLabel = value;
+    if (value == 'Rumah') displayLabel = TranslationService.translate('home_tag');
+    else if (value == 'Kantor') displayLabel = TranslationService.translate('office_tag');
+    else if (value == 'Lainnya') displayLabel = TranslationService.translate('other_tag');
+
     return GestureDetector(
       onTap: () {
         setState(() {
-          _selectedLabel = label;
+          _selectedLabel = value;
         });
       },
       child: Container(
@@ -392,6 +405,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -400,7 +414,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
             ),
             const SizedBox(width: 6),
             Text(
-              label,
+              displayLabel,
               style: GoogleFonts.poppins(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
