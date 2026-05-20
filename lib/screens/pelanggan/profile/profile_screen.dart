@@ -11,6 +11,7 @@ import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/widgets/custom_dialog.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool showNavbar;
@@ -798,8 +799,79 @@ class ProfileScreenState extends State<ProfileScreen> {
                     _buildInputLabel('Email', navyColor),
                     _buildTextField(emailController, 'Masukkan email', Icons.mail_outline, keyboardType: TextInputType.emailAddress),
                     
-                    _buildInputLabel('URL Foto Profil (Opsional)', navyColor),
-                    _buildTextField(photoController, 'Masukkan URL foto profil', Icons.image_outlined),
+                    _buildInputLabel('Foto Profil (Opsional)', navyColor),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () async {
+                        final ImagePicker picker = ImagePicker();
+                        try {
+                          final XFile? image = await picker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 500,
+                            maxHeight: 500,
+                            imageQuality: 80,
+                          );
+                          if (image != null) {
+                            final bytes = await image.readAsBytes();
+                            final base64Str = base64Encode(bytes);
+                            setModalState(() {
+                              photoController.text = 'data:image/png;base64,$base64Str';
+                            });
+                          }
+                        } catch (e) {
+                          debugPrint("Error picking image: $e");
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.photo_library_outlined, color: Colors.grey.shade500, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                photoController.text.isEmpty
+                                    ? 'Pilih dari Galeri'
+                                    : (photoController.text.startsWith('data:image')
+                                        ? 'Gambar Terpilih (Base64)'
+                                        : 'Gambar Terpilih (URL)'),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: photoController.text.isEmpty
+                                      ? Colors.grey.shade400
+                                      : const Color(0xFF0C4B8E),
+                                ),
+                              ),
+                            ),
+                            if (photoController.text.isNotEmpty) ...[
+                              const SizedBox(width: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: photoController.text.startsWith('data:image')
+                                    ? Image.memory(
+                                        base64Decode(photoController.text.split(',').last),
+                                        width: 32,
+                                        height: 32,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Image.network(
+                                        photoController.text,
+                                        width: 32,
+                                        height: 32,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 20),
+                                      ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
                     
                     const SizedBox(height: 32),
 
