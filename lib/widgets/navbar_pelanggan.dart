@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
-import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
+import 'package:mobile/widgets/menu_plus.dart';
 
 class BottomNavbar extends StatefulWidget {
   final int currentIndex;
@@ -188,12 +188,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateOrderScreen(),
-                            ),
-                          );
+                          showMenuPlus(context);
                         },
                         customBorder: const CircleBorder(),
                         splashColor: Colors.white.withOpacity(0.3),

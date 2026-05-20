@@ -1035,22 +1035,23 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
                       final VoidCallback cardOnTap = () {
                         final String lowerName = name.toLowerCase();
-                        if (lowerName.contains('ironing') && lowerName.contains('wash')) {
+                        if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
+                            (lowerName.contains('iron') && lowerName.contains('wash'))) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const WashIroningScreen()),
                           );
-                        } else if (lowerName.contains('wash')) {
+                        } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
                           );
-                        } else if (lowerName.contains('ironing')) {
+                        } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
                           );
-                        } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                        } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const DryCleanScreen()),

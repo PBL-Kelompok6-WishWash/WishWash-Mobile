@@ -218,36 +218,33 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                       final String name = service['nama_layanan'] ?? '';
                                       return _buildServiceCard(service, () {
                                         final String lowerName = name.toLowerCase();
-                                        final bool hasWash = lowerName.contains('wash') || lowerName.contains('cuci');
-                                        final bool hasIron = lowerName.contains('iron') || lowerName.contains('setrika');
-                                        final bool hasDry = lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('lipat');
-
-                                        if (hasWash && hasIron) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                                          );
-                                        } else if (hasWash && hasDry) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                          );
-                                        } else if (hasWash) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                                          );
-                                        } else if (hasIron) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                                          );
-                                        } else {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                          );
-                                        }
+                                        if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
+                                             (lowerName.contains('iron') && lowerName.contains('wash'))) {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                                           );
+                                         } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                                           );
+                                         } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                                           );
+                                         } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                                           );
+                                         } else {
+                                           Navigator.push(
+                                             context,
+                                             MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                                           );
+                                         }
                                       });
                                     }).toList(),
                                   ),

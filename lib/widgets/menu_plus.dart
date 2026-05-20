@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/payment.dart';
 import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
 
 void showMenuPlus(BuildContext context) {
@@ -40,7 +40,7 @@ void showMenuPlus(BuildContext context) {
                     Navigator.pop(context); // Close popup
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const PaymentScreenNew()),
+                      MaterialPageRoute(builder: (context) => const PaymentScreen()),
                     );
                   },
                 ),
