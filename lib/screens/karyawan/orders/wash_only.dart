@@ -18,6 +18,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
   String selectedPerfume = 'Lavender';
   int selectedDateIndex = 0;
   String selectedTime = 'Morning';
+  String deliveryMethod = 'Courier Delivery';
 
   final List<Map<String, dynamic>> perfumes = [
     {
@@ -42,13 +43,34 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
     },
   ];
 
-  final List<Map<String, String>> dates = [
-    {'month': 'APR', 'date': '14', 'day': 'MON'},
-    {'month': 'APR', 'date': '15', 'day': 'TUE'},
-    {'month': 'APR', 'date': '16', 'day': 'WED'},
-    {'month': 'APR', 'date': '17', 'day': 'THU'},
-    {'month': 'APR', 'date': '18', 'day': 'FRI'},
-  ];
+  final List<Map<String, String>> dates = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _generateDates();
+  }
+
+  void _generateDates() {
+    final now = DateTime.now();
+    final dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    final monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+    for (int i = 0; i < 5; i++) {
+      final date = now.add(Duration(days: i));
+      final monthStr = monthNames[date.month - 1];
+      final dateStr = date.day.toString().padLeft(2, '0');
+      final dayStr = dayNames[date.weekday % 7];
+      final fullDateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+      dates.add({
+        'month': monthStr,
+        'date': dateStr,
+        'day': dayStr,
+        'fullDate': fullDateStr,
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +174,12 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
 
                           _buildSectionTitle('Delivery Location'),
                           const SizedBox(height: 16),
-                          _buildLocationCard(isDelivery: true),
-                          const SizedBox(height: 12),
-                          _buildPickUpStoreButton(),
+                          _buildDeliveryMethodSelection(),
+                          const SizedBox(height: 16),
+                          if (deliveryMethod == 'Courier Delivery')
+                            _buildLocationCard(isDelivery: true)
+                          else
+                            _buildStoreAddressCard(),
                           const SizedBox(height: 32),
 
                           _buildReviewOrderButton(),
@@ -211,7 +236,10 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: navyColor, width: isSelected ? 1.2 : 1),
+          border: Border.all(
+            color: isSelected ? navyColor : Colors.grey.shade200,
+            width: isSelected ? 1.2 : 1,
+          ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: isSelected
               ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
@@ -221,8 +249,8 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
         child: Text(
           title,
           style: GoogleFonts.poppins(
-            color: navyColor,
-            fontWeight: isSelected ? FontWeight.w500 : FontWeight.w500,
+            color: isSelected ? navyColor : textGrey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             fontSize: 13,
           ),
         ),
@@ -232,42 +260,42 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
 
   Widget _buildPackageCheckboxes() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildCheckbox('Standard'),
-        _buildCheckbox('Premium'),
-        _buildCheckbox('Express'),
+        Expanded(child: _buildPackageOption('Standard')),
+        const SizedBox(width: 12),
+        Expanded(child: _buildPackageOption('Premium')),
+        const SizedBox(width: 12),
+        Expanded(child: _buildPackageOption('Express')),
       ],
     );
   }
 
-  Widget _buildCheckbox(String title) {
+  Widget _buildPackageOption(String title) {
     final isSelected = selectedPackage == title;
     return GestureDetector(
       onTap: () => setState(() => selectedPackage = title),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: textGrey.withOpacity(0.5), width: 1.5),
-              color: isSelected ? textGrey.withOpacity(0.1) : Colors.transparent,
-            ),
-            child: isSelected ? Icon(Icons.check, size: 14, color: textGrey) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: isSelected ? navyColor : Colors.grey.shade200,
+            width: isSelected ? 1.2 : 1,
           ),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              color: navyColor,
-              fontWeight: FontWeight.w500,
-              fontSize: 12,
-            ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+              : [],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          title,
+          style: GoogleFonts.poppins(
+            color: isSelected ? navyColor : textGrey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontSize: 13,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -293,10 +321,13 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? Colors.grey.shade300 : Colors.transparent, width: 1),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2)),
-              ],
+              border: Border.all(
+                color: isSelected ? navyColor : Colors.grey.shade200,
+                width: isSelected ? 1.2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+                  : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,7 +348,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                       child: Text(
                         perfume['name'],
                         style: GoogleFonts.poppins(
-                          color: textGrey,
+                          color: isSelected ? navyColor : textGrey,
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -471,10 +502,13 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isSelected ? navyColor : Colors.transparent, width: isSelected ? 1 : 0),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 3)),
-                ],
+                border: Border.all(
+                  color: isSelected ? navyColor : Colors.grey.shade200,
+                  width: isSelected ? 1.2 : 1,
+                ),
+                boxShadow: isSelected
+                    ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+                    : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 3))],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -547,18 +581,21 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isSelected ? navyColor.withOpacity(0.5) : Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2)),
-              ],
+              border: Border.all(
+                color: isSelected ? navyColor : Colors.grey.shade200,
+                width: isSelected ? 1.2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+                  : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5, offset: const Offset(0, 2))],
             ),
             alignment: Alignment.center,
             child: Text(
               time,
               style: GoogleFonts.poppins(
-                color: textGrey,
+                color: isSelected ? navyColor : textGrey,
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
               ),
             ),
           ),
@@ -607,29 +644,131 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
     );
   }
 
-  Widget _buildPickUpStoreButton() {
+  Widget _buildDeliveryMethodSelection() {
+    return Row(
+      children: [
+        Expanded(child: _buildDeliveryMethodOption('Courier Delivery', Icons.local_shipping_outlined)),
+        const SizedBox(width: 16),
+        Expanded(child: _buildDeliveryMethodOption('Pick Up in Store', Icons.storefront_outlined)),
+      ],
+    );
+  }
+
+  Widget _buildDeliveryMethodOption(String method, IconData icon) {
+    final isSelected = deliveryMethod == method;
+    return GestureDetector(
+      onTap: () => setState(() => deliveryMethod = method),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(
+            color: isSelected ? navyColor : Colors.grey.shade200,
+            width: isSelected ? 1.2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [BoxShadow(color: navyColor.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))]
+              : [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? navyColor : textGrey, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              method == 'Courier Delivery' ? 'Delivery Address' : 'Pick Up in Store',
+              style: GoogleFonts.poppins(
+                color: isSelected ? navyColor : textGrey,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoreAddressCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade100),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.storefront_outlined, color: textGrey, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'Pick Up in Store',
-            style: GoogleFonts.poppins(
-              color: textGrey,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+          Container(
+            height: 100,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF5A9B93),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.3,
+                    child: CustomPaint(painter: MapLinesPainter()),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'WishWash Store Location',
+                      style: GoogleFonts.poppins(
+                        color: navyColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.storefront_outlined, color: navyColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'WishWash Utama Store',
+                      style: GoogleFonts.poppins(
+                        color: textGrey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Jl. Raya Kampus Udayana No.12, Jimbaran, Bali',
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -11,6 +11,7 @@ import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
 import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
 import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool showNavbar;
@@ -86,7 +87,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
     const Color cyanColor = Color(0xFF42C6D4);
     const Color bgGrey = Color(0xFFF8FBFC);
 
@@ -118,25 +119,30 @@ class _OrdersScreenState extends State<OrdersScreen> {
               SafeArea(
                 child: Column(
                   children: [
-                    // --- HEADER & APPBAR (Tanpa Button Back, Dengan Icon Notifikasi) ---
+                    // --- HEADER & APPBAR (Dengan Back Button kondisional, Dan Icon Notifikasi) ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const SizedBox(width: 40), // Balancer untuk meratakan teks di tengah
+                          widget.showNavbar
+                              ? const SizedBox(width: 40)
+                              : IconButton(
+                                  icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 20),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
                           Text(
                             TranslationService.translate('orders'),
-                        style: GoogleFonts.poppins(
-                          color: navyColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
+                            style: GoogleFonts.poppins(
+                              color: navyColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                            ),
+                          ),
+                          _buildNotificationIcon(navyColor),
+                        ],
                       ),
-                      _buildNotificationIcon(navyColor),
-                    ],
-                  ),
-                ),
+                    ),
 
                 // --- PIL PIL TAB SELECTOR ---
                 _buildTabSelector(navyColor, cyanColor),
@@ -548,7 +554,36 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 child: SizedBox(
                   height: 40,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      final String lowerName = serviceName.toLowerCase();
+                      if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
+                          (lowerName.contains('iron') && lowerName.contains('wash'))) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WashIroningScreen()),
+                        );
+                      } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
+                        );
+                      } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
+                        );
+                      } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DryCleanScreen()),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+                        );
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orderColor,
                       foregroundColor: Colors.white,

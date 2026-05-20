@@ -145,9 +145,10 @@ class _RoomChatKurirScreenState extends State<RoomChatKurirScreen> {
                   if (_isMenuOpen)
                     Positioned(
                       bottom: 10,
+                      left: 20,
                       right: 20,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
@@ -160,13 +161,10 @@ class _RoomChatKurirScreenState extends State<RoomChatKurirScreen> {
                           ],
                         ),
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildMenuItem(Icons.camera_alt, 'Camera', cyanColor, _openCamera),
-                            const SizedBox(width: 24),
                             _buildMenuItem(Icons.image, 'Photo & Video', const Color(0xFF1E88E5), _openGallery),
-                            const SizedBox(width: 24),
                             _buildMenuItem(Icons.location_on, 'Location', navyColor, _openLocation),
                           ],
                         ),

@@ -51,31 +51,7 @@ class OrderDetailScreen extends StatelessWidget {
                       ),
                     ),
 
-                    Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.notifications_none_rounded,
-                            color: navyColor,
-                            size: 28,
-                          ),
-                          onPressed: () {},
-                        ),
-
-                        Positioned(
-                          right: 12,
-                          top: 12,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
