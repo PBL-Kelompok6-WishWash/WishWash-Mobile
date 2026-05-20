@@ -7,6 +7,7 @@ import 'wash_ironing.dart';
 import 'wash_only.dart';
 import 'ironing_only.dart';
 import 'dry_clean.dart';
+import 'package:mobile/utils/constants.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
@@ -114,6 +115,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       } catch (e) {
         return const Icon(Icons.broken_image, size: 20);
       }
+    } else if (imagePath.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$imagePath',
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
     } else {
       return Image.asset(
         imagePath,

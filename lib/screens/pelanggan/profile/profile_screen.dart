@@ -12,6 +12,7 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/widgets/custom_dialog.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile/utils/constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool showNavbar;
@@ -317,6 +318,15 @@ class ProfileScreenState extends State<ProfileScreen> {
       } catch (e) {
         return _buildDefaultAvatar(cyanColor);
       }
+    } else if (fotoPelanggan.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$fotoPelanggan',
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(cyanColor),
+      );
     } else if (fotoPelanggan.isNotEmpty) {
       return Image.asset(
         fotoPelanggan,
@@ -860,7 +870,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                                         fit: BoxFit.cover,
                                       )
                                     : Image.network(
-                                        photoController.text,
+                                        photoController.text.startsWith('/uploads/')
+                                            ? '${Constants.baseUrl.replaceAll('/api/v1', '')}${photoController.text}'
+                                            : photoController.text,
                                         width: 32,
                                         height: 32,
                                         fit: BoxFit.cover,

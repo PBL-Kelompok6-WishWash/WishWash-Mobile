@@ -16,6 +16,7 @@ import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
 import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
 import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'dart:convert';
+import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 
 void main() {
@@ -597,6 +598,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       } catch (e) {
         debugPrint("Error base64 avatar: $e");
       }
+    } else if (_fotoPelanggan.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      imageProvider = NetworkImage('$staticHost$_fotoPelanggan');
     } else if (_fotoPelanggan.isNotEmpty) {
       imageProvider = AssetImage(_fotoPelanggan);
     }
@@ -1172,6 +1176,15 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       } catch (e) {
         return const Icon(Icons.broken_image, size: 20);
       }
+    } else if (imagePath.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$imagePath',
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
     } else {
       return Image.asset(
         imagePath,
