@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -327,19 +327,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
 
       if (response['success'] == true) {
-        CustomDialog.showSuccess(
+        bool navigated = false;
+
+        // Auto-close timer: closes dialog after 1500ms if user hasn't tapped OK
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted && !navigated) {
+            Navigator.of(context).pop(); // tutup dialog
+          }
+        });
+
+        // Tampilkan dialog — await akan selesai saat user klik OK atau timer menutupnya
+        await CustomDialog.showSuccess(
           context: context,
           title: TranslationService.currentLang == 'en' ? 'Success' : 'Berhasil',
           message: TranslationService.currentLang == 'en'
               ? 'Profile updated successfully!'
               : 'Profil berhasil diperbarui!',
         );
-        // Wait a short delay for dialog and then return success true
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            Navigator.pop(context, true);
-          }
-        });
+
+        // Dialog sudah tertutup (klik OK atau auto-close) — balik ke profile page
+        if (mounted && !navigated) {
+          navigated = true;
+          Navigator.pop(context, true);
+        }
       } else {
         CustomDialog.showError(
           context: context,

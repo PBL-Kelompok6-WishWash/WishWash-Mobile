@@ -11,8 +11,6 @@ import 'dart:convert';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
-import 'package:mobile/widgets/custom_dialog.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mobile/utils/constants.dart';
 
 class ProfileScreen extends StatefulWidget {
