@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/material';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile/services/pelanggan_service.dart';
@@ -177,10 +178,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     String hint,
     IconData icon, {
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
       decoration: InputDecoration(
         filled: true,
@@ -349,7 +352,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             _phoneController, 
                             TranslationService.currentLang == 'en' ? 'Enter phone number' : 'Masukkan nomor telepon', 
                             Icons.phone_android_outlined, 
-                            keyboardType: TextInputType.phone
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           ),
                           
                           _buildInputLabel('Username'),
