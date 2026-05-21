@@ -205,7 +205,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveChanges() async {
-    if (_nameController.text.trim().isEmpty) {
+    final String name = _nameController.text.trim();
+    final String phone = _phoneController.text.trim();
+    final String username = _usernameController.text.trim();
+    final String email = _emailController.text.trim();
+
+    // 1. Full Name Validation
+    if (name.isEmpty) {
       CustomDialog.showError(
         context: context,
         title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
@@ -215,16 +221,103 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
       return;
     }
+    if (name.length < 2) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Full name must be at least 2 characters' 
+            : 'Nama lengkap minimal harus 2 karakter',
+      );
+      return;
+    }
+
+    // 2. Phone Number Validation
+    if (phone.isEmpty) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Phone number cannot be empty' 
+            : 'Nomor telepon tidak boleh kosong',
+      );
+      return;
+    }
+    if (phone.length < 10 || phone.length > 13) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Phone number must be between 10 and 13 digits' 
+            : 'Nomor telepon harus berukuran antara 10 sampai 13 digit',
+      );
+      return;
+    }
+
+    // 3. Username Validation
+    if (username.isEmpty) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Username cannot be empty' 
+            : 'Username tidak boleh kosong',
+      );
+      return;
+    }
+    if (username.contains(' ')) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Username cannot contain spaces' 
+            : 'Username tidak boleh mengandung spasi',
+      );
+      return;
+    }
+    if (username.length < 3) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Username must be at least 3 characters' 
+            : 'Username minimal harus 3 karakter',
+      );
+      return;
+    }
+
+    // 4. Email Validation
+    if (email.isEmpty) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Email address cannot be empty' 
+            : 'Email tidak boleh kosong',
+      );
+      return;
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      CustomDialog.showError(
+        context: context,
+        title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
+        message: TranslationService.currentLang == 'en' 
+            ? 'Please enter a valid email address' 
+            : 'Format email tidak valid (harus mengandung @ dan domain)',
+      );
+      return;
+    }
 
     setState(() {
       _isSaving = true;
     });
 
     final response = await PelangganService.updateProfile({
-      'nama': _nameController.text.trim(),
-      'no_telp': _phoneController.text.trim(),
-      'username': _usernameController.text.trim(),
-      'email': _emailController.text.trim(),
+      'nama': name,
+      'no_telp': phone,
+      'username': username,
+      'email': email,
       'foto_pelanggan': _fotoPelanggan.trim(),
     });
 
