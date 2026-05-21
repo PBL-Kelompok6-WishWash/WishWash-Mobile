@@ -43,6 +43,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _fetchProfile() async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final response = await PelangganService.getProfile();
     if (response['success'] == true) {
       final data = response['data'];
@@ -63,7 +64,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(response['message'] ?? 'Gagal memuat profil')),
         );
       }
@@ -750,11 +751,11 @@ class ProfileScreenState extends State<ProfileScreen> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () async {
-                              Navigator.of(context).pop(); // Tutup dialog
+                              final navigator = Navigator.of(context);
+                              navigator.pop(); // Tutup dialog
                               await AuthService.logout();
                               if (mounted) {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
+                                navigator.pushAndRemoveUntil(
                                   MaterialPageRoute(builder: (context) => const LoginScreen()),
                                   (route) => false,
                                 );
