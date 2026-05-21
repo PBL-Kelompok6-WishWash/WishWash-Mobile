@@ -10,11 +10,8 @@ import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/layanan_service.dart';
+import 'package:mobile/screens/pelanggan/orders/laundry_order_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
-import 'package:mobile/screens/pelanggan/orders/wash_ironing.dart';
-import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
-import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
-import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
@@ -31,7 +28,13 @@ void main() {
 class PelangganHomeScreen extends StatefulWidget {
   final bool showNavbar;
   final bool showOrderSuccessNotification;
-  const PelangganHomeScreen({super.key, this.showNavbar = true, this.showOrderSuccessNotification = false});
+  final VoidCallback? onProfileTap;
+  const PelangganHomeScreen({
+    super.key, 
+    this.showNavbar = true, 
+    this.showOrderSuccessNotification = false,
+    this.onProfileTap,
+  });
 
   @override
   State<PelangganHomeScreen> createState() => PelangganHomeScreenState();
@@ -644,7 +647,23 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildProfileAvatar(),
+              GestureDetector(
+                onTap: () {
+                  if (widget.onProfileTap != null) {
+                    widget.onProfileTap!();
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      PageRouteBuilder(
+                        pageBuilder: (context, animation1, animation2) => const ProfileScreen(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
+                      ),
+                    );
+                  }
+                },
+                child: _buildProfileAvatar(),
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -981,7 +1000,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _cyan,
-                    decoration: TextDecoration.underline,
+                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
                     decorationColor: _cyan,
                   ),
                 ),
@@ -1019,7 +1038,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     itemCount: _services.length,
                     itemBuilder: (context, index) {
                       final service = _services[index];
-                      final String name = service['nama_layanan'] ?? '';
+                      final String rawName = service['nama_layanan'] ?? '';
+                      final String name = TranslationService.translateService(rawName);
                       final String hexColor = service['warna_layanan'] ?? '#00BCD4';
                       final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
 
@@ -1033,39 +1053,19 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                       String formattedName = name;
                       if (name.contains(' & ')) {
                         formattedName = name.replaceAll(' & ', ' &\n');
+                      } else if (name.contains(' and ')) {
+                        formattedName = name.replaceAll(' and ', ' and\n');
                       } else if (name.contains(' ')) {
                         formattedName = name.replaceAll(' ', '\n');
                       }
 
                       final VoidCallback cardOnTap = () {
-                        final String lowerName = name.toLowerCase();
-                        if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
-                            (lowerName.contains('iron') && lowerName.contains('wash'))) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                          );
-                        } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                          );
-                        } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                          );
-                        } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                          );
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
-                          );
-                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LaundryOrderScreen(service: service),
+                          ),
+                        );
                       };
 
                       return _buildServiceCard(

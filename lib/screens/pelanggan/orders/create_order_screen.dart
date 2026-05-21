@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/services/translation_service.dart';
-import 'wash_ironing.dart';
-import 'wash_only.dart';
-import 'ironing_only.dart';
-import 'dry_clean.dart';
+import 'laundry_order_screen.dart';
 import 'package:mobile/utils/constants.dart';
 
 class CreateOrderScreen extends StatefulWidget {
@@ -148,12 +145,18 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
+                        icon: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: navyColor,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
@@ -199,66 +202,52 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                       backgroundColor: Colors.white,
                       onRefresh: _fetchServices,
                       child: _isLoading
-                          ? const Center(
-                              child: CircularProgressIndicator(),
-                            )
+                          ? const Center(child: CircularProgressIndicator())
                           : _services.isEmpty
-                              ? ListView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  children: [
-                                    SizedBox(
-                                      height: MediaQuery.of(context).size.height * 0.6,
-                                      child: Center(
-                                        child: Text(
-                                          TranslationService.translate('no_services'),
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.6,
+                                  child: Center(
+                                    child: Text(
+                                      TranslationService.translate(
+                                        'no_services',
+                                      ),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  ],
-                                )
-                              : SingleChildScrollView(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(24, 30, 24, 20),
-                                  child: Column(
-                                    children: _services.map((service) {
-                                      final String name = service['nama_layanan'] ?? '';
-                                      return _buildServiceCard(service, () {
-                                        final String lowerName = name.toLowerCase();
-                                        if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
-                                             (lowerName.contains('iron') && lowerName.contains('wash'))) {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                                           );
-                                         } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                                           );
-                                         } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                                           );
-                                         } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                           );
-                                         } else {
-                                           Navigator.push(
-                                             context,
-                                             MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                           );
-                                         }
-                                      });
-                                    }).toList(),
                                   ),
                                 ),
+                              ],
+                            )
+                          : SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                30,
+                                24,
+                                20,
+                              ),
+                              child: Column(
+                                children: _services.map((service) {
+                                  return _buildServiceCard(service, () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            LaundryOrderScreen(
+                                              service: service,
+                                            ),
+                                      ),
+                                    );
+                                  });
+                                }).toList(),
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -270,137 +259,231 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
-  Widget _buildServiceCard(
-    Map<String, dynamic> service,
-    VoidCallback onTap,
-  ) {
-    final String name = service['nama_layanan'] ?? '';
+  Widget _buildServiceCard(Map<String, dynamic> service, VoidCallback onTap) {
+    final String rawName = service['nama_layanan'] ?? '';
+    final String name = TranslationService.translateService(rawName);
     final String hexColor = service['warna_layanan'] ?? '#00BCD4';
-    final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
-    final double price = (service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final String imagePath =
+        service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
+    final double price =
+        (service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
     final String unit = service['jenis_satuan'] ?? 'Kg';
     final String dbDesc = service['deskripsi_layanan'] ?? '';
 
     // Multi-language translation support
     String description = dbDesc;
-    final key = name.toLowerCase().replaceAll(' ', '_').replaceAll('&', 'and');
+    final key = rawName
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll('&', 'and');
     final localKey = '${key}_desc';
     if (TranslationService.translate(localKey) != localKey) {
       description = TranslationService.translate(localKey);
     }
 
     final Color baseColor = _parseHexColor(hexColor);
-    final Color bgColor = baseColor.withOpacity(0.12);
+    final Color bgColor = baseColor.withOpacity(0.08);
     final Color textColor = _getDarkenedTextColor(baseColor);
 
-    return Container(
-      height: 125,
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenWidth = constraints.maxWidth;
+        // Adjust elements dynamically for smaller screens
+        final bool isCompact = screenWidth < 300;
+        final double imageSize = isCompact ? 88 : 108;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: baseColor.withOpacity(0.12),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: baseColor.withOpacity(0.06),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            child: Row(
-              children: [
-                // Image on left with fade shader
-                SizedBox(
-                  width: 120,
-                  height: double.infinity,
-                  child: Container(
-                    color: bgColor,
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return const LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [Colors.black, Colors.transparent],
-                        ).createShader(Rect.fromLTRB(0, 0, rect.width, rect.height));
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: _buildServiceImage(imagePath),
-                    ),
-                  ),
-                ),
-                // Text details in center
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: textColor,
-                              ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                splashColor: baseColor.withOpacity(0.08),
+                highlightColor: baseColor.withOpacity(0.04),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // 1. Styled Image Area with colored background halo
+                      Container(
+                        width: imageSize,
+                        height: imageSize,
+                        margin: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: baseColor.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: -2,
                             ),
-                            if (description.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                  height: 1.25,
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                  child: _buildServiceImage(imagePath),
+                              ),
+                              // Smooth artistic dark/light gradient overlay
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.bottomCenter,
+                                      end: Alignment.topCenter,
+                                      colors: [
+                                        baseColor.withOpacity(0.2),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                        Text(
-                          '${_formatPrice(price)} / $unit',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // 2. Central Service details info
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: isCompact ? 14 : 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: navyColor,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              
+                              // Middle description
+                              Expanded(
+                                child: Text(
+                                  description.isNotEmpty ? description : 'Layanan perawatan laundry premium handal.',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              
+                              // Bottom price pill with custom tag icon
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: bgColor,
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(
+                                        color: baseColor.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.local_offer_outlined,
+                                          size: 11,
+                                          color: textColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_formatPrice(price)} / $unit',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 3. Elegant custom navigation trigger chevron button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: baseColor.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: baseColor.withOpacity(0.15),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 11,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                // Chevron icon on right
-                Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: bgColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 12,
-                      color: textColor,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

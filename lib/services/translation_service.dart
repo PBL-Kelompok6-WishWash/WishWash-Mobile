@@ -105,6 +105,14 @@ class TranslationService {
       'cuci_kering_desc': 'Thoroughly washed and dried, without ironing.',
       'cuci_dan_setrika_desc': 'Complete package: washed, fragrant, and neatly ironed.',
       'setrika_desc': 'Only neatly ironed and sprayed with premium fragrance.',
+      // Service Names
+      'cuci_kering_lipat': 'Wash, Dry & Fold',
+      'cuci_kering': 'Wash & Dry',
+      'cuci_and_setrika': 'Wash & Ironing',
+      'setrika': 'Ironing Only',
+      'setrika_saja': 'Ironing Only',
+      'cuci_dan_setrika': 'Wash & Ironing',
+      'cuci_and_setrika_desc': 'Complete package: washed, fragrant, and neatly ironed.',
     },
     'id': {
       'welcome': 'Selamat Datang',
@@ -175,6 +183,14 @@ class TranslationService {
       'cuci_kering_desc': 'Dicuci bersih dan dikeringkan, tanpa disetrika.',
       'cuci_dan_setrika_desc': 'Dicuci bersih, diberi pewangi premium, dan disetrika rapi.',
       'setrika_desc': 'Hanya disetrika rapi dan diberi pewangi premium.',
+      // Service Names
+      'cuci_kering_lipat': 'Cuci Kering Lipat',
+      'cuci_kering': 'Cuci Kering',
+      'cuci_and_setrika': 'Cuci & Setrika',
+      'setrika': 'Setrika',
+      'setrika_saja': 'Setrika Saja',
+      'cuci_dan_setrika': 'Cuci & Setrika',
+      'cuci_and_setrika_desc': 'Dicuci bersih, diberi pewangi premium, dan disetrika rapi.',
     }
   };
 
@@ -182,5 +198,18 @@ class TranslationService {
   static String translate(String key) {
     final lang = languageNotifier.value;
     return _localizedValues[lang]?[key] ?? key;
+  }
+
+  // Translates a database-sourced service name dynamically
+  static String translateService(String dbName) {
+    if (dbName.isEmpty) return dbName;
+    final String key = dbName.toLowerCase().trim().replaceAll(' ', '_').replaceAll('&', 'and');
+    final String translated = translate(key);
+    // If translation key is not defined, translate() returns the key itself.
+    // In that case, fall back to the original database name.
+    if (translated == key) {
+      return dbName;
+    }
+    return translated;
   }
 }

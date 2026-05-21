@@ -1,34 +1,152 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
+import 'package:mobile/services/order_service.dart';
+import 'package:mobile/services/translation_service.dart';
 
-class ReviewDryCleanScreen extends StatefulWidget {
-  const ReviewDryCleanScreen({super.key});
+class ReviewOrderScreen extends StatefulWidget {
+  final Map<String, dynamic> service;
+  final Map<String, dynamic> package;
+  final Map<String, dynamic> pickupAddress;
+  final Map<String, dynamic> deliveryAddress;
+  final Map<String, dynamic> perfume;
+  final String date; // YYYY-MM-DD
+  final String timeSlot; // "Morning" or "Afternoon"
+  final String instruction;
+
+  const ReviewOrderScreen({
+    super.key,
+    required this.service,
+    required this.package,
+    required this.pickupAddress,
+    required this.deliveryAddress,
+    required this.perfume,
+    required this.date,
+    required this.timeSlot,
+    required this.instruction,
+  });
 
   @override
-  State<ReviewDryCleanScreen> createState() => _ReviewDryCleanScreenState();
+  State<ReviewOrderScreen> createState() => _ReviewOrderScreenState();
 }
 
-class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
+class _ReviewOrderScreenState extends State<ReviewOrderScreen> {
   final Color navyColor = const Color(0xFF0C4B8E);
   final Color textGrey = const Color(0xFF596063);
   String selectedPayment = 'Cash on Delivery';
+  bool _isPlacingOrder = false;
+
+  Color _parseHexColor(String hexColor) {
+    hexColor = hexColor.replaceAll('#', '');
+    if (hexColor.length == 6) {
+      hexColor = 'FF$hexColor';
+    }
+    try {
+      return Color(int.parse('0x$hexColor'));
+    } catch (e) {
+      return const Color(0xFF00BCD4);
+    }
+  }
+
+  String formatFriendlyDate(String isoDate) {
+    try {
+      final parts = isoDate.split('-');
+      if (parts.length < 3) return isoDate;
+      final year = parts[0];
+      final monthInt = int.parse(parts[1]);
+      final day = parts[2];
+      final List<String> months = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      return '$day ${months[monthInt]} $year';
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  String calculateDeliveryDate(String isoDate, int durationHours) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final deliveryDate = date.add(Duration(hours: durationHours));
+      return deliveryDate.toIso8601String().split('T')[0];
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  String _formatPrice(double price) {
+    final str = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(str[i]);
+    }
+    return 'Rp ${buffer.toString()}';
+  }
+
+  Future<void> _placeOrder() async {
+    setState(() => _isPlacingOrder = true);
+    try {
+      final double basePrice = (widget.service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+      final double packageFee = (widget.package['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+      final double totalBayar = basePrice + packageFee;
+
+      final orderData = {
+        'id_layanan': widget.service['id_layanan'],
+        'id_paket_layanan': widget.package['id_paket_layanan'],
+        'id_alamat_pengambilan': widget.pickupAddress['id_alamat'],
+        'id_alamat_penyerahan': widget.deliveryAddress['id_alamat'],
+        'id_parfum': widget.perfume['id'],
+        'keterangan_lokasi': widget.pickupAddress['tipe_alamat'] ?? 'Rumah',
+        'jadwal_pickup': '${widget.date} ${widget.timeSlot == 'Morning' ? '08:00' : '13:00'}',
+        'tipe_logistik': 'Courier Delivery',
+        'harga_saat_ini': basePrice,
+        'kuantitas': 0.0,
+        'total_bayar': totalBayar,
+        'catatan_order': widget.instruction,
+      };
+
+      await OrderService.createOrder(orderData);
+      
+      setState(() => _isPlacingOrder = false);
+      if (mounted) {
+        _showConfirmationDialog();
+      }
+    } catch (e) {
+      setState(() => _isPlacingOrder = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuat pesanan: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final String rawName = widget.service['nama_layanan'] ?? 'Layanan';
+    final String serviceName = TranslationService.translateService(rawName);
+    final String hexColor = widget.service['warna_layanan'] ?? '#00BCD4';
+    final Color themeColor = _parseHexColor(hexColor);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background Gradient
+          // Background Gradient matching Service Color
           Container(
             height: 300,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFC7F3F5), Colors.white],
+                colors: [themeColor.withOpacity(0.25), Colors.white],
               ),
             ),
           ),
@@ -47,7 +165,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                       Expanded(
                         child: Center(
                           child: Text(
-                            'Dry Clean',
+                            serviceName,
                             style: GoogleFonts.poppins(
                               color: navyColor,
                               fontWeight: FontWeight.bold,
@@ -81,7 +199,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                         children: [
                           _buildSectionTitle('Review Order'),
                           const SizedBox(height: 16),
-                          _buildServiceDetailsCard(),
+                          _buildServiceDetailsCard(themeColor),
                           const SizedBox(height: 24),
 
                           _buildPromoCodeCard(),
@@ -141,7 +259,15 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
     );
   }
 
-  Widget _buildServiceDetailsCard() {
+  Widget _buildServiceDetailsCard(Color themeColor) {
+    final friendlyPickUpDate = formatFriendlyDate(widget.date);
+    final int durationHours = widget.package['durasi_jam'] ?? 72;
+    final friendlyDeliveryDate = formatFriendlyDate(calculateDeliveryDate(widget.date, durationHours));
+    final double basePrice = (widget.service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double packageFee = (widget.package['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double totalBayar = basePrice + packageFee;
+    final String unit = widget.service['jenis_satuan'] ?? 'Kg';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -160,10 +286,10 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F5FA),
+                  color: themeColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(Icons.local_laundry_service_outlined, color: navyColor, size: 20),
+                child: Icon(Icons.local_laundry_service_outlined, color: themeColor, size: 20),
               ),
               const SizedBox(width: 12),
               Text(
@@ -186,9 +312,9 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                   children: [
                     Text('Pick Up', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('16 April 2026', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(friendlyPickUpDate, style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 2),
-                    Text('08:00 - 12:00 am', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
+                    Text(widget.timeSlot == 'Morning' ? '08:00 - 12:00 am' : '12:00 - 04:00 pm', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                   ],
                 ),
               ),
@@ -198,7 +324,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                   children: [
                     Text('Pick Up Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(widget.pickupAddress['alamat_lengkap'] ?? '', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -210,13 +336,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
           
           Text('Selected Services', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              _buildTag('Daily Wear', const Color(0xFFF3E5F5), const Color(0xFF8E24AA)),
-              const SizedBox(width: 8),
-              _buildTag('Standard', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
-            ],
-          ),
+          _buildTag(widget.package['nama_paket'] ?? 'Reguler', const Color(0xFFE8F5E9), const Color(0xFF2E7D32)),
           const SizedBox(height: 12),
           Text('Fabric Perfume', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
@@ -224,7 +344,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
             children: [
               const Icon(Icons.local_florist_outlined, color: Color(0xFF8E24AA), size: 14),
               const SizedBox(width: 4),
-              Text('Lavender', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 11, fontWeight: FontWeight.w600)),
+              Text(widget.perfume['name'] ?? '', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 11, fontWeight: FontWeight.w600)),
             ],
           ),
           const SizedBox(height: 12),
@@ -237,7 +357,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text('-', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 12, fontWeight: FontWeight.bold)),
+            child: Text(widget.instruction.isNotEmpty ? widget.instruction : '-', style: GoogleFonts.poppins(color: const Color(0xFF8E24AA), fontSize: 12, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           Divider(color: Colors.grey.shade300),
@@ -259,8 +379,8 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('20 April 2026', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text('08:00 - 12:00 am', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
+                  Text(friendlyDeliveryDate, style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(widget.timeSlot == 'Morning' ? '08:00 - 12:00 am' : '12:00 - 04:00 pm', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                 ],
               ),
             ],
@@ -277,13 +397,43 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                 child: const Icon(Icons.location_on_outlined, color: Color(0xFFFBC02D), size: 16),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Delivery Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
-                  Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Delivery Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
+                    Text(widget.deliveryAddress['alamat_lengkap'] ?? '', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+
+          // dynamic pricing details
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Base Price (${widget.service['nama_layanan']})', style: GoogleFonts.poppins(color: textGrey, fontSize: 12)),
+              Text('${_formatPrice(basePrice)} / $unit', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Package Fee (${widget.package['nama_paket']})', style: GoogleFonts.poppins(color: textGrey, fontSize: 12)),
+              Text(packageFee > 0 ? _formatPrice(packageFee) : 'Gratis', style: GoogleFonts.poppins(color: packageFee > 0 ? const Color(0xFF1E821B) : textGrey, fontSize: 12, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total Price', style: GoogleFonts.poppins(color: navyColor, fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(_formatPrice(totalBayar), style: GoogleFonts.poppins(color: const Color(0xFF1E821B), fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -422,23 +572,30 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: () {
-          _showConfirmationDialog();
-        },
+        onPressed: _isPlacingOrder ? null : _placeOrder,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFD6F6D5),
           padding: const EdgeInsets.symmetric(vertical: 14),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text(
-          'Make Order',
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF1E821B),
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isPlacingOrder
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E821B)),
+                ),
+              )
+            : Text(
+                'Make Order',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF1E821B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
@@ -446,6 +603,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
   void _showConfirmationDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -483,7 +641,7 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF42C6D4), // Cyan color from previous UI
+                    foregroundColor: const Color(0xFF42C6D4),
                     elevation: 1,
                     shadowColor: Colors.black.withOpacity(0.2),
                     shape: RoundedRectangleBorder(
@@ -508,4 +666,3 @@ class _ReviewDryCleanScreenState extends State<ReviewDryCleanScreen> {
     );
   }
 }
-

@@ -5,6 +5,7 @@ import 'package:mobile/screens/pelanggan/home/home_screen.dart';
 import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/preferences_language_screen.dart';
+import 'package:mobile/screens/pelanggan/profile/edit_profile_screen.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'dart:convert';
 import 'package:mobile/services/pelanggan_service.dart';
@@ -191,6 +192,7 @@ class ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -209,7 +211,18 @@ class ProfileScreenState extends State<ProfileScreen> {
                         color: navyColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    if (username.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        '@$username',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: navyColor.withOpacity(0.55),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Icon(Icons.phone, size: 14, color: navyColor),
@@ -268,24 +281,64 @@ class ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
+          Container(
             width: double.infinity,
-            height: 45,
-            child: ElevatedButton(
-              onPressed: () => _showEditProfileBottomSheet(navyColor, cyanColor),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFEAF9FA),
-                foregroundColor: navyColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            height: 46,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: [cyanColor, const Color(0xFF00ACC1)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: Text(
-                TranslationService.translate('edit_profile'),
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+              boxShadow: [
+                BoxShadow(
+                  color: cyanColor.withOpacity(0.3),
+                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final updated = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfileScreen(
+                        namaLengkap: namaLengkap,
+                        noTelp: noTelp,
+                        email: email,
+                        username: username,
+                        fotoPelanggan: fotoPelanggan,
+                      ),
+                    ),
+                  );
+                  if (updated == true) {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    _fetchProfile();
+                  }
+                },
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        TranslationService.translate('edit_profile'),
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -729,301 +782,6 @@ class ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _showEditProfileBottomSheet(Color navyColor, Color cyanColor) {
-    final nameController = TextEditingController(text: namaLengkap);
-    final phoneController = TextEditingController(text: noTelp == '-' ? '' : noTelp);
-    final usernameController = TextEditingController(text: username);
-    final emailController = TextEditingController(text: email);
-    final photoController = TextEditingController(text: fotoPelanggan);
-    
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              padding: EdgeInsets.only(
-                top: 24,
-                left: 24,
-                right: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Handle Bar
-                    Center(
-                      child: Container(
-                        width: 50,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Title
-                    Text(
-                      'Edit Profile',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Perbarui informasi pribadi Anda dengan mudah',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Inputs
-                    _buildInputLabel('Nama Lengkap', navyColor),
-                    _buildTextField(nameController, 'Masukkan nama lengkap', Icons.person_outline),
-                    
-                    _buildInputLabel('Nomor Telepon', navyColor),
-                    _buildTextField(phoneController, 'Masukkan nomor telepon', Icons.phone_android_outlined, keyboardType: TextInputType.phone),
-                    
-                    _buildInputLabel('Username', navyColor),
-                    _buildTextField(usernameController, 'Masukkan username', Icons.alternate_email_outlined),
-                    
-                    _buildInputLabel('Email', navyColor),
-                    _buildTextField(emailController, 'Masukkan email', Icons.mail_outline, keyboardType: TextInputType.emailAddress),
-                    
-                    _buildInputLabel('Foto Profil (Opsional)', navyColor),
-                    const SizedBox(height: 6),
-                    GestureDetector(
-                      onTap: () async {
-                        final ImagePicker picker = ImagePicker();
-                        try {
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.gallery,
-                            maxWidth: 500,
-                            maxHeight: 500,
-                            imageQuality: 80,
-                          );
-                          if (image != null) {
-                            final bytes = await image.readAsBytes();
-                            final base64Str = base64Encode(bytes);
-                            setModalState(() {
-                              photoController.text = 'data:image/png;base64,$base64Str';
-                            });
-                          }
-                        } catch (e) {
-                          debugPrint("Error picking image: $e");
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.photo_library_outlined, color: Colors.grey.shade500, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                photoController.text.isEmpty
-                                    ? 'Pilih dari Galeri'
-                                    : (photoController.text.startsWith('data:image')
-                                        ? 'Gambar Terpilih (Base64)'
-                                        : 'Gambar Terpilih (URL)'),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: photoController.text.isEmpty
-                                      ? Colors.grey.shade400
-                                      : const Color(0xFF0C4B8E),
-                                ),
-                              ),
-                            ),
-                            if (photoController.text.isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(6),
-                                child: photoController.text.startsWith('data:image')
-                                    ? Image.memory(
-                                        base64Decode(photoController.text.split(',').last),
-                                        width: 32,
-                                        height: 32,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : Image.network(
-                                        photoController.text.startsWith('/uploads/')
-                                            ? '${Constants.baseUrl.replaceAll('/api/v1', '')}${photoController.text}'
-                                            : photoController.text,
-                                        width: 32,
-                                        height: 32,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 20),
-                                      ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [cyanColor, const Color(0xFF00ACC1)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: cyanColor.withOpacity(0.4),
-                              offset: const Offset(0, 4),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: isSaving ? null : () async {
-                              if (nameController.text.trim().isEmpty) {
-                                CustomDialog.showError(
-                                  context: context,
-                                  title: 'Gagal',
-                                  message: 'Nama lengkap tidak boleh kosong',
-                                );
-                                return;
-                              }
-                              
-                              setModalState(() {
-                                isSaving = true;
-                              });
-
-                              final response = await PelangganService.updateProfile({
-                                'nama': nameController.text.trim(),
-                                'no_telp': phoneController.text.trim(),
-                                'username': usernameController.text.trim(),
-                                  'email': emailController.text.trim(),
-                                'foto_pelanggan': photoController.text.trim(),
-                              });
-
-                              if (mounted) {
-                                  if (response['success'] == true) {
-                                    Navigator.pop(context); // Tutup bottom sheet
-                                    CustomDialog.showSuccess(
-                                      context: context,
-                                      title: TranslationService.currentLang == 'en' ? 'Success' : 'Berhasil',
-                                      message: TranslationService.currentLang == 'en'
-                                          ? 'Profile updated successfully!'
-                                          : 'Profil berhasil diperbarui!',
-                                    );
-                                    setState(() {
-                                      isLoading = true;
-                                    });
-                                    _fetchProfile(); // reload profile card
-                                  } else {
-                                    setModalState(() {
-                                      isSaving = false;
-                                    });
-                                    CustomDialog.showError(
-                                      context: context,
-                                      title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
-                                    message: response['message'] ?? 'Terjadi kesalahan.',
-                                  );
-                                }
-                              }
-                            },
-                            child: Center(
-                              child: isSaving
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : Text(
-                                      'Simpan Perubahan',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildInputLabel(String label, Color navyColor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6, top: 12),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: navyColor.withOpacity(0.8),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint,
-    IconData icon, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        style: GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF0C4B8E)),
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
-          hintText: hint,
-          hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        ),
-      ),
     );
   }
 }

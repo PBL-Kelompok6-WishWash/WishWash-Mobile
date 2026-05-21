@@ -37,6 +37,7 @@ class _MainPelangganState extends State<MainPelanggan> {
       key: _homeKey, 
       showNavbar: false, 
       showOrderSuccessNotification: widget.showOrderSuccessNotification,
+      onProfileTap: () => _onTap(4),
     ),
     const OrdersScreen(showNavbar: false),
     const Center(child: Text('Add Screen')),

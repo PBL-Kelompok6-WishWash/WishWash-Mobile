@@ -6,10 +6,6 @@ import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/services/translation_service.dart';
-import 'package:mobile/screens/pelanggan/orders/wash_ironing.dart';
-import 'package:mobile/screens/pelanggan/orders/wash_only.dart';
-import 'package:mobile/screens/pelanggan/orders/ironing_only.dart';
-import 'package:mobile/screens/pelanggan/orders/dry_clean.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
 
@@ -369,7 +365,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            serviceName,
+            TranslationService.translateService(serviceName),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -495,7 +491,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            serviceName,
+            TranslationService.translateService(serviceName),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -555,34 +551,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: () {
-                      final String lowerName = serviceName.toLowerCase();
-                      if ((lowerName.contains('setrika') && lowerName.contains('cuci')) ||
-                          (lowerName.contains('iron') && lowerName.contains('wash'))) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                        );
-                      } else if (lowerName.contains('lipat') || lowerName.contains('wash only')) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                        );
-                      } else if (lowerName.contains('setrika') || lowerName.contains('iron')) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                        );
-                      } else if (lowerName.contains('dry') || lowerName.contains('clean') || lowerName.contains('kering')) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                        );
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
-                        );
-                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: orderColor,
