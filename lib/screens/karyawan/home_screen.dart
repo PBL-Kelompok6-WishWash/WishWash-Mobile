@@ -4,6 +4,7 @@ import 'package:mobile/screens/karyawan/pesanan.dart';
 import 'package:mobile/screens/karyawan/pesanan_diproses.dart';
 import 'package:mobile/screens/karyawan/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/pesanan_selesai.dart';
+import 'package:mobile/screens/karyawan/notifikasi.dart';
 
 class DashboardKaryawan extends StatefulWidget {
   const DashboardKaryawan({super.key});
@@ -123,18 +124,29 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             ),
           ],
         ),
-        Row(
-          children: [
-            _buildGlassIconButton(Icons.qr_code_scanner_rounded, navyColor),
-            const SizedBox(width: 10),
-            _buildGlassIconButton(Icons.notifications_none_rounded, navyColor),
-          ],
-        ),
-      ],
+       Row(
+        children: [
+          _buildGlassIconButton(Icons.qr_code_scanner_rounded, navyColor),
+          const SizedBox(width: 10),
+          _buildGlassIconButton(
+            Icons.notifications_none_rounded,
+            navyColor, // ➔ Koma di sini penting biar dia turun baris
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ), // ➔ Koma di sini juga ngebantu perapian
+              );
+            },
+          ), // ➔ Tutup kurung ini juga dikasih koma
+        ],
+      ),
+    ],
     );
   }
 
-  Widget _buildGlassIconButton(IconData icon, Color color) {
+  Widget _buildGlassIconButton(IconData icon, Color color, {VoidCallback? onTap}) {
     return Container(
       width: 45,
       height: 45,
@@ -151,7 +163,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         ],
       ),
       child: IconButton(
-        onPressed: () {},
+        onPressed: onTap,
         icon: Icon(icon, color: color, size: 22),
       ),
     );
