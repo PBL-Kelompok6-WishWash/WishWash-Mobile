@@ -999,9 +999,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: _cyan,
-                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
-                    decorationColor: _cyan,
+                    color: _isSeeAllPressed ? _cyan.withValues(alpha: 0.7) : _cyan,
+                    decoration: TextDecoration.none,
                   ),
                 ),
               ),
