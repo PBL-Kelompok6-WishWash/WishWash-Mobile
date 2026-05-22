@@ -15,6 +15,7 @@ import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
 import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
+import 'package:mobile/screens/pelanggan/home/detail_promo.dart';
 
 void main() {
   runApp(
@@ -488,7 +489,28 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailPromoScreen(
+                            promoData: {
+                              'title': title,
+                              'coupon_code': title.contains('20%') ? 'WISHWASH20' : 'FREEPICKUP',
+                              'discount_type': title.contains('20%') ? 'percentage' : 'fixed',
+                              'discount_value': title.contains('20%') ? 20 : 0,
+                              'min_order_value': 50000,
+                              'max_discount_value': title.contains('20%') ? 20000 : 0,
+                              'start_date': '2026-05-19',
+                              'end_date': '2026-05-26',
+                              'description': title.contains('20%') 
+                                  ? 'Nikmati potongan setengah harga khusus untuk pesanan pertama kamu di aplikasi WishWash.' 
+                                  : 'Layanan antar jemput gratis tanpa biaya sepeser pun untuk area operasional terpilih.',
+                            },
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: btnColor,
                       foregroundColor: Colors.white,
