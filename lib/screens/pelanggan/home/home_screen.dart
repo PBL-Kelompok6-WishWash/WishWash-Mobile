@@ -12,9 +12,10 @@ import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/screens/pelanggan/orders/laundry_order_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
+import 'package:mobile/services/order_service.dart';
 import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
-import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
+import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 
 void main() {
   runApp(
@@ -29,11 +30,13 @@ class PelangganHomeScreen extends StatefulWidget {
   final bool showNavbar;
   final bool showOrderSuccessNotification;
   final VoidCallback? onProfileTap;
+  final VoidCallback? onViewOrdersTap;
   const PelangganHomeScreen({
     super.key, 
     this.showNavbar = true, 
     this.showOrderSuccessNotification = false,
     this.onProfileTap,
+    this.onViewOrdersTap,
   });
 
   @override
@@ -58,6 +61,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;
   bool _isNotificationVisible = false;
+  List<dynamic> _activeOrders = [];
+  bool _isLoadingActiveOrders = true;
 
   @override
   void initState() {
@@ -74,6 +79,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     }
     _fetchProfileData();
     _fetchServicesData();
+    _fetchActiveOrders();
   }
 
   void closeDropdown() {
@@ -87,6 +93,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   void reloadProfileAndServices() {
     _fetchProfileData();
     _fetchServicesData();
+    _fetchActiveOrders();
   }
 
   Future<void> _fetchServicesData() async {
@@ -124,6 +131,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   Color _getDarkenedTextColor(Color color) {
     final hsl = HSLColor.fromColor(color);
+    if (hsl.hue >= 160 && hsl.hue <= 210) {
+      return const Color(0xFF0C4B8E); // Memaksa Navy untuk Cyan/Teal agar kontras tinggi
+    }
     if (hsl.lightness > 0.45) {
       double targetLightness = 0.30;
       if (hsl.hue >= 45 && hsl.hue <= 65) {
@@ -172,6 +182,218 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           _isLoadingProfile = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchActiveOrders() async {
+    try {
+      final orders = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _activeOrders = orders.where((order) {
+            final historyList = order['RiwayatStatusDetail'];
+            if (historyList == null || historyList is! List || historyList.isEmpty) {
+              return true; // Active if no history
+            }
+            List<dynamic> sorted = List.from(historyList);
+            sorted.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0)
+                .compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+            final latest = sorted.last;
+            final ref = latest['ReferensiStatus'] ?? {};
+            final String rawStatus = (ref['nama_status'] ?? '').toString().toLowerCase();
+            return !rawStatus.contains('selesai') && !rawStatus.contains('completed') && !rawStatus.contains('success');
+          }).toList();
+          _isLoadingActiveOrders = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil data order aktif: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingActiveOrders = false;
+        });
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
+    final layanan = order['Layanan'];
+    final List<dynamic>? refList = layanan != null ? layanan['ReferensiStatus'] : null;
+    
+    if (refList == null || refList.isEmpty) {
+      return const [
+        {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
+        {'nama_status': 'Penjemputan', 'urutan_tahap': 2},
+        {'nama_status': 'Proses Timbang', 'urutan_tahap': 3},
+        {'nama_status': 'Proses Cuci', 'urutan_tahap': 4},
+        {'nama_status': 'Proses Kering', 'urutan_tahap': 5},
+        {'nama_status': 'Proses Lipat', 'urutan_tahap': 6},
+        {'nama_status': 'Siap Diantar', 'urutan_tahap': 7},
+        {'nama_status': 'Selesai', 'urutan_tahap': 8},
+      ];
+    }
+    
+    List<Map<String, dynamic>> sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
+    sortedList.sort((a, b) {
+      final int seqA = a['urutan_tahap'] as int? ?? 0;
+      final int seqB = b['urutan_tahap'] as int? ?? 0;
+      return seqA.compareTo(seqB);
+    });
+    return sortedList;
+  }
+
+  String _getShortStatusLabel(String rawStatus, String lang) {
+    final status = rawStatus.toLowerCase().trim();
+    final isEn = lang == 'en';
+    
+    if (status.contains('diterima') || status.contains('received')) {
+      return isEn ? 'Received' : 'Diterima';
+    }
+    if (status.contains('jemput') || status.contains('pickup') || status.contains('pick up') || status.contains('penjemputan')) {
+      return isEn ? 'Pick Up' : 'Jemput';
+    }
+    if (status.contains('timbang') || status.contains('weigh')) {
+      return isEn ? 'Weigh' : 'Timbang';
+    }
+    if (status.contains('cuci') || status.contains('wash')) {
+      return isEn ? 'Wash' : 'Cuci';
+    }
+    if (status.contains('kering') || status.contains('dry')) {
+      return isEn ? 'Dry' : 'Kering';
+    }
+    if (status.contains('lipat') || status.contains('fold')) {
+      return isEn ? 'Fold' : 'Lipat';
+    }
+    if (status.contains('setrika') || status.contains('iron')) {
+      return isEn ? 'Iron' : 'Setrika';
+    }
+    if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
+      return isEn ? 'Ready' : 'Kirim';
+    }
+    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done')) {
+      return isEn ? 'Done' : 'Selesai';
+    }
+    
+    if (rawStatus.length > 7) {
+      return rawStatus.substring(0, 7);
+    }
+    return rawStatus;
+  }
+
+  Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
+    final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(order);
+    
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList == null || historyList is! List || historyList.isEmpty) {
+      final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      return {
+        'nama_status': TranslationService.translateStatus(rawStatus),
+        'raw_status': rawStatus,
+        'active_index': 0,
+        'statuses': refStatuses,
+        'is_selesai': false,
+      };
+    }
+
+    List<dynamic> sortedHistory = List.from(historyList);
+    sortedHistory.sort((a, b) {
+      final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+      final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+      return idA.compareTo(idB);
+    });
+
+    final latestHistory = sortedHistory.last;
+    final refStatus = latestHistory['ReferensiStatus'];
+    if (refStatus == null || refStatus is! Map) {
+      final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      return {
+        'nama_status': TranslationService.translateStatus(rawStatus),
+        'raw_status': rawStatus,
+        'active_index': 0,
+        'statuses': refStatuses,
+        'is_selesai': false,
+      };
+    }
+
+    final String rawStatus = refStatus['nama_status'] ?? 'Pesanan Diterima';
+    final translatedStatus = TranslationService.translateStatus(rawStatus);
+    
+    int activeIndex = 0;
+    final idRef = refStatus['id_referensi_status_layanan'];
+    if (idRef != null) {
+      for (int i = 0; i < refStatuses.length; i++) {
+        if (refStatuses[i]['id_referensi_status_layanan'] == idRef) {
+          activeIndex = i;
+          break;
+        }
+      }
+    } else {
+      final String lowerRaw = rawStatus.toLowerCase().trim();
+      for (int i = 0; i < refStatuses.length; i++) {
+        final String name = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+        if (name == lowerRaw) {
+          activeIndex = i;
+          break;
+        }
+      }
+    }
+
+    final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
+
+    return {
+      'nama_status': translatedStatus,
+      'raw_status': rawStatus,
+      'active_index': activeIndex,
+      'statuses': refStatuses,
+      'is_selesai': isSelesai,
+    };
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(isoString);
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      try {
+        return isoString.split('T')[0];
+      } catch (_) {
+        return isoString;
+      }
+    }
+  }
+
+  String _getEstSelesaiDate(Map<String, dynamic> order) {
+    if (order['jadwal_pickup'] == null || order['jadwal_pickup'].toString().isEmpty) {
+      return '-';
+    }
+    try {
+      final pickup = DateTime.parse(order['jadwal_pickup']);
+      final paket = order['PaketLayanan'];
+      final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
+      
+      if (durasiJam == 0) {
+        return _formatDate(order['jadwal_pickup']);
+      }
+      
+      final estSelesai = pickup.add(Duration(hours: durasiJam));
+      final lang = TranslationService.currentLang;
+      final months = lang == 'en' 
+          ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+      
+      final int hour = estSelesai.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = estSelesai.minute.toString().padLeft(2, '0');
+      return '${estSelesai.day} ${months[estSelesai.month - 1]} ${estSelesai.year}, $hourStr:$minuteStr $amPm';
+    } catch (_) {
+      return _formatDate(order['jadwal_pickup']);
     }
   }
 
@@ -282,22 +504,24 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                                   ),
                                   child: _buildServicesSection(),
                                 ),
-                                const SizedBox(height: 20),
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
+                                if (_isLoadingActiveOrders || _activeOrders.isNotEmpty) ...[
+                                  const SizedBox(height: 20),
+                                  Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(24),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.04),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 6),
+                                        ),
+                                      ],
+                                    ),
+                                    child: _buildOrderStatusSection(),
                                   ),
-                                  child: _buildOrderStatusSection(),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -999,8 +1223,10 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: _isSeeAllPressed ? _cyan.withValues(alpha: 0.7) : _cyan,
-                    decoration: TextDecoration.none,
+                    color: const Color(0xFF0C4B8E),
+                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
+                    decorationColor: const Color(0xFF0C4B8E),
+                    decorationThickness: _isSeeAllPressed ? 2.5 : null,
                   ),
                 ),
               ),
@@ -1205,9 +1431,52 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     return const Color(0xFF9C27B0); // Purple default for "Wash & Iron"
   }
 
+  String _formatRupiah(double value) {
+    if (value == 0.0) {
+      return 'Rp 0';
+    }
+    String valStr = value.toStringAsFixed(0);
+    RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+    String formatted = valStr.replaceAllMapped(reg, (Match m) => '${m[1]}.');
+    return 'Rp $formatted';
+  }
+
   Widget _buildOrderStatusSection() {
-    final baseOrderColor = getActiveOrderColor();
+    if (_isLoadingActiveOrders) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+          ),
+        ),
+      );
+    }
+
+    if (_activeOrders.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final order = _activeOrders.first;
+    final String orderId = order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
+        ? order['kode_order'].toString()
+        : 'WW-${order['id_order']}';
+
+    final layanan = order['Layanan'] ?? {};
+    final String serviceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
+    final baseOrderColor = _parseHexColor(layanan['warna_layanan'] ?? '#9C27B0');
     final orderColor = _getDarkenedTextColor(baseOrderColor);
+
+    final estDate = _getEstSelesaiDate(order);
+    final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
+    
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String qtyStr = kuantitas == 0.0
+        ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
+        : ' ($kuantitas kg)';
+    final price = _formatRupiah(totalBayar);
+
+    final statusInfo = _getCurrentStatusInfo(order);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1217,7 +1486,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w900,
-            color: const Color(0xFF0D47A1),
+            color: Color(0xFF0D47A1),
           ),
         ),
         const SizedBox(height: 12),
@@ -1227,9 +1496,16 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             vertical: 14,
           ),
           decoration: BoxDecoration(
-            color: baseOrderColor.withOpacity(0.12),
+            color: Color.alphaBlend(baseOrderColor.withValues(alpha: 0.18), Colors.white),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: orderColor.withOpacity(0.3), width: 1),
+            border: Border.all(color: orderColor.withValues(alpha: 0.4), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1239,7 +1515,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Order #1234',
+                    'Order #$orderId',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       color: orderColor,
@@ -1255,8 +1531,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Est: 30 April 2026',
-                        style: TextStyle(
+                        'Est: $estDate',
+                        style: const TextStyle(
                           fontSize: 10,
                           color: Colors.redAccent,
                           fontWeight: FontWeight.bold,
@@ -1266,73 +1542,148 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 12),
               // Jenis Layanan
               Text(
-                'Wash & Iron (1 kg)',
+                '${TranslationService.translateService(serviceName)}$qtyStr',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
                   color: orderColor,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Stepper Tracker
+              const SizedBox(height: 8),
+              // Baris Harga & Kapsul Pembayaran
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildStepItem('Pick Up', Icons.check, true, true, orderColor),
-                  _buildStepLine(true, orderColor),
-                  _buildStepItem(
-                    'Wash',
-                    Icons.circle,
-                    true,
-                    false,
-                    orderColor,
-                    isCurrent: true,
+                  Text(
+                    price,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: orderColor.withOpacity(0.7),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  _buildStepLine(false, orderColor),
-                  _buildStepItem('Iron', null, false, false, orderColor),
-                  _buildStepLine(false, orderColor),
-                  _buildStepItem('Delivery', null, false, false, orderColor),
-                  _buildStepLine(false, orderColor),
-                  _buildStepItem('Success', null, false, false, orderColor),
+                  if (kuantitas > 0.0) ...[
+                    const SizedBox(width: 8),
+                    (() {
+                      final pembayaran = order['Pembayaran'];
+                      final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
+                      final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+                      final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                      final String capLabel = isLunas 
+                          ? (TranslationService.currentLang == 'en' ? 'Paid' : 'Lunas')
+                          : (TranslationService.currentLang == 'en' ? 'Unpaid' : 'Belum Lunas');
+                      
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: capBg,
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: capText.withOpacity(0.2), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: capText,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              capLabel,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: capText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    })(),
+                  ],
                 ],
               ),
+              const SizedBox(height: 24),
 
-              const SizedBox(height: 16),
+              // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
+              (() {
+                final lang = TranslationService.currentLang;
+                final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+                final int activeIdx = statusInfo['active_index'];
+                final bool isSelesai = statusInfo['is_selesai'] == true;
+
+                List<Widget> steps = [];
+                for (int i = 0; i < refStatuses.length; i++) {
+                  final rawName = refStatuses[i]['nama_status'] ?? '';
+                  final String shortLabel = _getShortStatusLabel(rawName, lang);
+                  final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
+                  final bool isCurrent = i == activeIdx && !isSelesai;
+                  final bool isActive = isDone || isCurrent;
+
+                  steps.add(
+                    _buildStepItem(
+                      label: shortLabel,
+                      isActive: isActive,
+                      isDone: isDone,
+                      isCurrent: isCurrent,
+                      themeColor: orderColor,
+                      index: i,
+                      totalSteps: refStatuses.length,
+                    ),
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: steps,
+                );
+              })(),
+
+              const SizedBox(height: 20),
               // Tombol View More
               SizedBox(
-  width: double.infinity,
-  height: 40,
-  child: ElevatedButton(
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const OrderDetailScreen(),
-        ),
-      );
-    },
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.white,
-      foregroundColor: orderColor,
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      padding: EdgeInsets.zero,
-    ),
-    child: const Text(
-      'View More',
-      style: TextStyle(
-        fontWeight: FontWeight.w900,
-        fontSize: 14,
-      ),
-    ),
-  ),
-),
+                width: double.infinity,
+                height: 40,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (widget.onViewOrdersTap != null) {
+                      widget.onViewOrdersTap!();
+                    } else {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MainPelanggan(initialIndex: 1),
+                        ),
+                        (route) => false,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: orderColor,
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+                  child: Text(
+                    TranslationService.currentLang == 'en' ? 'View Detail' : 'Lihat Detail',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1340,67 +1691,92 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     );
   }
 
-  // Widget Helper Ikon + Label
-  Widget _buildStepItem(
-    String label,
-    IconData? icon,
-    bool isActive,
-    bool isDone,
-    Color themeColor, {
-    bool isCurrent = false,
+  // Widget Helper Ikon + Label (Seamless Stepper)
+  Widget _buildStepItem({
+    required String label,
+    required bool isActive,
+    required bool isDone,
+    required bool isCurrent,
+    required Color themeColor,
+    required int index,
+    required int totalSteps,
   }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: isDone ? themeColor : Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isActive ? themeColor : Colors.grey.shade300,
-              width: 1.5,
+    final bool showLeftLine = index > 0;
+    final bool showRightLine = index < totalSteps - 1;
+    final Color leftLineColor = isDone || isCurrent ? themeColor : Colors.grey.shade300;
+    final Color rightLineColor = isDone ? themeColor : Colors.grey.shade300;
+
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 20,
+            child: Stack(
+              children: [
+                if (showLeftLine)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Container(height: 2, color: leftLineColor),
+                    ),
+                  ),
+                if (showRightLine)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Container(height: 2, color: rightLineColor),
+                    ),
+                  ),
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: isDone ? themeColor : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isActive ? themeColor : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        if (isCurrent)
+                          BoxShadow(
+                            color: themeColor.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                      ],
+                    ),
+                    child: Center(
+                      child: isCurrent
+                          ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
+                          : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          child: isCurrent
-              ? Icon(
-                  Icons.fiber_manual_record,
-                  size: 8,
-                  color: themeColor,
-                )
-              : Icon(
-                  icon ?? Icons.circle,
-                  size: 8,
-                  color: isDone
-                      ? Colors.white
-                      : (isActive
-                            ? themeColor
-                            : Colors.transparent),
-                ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: isCurrent || isDone
-                ? FontWeight.bold
-                : FontWeight.normal,
-            color: isActive ? themeColor : Colors.grey.shade600,
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? themeColor : Colors.grey.shade600,
+              ),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  // Widget Helper Garis
-  Widget _buildStepLine(bool isActive, Color themeColor) {
-    return Expanded(
-      child: Container(
-        height: 1.5,
-        margin: const EdgeInsets.only(
-          bottom: 14,
-        ),
-        color: isActive ? themeColor : Colors.grey.shade300,
+        ],
       ),
     );
   }

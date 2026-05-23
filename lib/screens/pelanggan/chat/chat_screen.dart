@@ -27,22 +27,27 @@ class ChatScreen extends StatelessWidget {
               SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        TranslationService.translate('message'),
-                    style: GoogleFonts.poppins(
-                      color: navyColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: SizedBox(
+                    height: 48,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 48), // Symmetrical spacing
+                        Text(
+                          TranslationService.translate('message'),
+                          style: GoogleFonts.poppins(
+                            color: navyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 48), // Symmetrical spacing
+                      ],
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
           const SizedBox(height: 10),
 
           // --- KONTEN HALAMAN (Sheet Putih) ---

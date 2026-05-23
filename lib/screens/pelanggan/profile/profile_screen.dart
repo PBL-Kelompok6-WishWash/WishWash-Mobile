@@ -104,23 +104,26 @@ class ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // --- HEADER & APPBAR ---
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
-                          Text(
-                            TranslationService.translate('profile'),
-                            style: GoogleFonts.poppins(
-                              color: navyColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: SizedBox(
+                        height: 48,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
+                            Text(
+                              TranslationService.translate('profile'),
+                              style: GoogleFonts.poppins(
+                                color: navyColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 48), // Spacer
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 48), // Spacer
-                    ],
-                  ),
-                ),
+                    ),
                 
                 // --- KONTEN HALAMAN ---
                 Expanded(

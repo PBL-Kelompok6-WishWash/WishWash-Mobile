@@ -212,4 +212,40 @@ class TranslationService {
     }
     return translated;
   }
+
+  // Translates a database-sourced status name dynamically
+  static String translateStatus(String dbStatus) {
+    if (dbStatus.isEmpty) return dbStatus;
+    
+    final Map<String, String> idToEn = {
+      'pesanan diterima': 'Order Received',
+      'penjemputan': 'Pick Up',
+      'proses timbang': 'Weighing Process',
+      'proses cuci': 'Washing Process',
+      'proses kering': 'Drying Process',
+      'proses lipat': 'Folding Process',
+      'proses setrika': 'Ironing Process',
+      'siap diantar': 'Ready for Delivery',
+      'selesai': 'Completed',
+    };
+
+    final Map<String, String> enToId = {
+      'order received': 'Pesanan Diterima',
+      'pick up': 'Penjemputan',
+      'weighing process': 'Proses Timbang',
+      'washing process': 'Proses Cuci',
+      'drying process': 'Proses Kering',
+      'folding process': 'Proses Lipat',
+      'ironing process': 'Proses Setrika',
+      'ready for delivery': 'Siap Diantar',
+      'completed': 'Selesai',
+    };
+
+    final lowerStatus = dbStatus.toLowerCase().trim();
+    if (currentLang == 'en') {
+      return idToEn[lowerStatus] ?? dbStatus;
+    } else {
+      return enToId[lowerStatus] ?? dbStatus;
+    }
+  }
 }

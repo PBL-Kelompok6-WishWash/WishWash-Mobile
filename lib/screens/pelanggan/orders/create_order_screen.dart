@@ -63,6 +63,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
   Color _getDarkenedTextColor(Color color) {
     final hsl = HSLColor.fromColor(color);
+    if (hsl.hue >= 160 && hsl.hue <= 210) {
+      return const Color(0xFF0C4B8E); // Memaksa Navy untuk Cyan/Teal agar kontras tinggi
+    }
     if (hsl.lightness > 0.45) {
       double targetLightness = 0.30;
       if (hsl.hue >= 45 && hsl.hue <= 65) {
@@ -146,29 +149,32 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                 bottom: false,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
+                    horizontal: 20,
                     vertical: 10,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: navyColor,
+                  child: SizedBox(
+                    height: 48,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: navyColor,
+                          ),
+                          onPressed: () => Navigator.pop(context),
                         ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Text(
-                        TranslationService.translate('create_order'),
-                        style: GoogleFonts.poppins(
-                          color: navyColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                        Text(
+                          TranslationService.translate('create_order'),
+                          style: GoogleFonts.poppins(
+                            color: navyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 48), // Balancing spacer
-                    ],
+                        const SizedBox(width: 48), // Balancing spacer
+                      ],
+                    ),
                   ),
                 ),
               ),
