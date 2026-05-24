@@ -4,6 +4,7 @@ import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/karyawan/edit_profile.dart';
+import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
 
 class ProfileScreenKaryawan extends StatefulWidget {
@@ -294,6 +295,15 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       } catch (e) {
         return _buildDefaultAvatar();
       }
+    } else if (fotoKaryawan.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$fotoKaryawan',
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+      );
     } else if (fotoKaryawan.isNotEmpty) {
       return Image.asset(
         fotoKaryawan,
