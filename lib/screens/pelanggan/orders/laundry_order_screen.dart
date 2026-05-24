@@ -1210,57 +1210,63 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                   ),
                 ],
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isOptionDisabled
-                    ? Colors.grey.shade200
-                    : (isSelected ? activeSelectionColor : Colors.grey.shade100),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded,
-                color: isOptionDisabled
-                    ? Colors.grey.shade500
-                    : (isSelected ? Colors.white : Colors.grey.shade600),
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
-                    style: GoogleFonts.poppins(
-                      color: isOptionDisabled ? Colors.grey.shade600 : navyColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isOptionDisabled
+                        ? Colors.grey.shade200
+                        : (isSelected ? activeSelectionColor : Colors.grey.shade100),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    time,
-                    style: GoogleFonts.poppins(
-                      color: isOptionDisabled ? Colors.grey.shade500 : textGrey,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Icon(
+                    isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded,
+                    color: isOptionDisabled
+                        ? Colors.grey.shade500
+                        : (isSelected ? Colors.white : Colors.grey.shade600),
+                    size: 18,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
+                        style: GoogleFonts.poppins(
+                          color: isOptionDisabled ? Colors.grey.shade600 : navyColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        time,
+                        style: GoogleFonts.poppins(
+                          color: isOptionDisabled ? Colors.grey.shade500 : textGrey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            if (isOptionDisabled) ...[
-              const SizedBox(width: 8),
-              Icon(
-                Icons.lock_outline_rounded,
-                color: Colors.grey.shade500,
-                size: 16,
+            if (isOptionDisabled)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  color: Colors.grey.shade500,
+                  size: 14,
+                ),
               ),
-            ],
           ],
         ),
       ),
