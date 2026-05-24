@@ -24,7 +24,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   int antarCount = 0;
   int selesaiCount = 8;
 
-  bool _isLoading = true;
   String _namaKaryawan = 'Karyawan';
   String _fotoKaryawan = '';
 
@@ -42,18 +41,10 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         setState(() {
           _namaKaryawan = data['nama_karyawan'] ?? 'Karyawan';
           _fotoKaryawan = data['foto_karyawan'] ?? '';
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint("Error fetching employee profile on dashboard: $e");
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 

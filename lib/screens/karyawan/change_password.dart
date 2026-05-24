@@ -51,27 +51,19 @@ class _ChangePasswordScreenKaryawanState extends State<ChangePasswordScreenKarya
 
     if (mounted) {
       if (response['success'] == true) {
-        showDialog(
+        await CustomDialog.showSuccess(
           context: context,
-          barrierDismissible: false,
-          builder: (context) => CustomDialog(
-            title: 'Berhasil',
-            message: 'Password Anda berhasil diperbarui!',
-            isSuccess: true,
-            onOkPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close ChangePassword Screen
-            },
-          ),
+          title: 'Berhasil',
+          message: 'Password Anda berhasil diperbarui!',
         );
+        if (mounted) {
+          Navigator.pop(context); // Close ChangePassword Screen
+        }
       } else {
-        showDialog(
+        await CustomDialog.showError(
           context: context,
-          builder: (context) => CustomDialog(
-            title: 'Gagal',
-            message: response['message'] ?? 'Gagal mengubah password.',
-            isSuccess: false,
-          ),
+          title: 'Gagal',
+          message: response['message'] ?? 'Gagal mengubah password.',
         );
       }
     }
