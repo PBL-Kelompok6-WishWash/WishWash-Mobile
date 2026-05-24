@@ -136,14 +136,29 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      namaKaryawan,
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
-                        letterSpacing: -0.5,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            namaKaryawan,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildStatusBadge(
+                          icon: Icons.circle,
+                          iconSize: 6,
+                          text: statusKetersediaan,
+                          bgColor: _getStatusColor(statusKetersediaan).withOpacity(0.1),
+                          textColor: _getStatusColor(statusKetersediaan),
+                        ),
+                      ],
                     ),
                     if (username.isNotEmpty) ...[
                       const SizedBox(height: 2),
@@ -156,30 +171,6 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _buildStatusBadge(
-                          icon: Icons.delivery_dining_rounded,
-                          text: 'Kurir / Karyawan',
-                          bgColor: cyanColor.withOpacity(0.1),
-                          textColor: cyanColor,
-                        ),
-                        _buildStatusBadge(
-                          icon: Icons.circle,
-                          iconSize: 6,
-                          text: statusKetersediaan,
-                          bgColor: (statusKetersediaan.toLowerCase() == 'aktif'
-                                  ? Colors.green
-                                  : Colors.orange).withOpacity(0.1),
-                          textColor: statusKetersediaan.toLowerCase() == 'aktif'
-                                  ? Colors.green
-                                  : Colors.orange,
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -350,6 +341,17 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
         ),
       ],
     );
+  }
+
+  Color _getStatusColor(String status) {
+    final s = status.toLowerCase();
+    if (s == 'aktif') {
+      return Colors.green;
+    } else if (s == 'sibuk') {
+      return Colors.amber.shade700;
+    } else {
+      return Colors.orange;
+    }
   }
 
   Widget _buildProfileImage() {
