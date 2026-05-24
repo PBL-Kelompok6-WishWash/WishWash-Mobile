@@ -1184,35 +1184,35 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
       onTap: isOptionDisabled
           ? null
           : () => setState(() => selectedTime = title),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: cardBgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: borderCol,
-            width: borderW,
-          ),
-          boxShadow: isSelected && !isOptionDisabled
-              ? [
-                  BoxShadow(
-                    color: activeSelectionColor.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Stack(
-          children: [
-            Row(
+      child: Stack(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              color: cardBgColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: borderCol,
+                width: borderW,
+              ),
+              boxShadow: isSelected && !isOptionDisabled
+                  ? [
+                      BoxShadow(
+                        color: activeSelectionColor.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -1257,18 +1257,18 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                 ),
               ],
             ),
-            if (isOptionDisabled)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Icon(
-                  Icons.lock_outline_rounded,
-                  color: Colors.grey.shade500,
-                  size: 14,
-                ),
+          ),
+          if (isOptionDisabled)
+            Positioned(
+              top: 10,
+              right: 12,
+              child: Icon(
+                Icons.lock_outline_rounded,
+                color: Colors.grey.shade500,
+                size: 14,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
