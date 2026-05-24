@@ -77,6 +77,7 @@ class _MainPelangganState extends State<MainPelanggan> {
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
         return Scaffold(
+          extendBody: true,
           body: IndexedStack(
             index: _currentIndex,
             children: _pages,

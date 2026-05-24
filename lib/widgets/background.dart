@@ -18,6 +18,7 @@ class LaundryLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       // 3. Pasang variabel tadi ke properti Scaffold yang asli
       floatingActionButton: fab,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
