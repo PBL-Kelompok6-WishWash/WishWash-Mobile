@@ -6,6 +6,7 @@ import 'package:mobile/screens/pelanggan/chat/chat_screen.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/preferences_language_screen.dart';
 import 'package:mobile/screens/pelanggan/profile/edit_profile_screen.dart';
+import 'package:mobile/screens/pelanggan/profile/change_password_screen.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'dart:convert';
 import 'package:mobile/services/pelanggan_service.dart';
@@ -437,7 +438,18 @@ class ProfileScreenState extends State<ProfileScreen> {
               _fetchProfile(); // reload
             },
           ),
-          _buildMenuItem(Icons.lock_outline_rounded, TranslationService.translate('change_password'), navyColor, cyanColor),
+          _buildMenuItem(
+            Icons.lock_outline_rounded,
+            TranslationService.translate('change_password'),
+            navyColor,
+            cyanColor,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
+              );
+            },
+          ),
           _buildMenuItem(
             Icons.language_rounded,
             TranslationService.translate('preferences_language'),
