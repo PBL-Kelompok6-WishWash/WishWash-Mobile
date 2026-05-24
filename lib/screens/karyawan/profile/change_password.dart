@@ -417,6 +417,7 @@ class _ChangePasswordScreenKaryawanState extends State<ChangePasswordScreenKarya
                   ),
                 ],
               ),
+            ],
           ),
         );
       },
