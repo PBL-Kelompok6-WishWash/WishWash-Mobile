@@ -4,6 +4,8 @@ import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/karyawan/edit_profile.dart';
+import 'package:mobile/screens/karyawan/change_password.dart';
+import 'package:mobile/screens/karyawan/preferences_language.dart';
 import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
 
@@ -426,8 +428,26 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       ),
       child: Column(
         children: [
-          _buildMenuItem(Icons.lock_outline_rounded, 'Ubah Password'),
-          _buildMenuItem(Icons.language_rounded, 'Pengaturan & Bahasa'),
+          _buildMenuItem(
+            Icons.lock_outline_rounded,
+            'Ubah Password',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChangePasswordScreenKaryawan()),
+              );
+            },
+          ),
+          _buildMenuItem(
+            Icons.language_rounded,
+            'Pengaturan & Bahasa',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PreferencesLanguageScreenKaryawan()),
+              );
+            },
+          ),
           _buildMenuItem(Icons.help_outline_rounded, 'Bantuan & FAQ'),
           _buildLogoutItem(),
         ],
