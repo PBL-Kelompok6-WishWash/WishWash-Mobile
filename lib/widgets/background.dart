@@ -18,19 +18,9 @@ class LaundryLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       backgroundColor: Colors.transparent,
-      // 3. Pasang variabel tadi ke properti Scaffold yang asli
       floatingActionButton: fab,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: bottomNav != null
-          ? Theme(
-              data: Theme.of(context).copyWith(
-                canvasColor: Colors.transparent,
-              ),
-              child: bottomNav!,
-            )
-          : null,
       body: Stack(
         children: [
           Container(color: Colors.white),
@@ -68,6 +58,13 @@ class LaundryLayout extends StatelessWidget {
             ),
           ),
           SafeArea(child: child),
+          if (bottomNav != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: bottomNav!,
+            ),
         ],
       ),
     );

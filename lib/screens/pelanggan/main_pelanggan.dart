@@ -77,20 +77,23 @@ class _MainPelangganState extends State<MainPelanggan> {
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
         return Scaffold(
-          extendBody: true,
           backgroundColor: Colors.transparent,
-          body: IndexedStack(
-            index: _currentIndex,
-            children: _pages,
-          ),
-          bottomNavigationBar: Theme(
-            data: Theme.of(context).copyWith(
-              canvasColor: Colors.transparent,
-            ),
-            child: BottomNavbar(
-              currentIndex: _currentIndex,
-              onTap: _onTap,
-            ),
+          body: Stack(
+            children: [
+              IndexedStack(
+                index: _currentIndex,
+                children: _pages,
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: BottomNavbar(
+                  currentIndex: _currentIndex,
+                  onTap: _onTap,
+                ),
+              ),
+            ],
           ),
         );
       },
