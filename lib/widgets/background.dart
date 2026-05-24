@@ -19,10 +19,18 @@ class LaundryLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
+      backgroundColor: Colors.transparent,
       // 3. Pasang variabel tadi ke properti Scaffold yang asli
       floatingActionButton: fab,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: bottomNav,
+      bottomNavigationBar: bottomNav != null
+          ? Theme(
+              data: Theme.of(context).copyWith(
+                canvasColor: Colors.transparent,
+              ),
+              child: bottomNav!,
+            )
+          : null,
       body: Stack(
         children: [
           Container(color: Colors.white),

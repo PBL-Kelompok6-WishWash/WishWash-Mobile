@@ -78,13 +78,19 @@ class _MainPelangganState extends State<MainPelanggan> {
       builder: (context, lang, child) {
         return Scaffold(
           extendBody: true,
+          backgroundColor: Colors.transparent,
           body: IndexedStack(
             index: _currentIndex,
             children: _pages,
           ),
-          bottomNavigationBar: BottomNavbar(
-            currentIndex: _currentIndex,
-            onTap: _onTap,
+          bottomNavigationBar: Theme(
+            data: Theme.of(context).copyWith(
+              canvasColor: Colors.transparent,
+            ),
+            child: BottomNavbar(
+              currentIndex: _currentIndex,
+              onTap: _onTap,
+            ),
           ),
         );
       },
