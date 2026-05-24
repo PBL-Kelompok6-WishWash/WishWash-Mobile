@@ -99,23 +99,37 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+            color: navyColor.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: _buildProfileImage(),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: cyanColor.withOpacity(0.24), width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: cyanColor.withOpacity(0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(17),
+                  child: _buildProfileImage(),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -126,12 +140,13 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                       namaKaryawan,
                       style: GoogleFonts.poppins(
                         fontSize: 20,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                         color: navyColor,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     if (username.isNotEmpty) ...[
-                      const SizedBox(height: 1),
+                      const SizedBox(height: 2),
                       Text(
                         '@$username',
                         style: GoogleFonts.poppins(
@@ -141,92 +156,27 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 6),
-                    Row(
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: cyanColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Kurir / Karyawan',
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: cyanColor,
-                            ),
-                          ),
+                        _buildStatusBadge(
+                          icon: Icons.delivery_dining_rounded,
+                          text: 'Kurir / Karyawan',
+                          bgColor: cyanColor.withOpacity(0.1),
+                          textColor: cyanColor,
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            statusKetersediaan,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.phone, size: 14, color: navyColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          noTelp.isEmpty ? '-' : noTelp,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: navyColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.email_outlined, size: 14, color: navyColor),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            email.isEmpty ? '-' : email,
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: navyColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.motorcycle_outlined, size: 14, color: navyColor),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            jenisKendaraan == '-' && platNomor == '-'
-                                ? '-'
-                                : '$jenisKendaraan ($platNomor)',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: navyColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        _buildStatusBadge(
+                          icon: Icons.circle,
+                          iconSize: 6,
+                          text: statusKetersediaan,
+                          bgColor: (statusKetersediaan.toLowerCase() == 'aktif'
+                                  ? Colors.green
+                                  : Colors.orange).withOpacity(0.1),
+                          textColor: statusKetersediaan.toLowerCase() == 'aktif'
+                                  ? Colors.green
+                                  : Colors.orange,
                         ),
                       ],
                     ),
@@ -236,11 +186,33 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
             ],
           ),
           const SizedBox(height: 20),
+          Divider(color: Colors.grey.shade100, thickness: 1.5),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.phone_rounded,
+            label: 'No. Telepon',
+            value: noTelp.isEmpty ? '-' : noTelp,
+          ),
+          const SizedBox(height: 14),
+          _buildInfoRow(
+            icon: Icons.email_rounded,
+            label: 'Email',
+            value: email.isEmpty ? '-' : email,
+          ),
+          const SizedBox(height: 14),
+          _buildInfoRow(
+            icon: Icons.motorcycle_rounded,
+            label: 'Detail Kendaraan',
+            value: jenisKendaraan == '-' && platNomor == '-'
+                ? '-'
+                : '$jenisKendaraan ($platNomor)',
+          ),
+          const SizedBox(height: 24),
           Container(
             width: double.infinity,
-            height: 46,
+            height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
                 colors: [cyanColor, const Color(0xFF00ACC1)],
                 begin: Alignment.topLeft,
@@ -248,16 +220,16 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: cyanColor.withOpacity(0.3),
+                  color: cyanColor.withOpacity(0.35),
                   offset: const Offset(0, 4),
-                  blurRadius: 8,
+                  blurRadius: 12,
                 ),
               ],
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
                 onTap: () async {
                   final result = await Navigator.push(
                     context,
@@ -280,21 +252,103 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                     _fetchProfile();
                   }
                 },
-                child: Center(
-                  child: Text(
-                    'Edit Profile',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.white,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Edit Profile',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildStatusBadge({
+    required IconData icon,
+    double iconSize = 12,
+    required String text,
+    required Color bgColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: iconSize, color: textColor),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: navyColor.withOpacity(0.06),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 18, color: navyColor),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: navyColor.withOpacity(0.5),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: navyColor,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
