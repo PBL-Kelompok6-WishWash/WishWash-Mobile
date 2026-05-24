@@ -55,6 +55,15 @@ class _ChangePasswordScreenKaryawanState extends State<ChangePasswordScreenKarya
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final isEn = TranslationService.currentLang == 'en';
+    if (_newPasswordController.text == _oldPasswordController.text) {
+      final samePasswordError = isEn 
+          ? 'New password cannot be the same as the current password!' 
+          : 'Password baru tidak boleh sama dengan password saat ini!';
+      _showAutoClearError(samePasswordError);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -71,7 +80,6 @@ class _ChangePasswordScreenKaryawanState extends State<ChangePasswordScreenKarya
     });
 
     if (mounted) {
-      final isEn = TranslationService.currentLang == 'en';
       if (response['success'] == true) {
         await CustomDialog.showSuccess(
           context: context,
