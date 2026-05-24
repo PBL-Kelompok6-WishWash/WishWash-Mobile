@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
+import 'package:mobile/screens/karyawan/edit_profile.dart';
 import 'dart:convert';
 
 class ProfileScreenKaryawan extends StatefulWidget {
@@ -226,7 +227,28 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
             width: double.infinity,
             height: 45,
             child: ElevatedButton(
-              onPressed: () => _showEditProfileBottomSheet(),
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfileScreenKaryawan(
+                      namaKaryawan: namaKaryawan,
+                      noTelp: noTelp,
+                      email: email,
+                      username: username,
+                      platNomor: platNomor,
+                      jenisKendaraan: jenisKendaraan,
+                      fotoKaryawan: fotoKaryawan,
+                    ),
+                  ),
+                );
+                if (result == true) {
+                  setState(() {
+                    isLoading = true;
+                  });
+                  _fetchProfile();
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: tealColor.withOpacity(0.1),
                 foregroundColor: tealColor,
@@ -613,234 +635,4 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
     );
   }
 
-  void _showEditProfileBottomSheet() {
-    final nameController = TextEditingController(text: namaKaryawan);
-    final phoneController = TextEditingController(text: noTelp == '-' ? '' : noTelp);
-    final usernameController = TextEditingController(text: username);
-    final emailController = TextEditingController(text: email);
-    final photoController = TextEditingController(text: fotoKaryawan);
-    final platController = TextEditingController(text: platNomor == '-' ? '' : platNomor);
-    final jenisController = TextEditingController(text: jenisKendaraan == '-' ? '' : jenisKendaraan);
-
-    bool isSaving = false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
-              padding: EdgeInsets.only(
-                top: 24,
-                left: 24,
-                right: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Handle Bar
-                    Center(
-                      child: Container(
-                        width: 50,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Title
-                    Text(
-                      'Edit Profile Karyawan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Perbarui informasi pribadi dan kendaraan Anda',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Inputs
-                    _buildInputLabel('Nama Lengkap'),
-                    _buildTextField(nameController, 'Masukkan nama lengkap', Icons.person_outline),
-
-                    _buildInputLabel('Nomor Telepon'),
-                    _buildTextField(phoneController, 'Masukkan nomor telepon', Icons.phone_android_outlined, keyboardType: TextInputType.phone),
-
-                    _buildInputLabel('Username'),
-                    _buildTextField(usernameController, 'Masukkan username', Icons.alternate_email_outlined),
-
-                    _buildInputLabel('Email'),
-                    _buildTextField(emailController, 'Masukkan email', Icons.mail_outline, keyboardType: TextInputType.emailAddress),
-
-                    _buildInputLabel('Jenis Kendaraan'),
-                    _buildTextField(jenisController, 'Masukkan jenis kendaraan (contoh: Honda Beat)', Icons.motorcycle_outlined),
-
-                    _buildInputLabel('Plat Nomor'),
-                    _buildTextField(platController, 'Masukkan plat nomor kendaraan', Icons.credit_card_outlined),
-
-                    _buildInputLabel('URL Foto Profil (Opsional)'),
-                    _buildTextField(photoController, 'Masukkan URL foto profil', Icons.image_outlined),
-
-                    const SizedBox(height: 32),
-
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            colors: [tealColor, const Color(0xFF167B80)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: tealColor.withOpacity(0.3),
-                              offset: const Offset(0, 4),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: isSaving
-                                ? null
-                                : () async {
-                                    if (nameController.text.trim().isEmpty) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text('Nama lengkap tidak boleh kosong')),
-                                      );
-                                      return;
-                                    }
-
-                                    setModalState(() {
-                                      isSaving = true;
-                                    });
-
-                                    final response = await PelangganService.updateProfile({
-                                      'nama': nameController.text.trim(),
-                                      'no_telp': phoneController.text.trim(),
-                                      'username': usernameController.text.trim(),
-                                      'email': emailController.text.trim(),
-                                      'foto_pelanggan': photoController.text.trim(),
-                                      'plat_nomor': platController.text.trim(),
-                                      'jenis_kendaraan': jenisController.text.trim(),
-                                    });
-
-                                    if (mounted) {
-                                      if (response['success'] == true) {
-                                        Navigator.pop(context); // Tutup bottom sheet
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(response['message']),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                        setState(() {
-                                          isLoading = true;
-                                        });
-                                        _fetchProfile(); // reload
-                                      } else {
-                                        setModalState(() {
-                                          isSaving = false;
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(response['message']),
-                                            backgroundColor: Colors.redAccent,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                            child: Center(
-                              child: isSaving
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : Text(
-                                      'Simpan Perubahan',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildInputLabel(String labelText) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
-      child: Text(
-        labelText,
-        style: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: navyColor,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hintText,
-    IconData prefixIcon, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: bgGrey,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
-        decoration: InputDecoration(
-          hintText: hintText,
-          hintStyle: GoogleFonts.poppins(fontSize: 13, color: Colors.grey.shade400),
-          prefixIcon: Icon(prefixIcon, color: tealColor, size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-    );
-  }
 }
