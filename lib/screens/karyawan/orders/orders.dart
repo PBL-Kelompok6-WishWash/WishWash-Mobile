@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -11,7 +12,9 @@ class OrderScreenKaryawan extends StatefulWidget {
 }
 
 class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
-  int _activeTabIndex = 0; // 0: Outlet (Kasir), 1: Logistik (Kurir), 2: Selesai
+  int _activeTabIndex = 0; // 0: Semua, 1: Logistik, 2: Outlet, 3: Selesai
+  int _activeLogistikSubIndex = 0; // 0: Semua, 1: Pickup, 2: Delivery
+  int _activeOutletSubIndex = 0; // 0: Semua, 1: Timbang, 2: Cuci & Kering, 3: Lipat & Setrika
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
 
@@ -319,17 +322,44 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       final customerName = pelanggan['nama_lengkap'].toString().toLowerCase();
       final orderCode = order['kode_order'].toString().toLowerCase();
 
-      // Check Tab Filter
+      // 1. Check Primary Tab Filter
       bool matchesTab = false;
       if (_activeTabIndex == 0) {
-        matchesTab = _isOutletOrder(status);
+        // Semua (Menampilkan semua pesanan aktif, yaitu yang belum selesai)
+        matchesTab = !_isSelesaiOrder(status);
       } else if (_activeTabIndex == 1) {
+        // Logistik
         matchesTab = _isLogistikOrder(status);
+        if (matchesTab) {
+          // Sub-Filter Logistik
+          if (_activeLogistikSubIndex == 1) {
+            matchesTab = status.toLowerCase() == 'penjemputan';
+          } else if (_activeLogistikSubIndex == 2) {
+            matchesTab = status.toLowerCase() == 'siap diantar';
+          }
+        }
+      } else if (_activeTabIndex == 2) {
+        // Outlet
+        matchesTab = _isOutletOrder(status);
+        if (matchesTab) {
+          // Sub-Filter Outlet
+          if (_activeOutletSubIndex == 1) {
+            matchesTab = status.toLowerCase() == 'pesanan diterima' ||
+                status.toLowerCase() == 'proses timbang';
+          } else if (_activeOutletSubIndex == 2) {
+            matchesTab = status.toLowerCase() == 'proses cuci' ||
+                status.toLowerCase() == 'proses kering';
+          } else if (_activeOutletSubIndex == 3) {
+            matchesTab = status.toLowerCase() == 'proses lipat' ||
+                status.toLowerCase() == 'proses setrika';
+          }
+        }
       } else {
+        // Selesai
         matchesTab = _isSelesaiOrder(status);
       }
 
-      // Check Search Query
+      // 2. Check Search Query
       bool matchesSearch = _searchQuery.isEmpty ||
           customerName.contains(_searchQuery.toLowerCase()) ||
           orderCode.contains(_searchQuery.toLowerCase());
@@ -348,12 +378,13 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
         return Scaffold(
-          backgroundColor: bgGrey,
+          backgroundColor: Colors.transparent,
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- HEADER OPERASIONAL ---
               _buildHeaderSection(),
+              const SizedBox(height: 10),
 
               // --- METRIC RINGKASAN CARD ---
               _buildSummaryMetrics(),
@@ -392,28 +423,17 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildHeaderSection() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'WishWash Operator',
+            TranslationService.translate('orders'),
             style: GoogleFonts.poppins(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: cyanColor,
-              letterSpacing: 1.0,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            TranslationService.translate('monitor_orders'),
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
               color: navyColor,
-              letterSpacing: -0.5,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
           ),
         ],
@@ -422,6 +442,10 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildSummaryMetrics() {
+    // Menampilkan kartu metrik hanya pada tab "Semua" (Dashboard Overview)
+    // untuk menghemat ruang vertikal ketika kasir/kurir fokus bekerja di tab spesifik.
+    if (_activeTabIndex != 0) return const SizedBox.shrink();
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
       child: Container(
@@ -450,7 +474,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
             _buildMetricItem(
               icon: Icons.local_shipping_outlined,
               color: const Color(0xFF0288D1),
-              label: 'Kurir',
+              label: 'Logistik',
               count: _logistikCount,
             ),
             Container(width: 1.5, height: 40, color: Colors.grey.shade200),
@@ -508,6 +532,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Bar Pencarian
           Container(
@@ -565,61 +590,168 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Pills Tab Operasional
-          Row(
-            children: [
-              _buildTabPill(0, 'Outlet / Kasir'),
-              const SizedBox(width: 8),
-              _buildTabPill(1, 'Logistik'),
-              const SizedBox(width: 8),
-              _buildTabPill(2, 'Selesai'),
-            ],
+          // Menu Utama Segmented Card (Level 1 - Premium Sliding Capsule Design)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double totalWidth = constraints.maxWidth;
+              // Subtract the 4px padding on both left and right sides of the capsule (total 8px)
+              final double tabWidth = (totalWidth - 8) / 4; 
+
+              return Container(
+                height: 50,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: navyColor.withOpacity(0.06), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: navyColor.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  children: [
+                    // 1. Sliding Pill Background Container
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOutCubic,
+                      left: _activeTabIndex * tabWidth,
+                      width: tabWidth,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: navyColor,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: navyColor.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 2. Row of Typography Text Buttons
+                    Row(
+                      children: List.generate(4, (index) {
+                        final String label = ['Semua', 'Logistik', 'Outlet', 'Selesai'][index];
+                        final isSelected = _activeTabIndex == index;
+                        return Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activeTabIndex = index;
+                              });
+                            },
+                            behavior: HitTestBehavior.opaque,
+                            child: Center(
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                  color: isSelected ? Colors.white : Colors.grey.shade500,
+                                ),
+                                child: Text(label),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
+
+          // Sub-Filter Dinamis (Level 2)
+          if (_activeTabIndex == 1 || _activeTabIndex == 2) ...[
+            const SizedBox(height: 14),
+            _buildSubFilterChips(),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildTabPill(int index, String label) {
-    final isSelected = _activeTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _activeTabIndex = index;
-          });
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? navyColor : Colors.white,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: isSelected ? navyColor : navyColor.withOpacity(0.08),
-              width: 1.2,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: navyColor.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    )
-                  ]
-                : [],
+  Widget _buildSubFilterChips() {
+    if (_activeTabIndex == 1) {
+      // Logistik Sub-Filters
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildSubChip(0, 'Semua Logistik', isLogistik: true),
+            const SizedBox(width: 8),
+            _buildSubChip(1, 'Pickup', isLogistik: true),
+            const SizedBox(width: 8),
+            _buildSubChip(2, 'Delivery', isLogistik: true),
+          ],
+        ),
+      );
+    } else if (_activeTabIndex == 2) {
+      // Outlet Sub-Filters
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildSubChip(0, 'Semua Proses', isLogistik: false),
+            const SizedBox(width: 8),
+            _buildSubChip(1, 'Timbang', isLogistik: false),
+            const SizedBox(width: 8),
+            _buildSubChip(2, 'Cuci & Kering', isLogistik: false),
+            const SizedBox(width: 8),
+            _buildSubChip(3, 'Lipat & Setrika', isLogistik: false),
+          ],
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildSubChip(int index, String label, {required bool isLogistik}) {
+    final isSelected = isLogistik 
+        ? _activeLogistikSubIndex == index 
+        : _activeOutletSubIndex == index;
+        
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isLogistik) {
+            _activeLogistikSubIndex = index;
+          } else {
+            _activeOutletSubIndex = index;
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? navyColor.withOpacity(0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? navyColor : navyColor.withOpacity(0.12),
+            width: isSelected ? 1.5 : 1.0,
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : navyColor.withOpacity(0.7),
-              ),
-            ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected ? navyColor : Colors.grey.shade600,
           ),
         ),
       ),
@@ -665,7 +797,24 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showOperationalDetails(order),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderDetailScreenKaryawan(
+                  order: order,
+                  onOrderUpdated: (updatedOrder) {
+                    setState(() {
+                      final idx = _mockOrders.indexWhere((o) => o['id_order'] == updatedOrder['id_order']);
+                      if (idx != -1) {
+                        _mockOrders[idx] = updatedOrder;
+                      }
+                    });
+                  },
+                ),
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(20),
           splashColor: navyColor.withOpacity(0.04),
           highlightColor: navyColor.withOpacity(0.02),
