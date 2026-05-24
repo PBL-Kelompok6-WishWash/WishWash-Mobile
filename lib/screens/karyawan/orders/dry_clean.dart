@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'review_dry_clean.dart';
 
 class DryCleanScreen extends StatefulWidget {
-  const DryCleanScreen({super.key});
+  final Map<String, dynamic> selectedCustomer;
+  const DryCleanScreen({super.key, required this.selectedCustomer});
 
   @override
   State<DryCleanScreen> createState() => _DryCleanScreenState();
@@ -365,6 +366,10 @@ class _DryCleanScreenState extends State<DryCleanScreen> {
   }
 
   Widget _buildLocationCard({required bool isDelivery}) {
+    final String customerName = widget.selectedCustomer['nama_lengkap'] ?? '';
+    final String customerPhone = widget.selectedCustomer['no_telp'] ?? '';
+    final String customerAddress = 'Jl. Kenanga No. 8, Perum WishWash, Semarang - Alamat $customerName';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -409,7 +414,7 @@ class _DryCleanScreenState extends State<DryCleanScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Address',
+                      isDelivery ? 'Delivery Address' : 'Pick Up Address',
                       style: GoogleFonts.poppins(
                         color: textGrey,
                         fontWeight: FontWeight.bold,
@@ -418,7 +423,16 @@ class _DryCleanScreenState extends State<DryCleanScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Jalan Kesana Kesini, No. 12, Semarang, Central Java, 123456',
+                      '$customerName ($customerPhone)',
+                      style: GoogleFonts.poppins(
+                        color: navyColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      customerAddress,
                       style: GoogleFonts.poppins(
                         color: Colors.grey.shade600,
                         fontSize: 11,
@@ -643,7 +657,11 @@ class _DryCleanScreenState extends State<DryCleanScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ReviewDryCleanScreen()),
+            MaterialPageRoute(
+              builder: (context) => ReviewDryCleanScreen(
+                selectedCustomer: widget.selectedCustomer,
+              ),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(

@@ -129,4 +129,32 @@ class PelangganService {
       };
     }
   }
+
+  static Future<List<dynamic>> getAllPelanggan() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+
+      if (token == null) {
+        throw Exception('Token tidak ditemukan');
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/pelanggan'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return responseData['data'] ?? [];
+      } else {
+        throw Exception('Gagal memuat daftar pelanggan');
+      }
+    } catch (e) {
+      throw Exception('Gagal terhubung ke server: $e');
+    }
+  }
 }

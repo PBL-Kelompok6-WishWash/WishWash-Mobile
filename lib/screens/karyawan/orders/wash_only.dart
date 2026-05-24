@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'review_wash_only.dart';
 
 class WashOnlyScreen extends StatefulWidget {
-  const WashOnlyScreen({super.key});
+  final Map<String, dynamic> selectedCustomer;
+  const WashOnlyScreen({super.key, required this.selectedCustomer});
 
   @override
   State<WashOnlyScreen> createState() => _WashOnlyScreenState();
@@ -396,6 +397,10 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
   }
 
   Widget _buildLocationCard({required bool isDelivery}) {
+    final String customerName = widget.selectedCustomer['nama_lengkap'] ?? '';
+    final String customerPhone = widget.selectedCustomer['no_telp'] ?? '';
+    final String customerAddress = 'Jl. Kenanga No. 8, Perum WishWash, Semarang - Alamat $customerName';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -440,7 +445,7 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Address',
+                      isDelivery ? 'Delivery Address' : 'Pick Up Address',
                       style: GoogleFonts.poppins(
                         color: textGrey,
                         fontWeight: FontWeight.bold,
@@ -449,7 +454,16 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Jalan Kesana Kesini, No. 12, Semarang, Central Java, 123456',
+                      '$customerName ($customerPhone)',
+                      style: GoogleFonts.poppins(
+                        color: navyColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      customerAddress,
                       style: GoogleFonts.poppins(
                         color: Colors.grey.shade600,
                         fontSize: 11,
@@ -782,7 +796,11 @@ class _WashOnlyScreenState extends State<WashOnlyScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ReviewWashOnlyScreen()),
+            MaterialPageRoute(
+              builder: (context) => ReviewWashOnlyScreen(
+                selectedCustomer: widget.selectedCustomer,
+              ),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(

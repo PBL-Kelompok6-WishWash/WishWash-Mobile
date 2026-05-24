@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/karyawan/main_karyawan.dart';
 
 class ReviewIroningOnlyScreen extends StatefulWidget {
-  const ReviewIroningOnlyScreen({super.key});
+  final Map<String, dynamic> selectedCustomer;
+  const ReviewIroningOnlyScreen({super.key, required this.selectedCustomer});
 
   @override
   State<ReviewIroningOnlyScreen> createState() => _ReviewIroningOnlyScreenState();
@@ -198,7 +199,9 @@ class _ReviewIroningOnlyScreenState extends State<ReviewIroningOnlyScreen> {
                   children: [
                     Text('Pick Up Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(widget.selectedCustomer['nama_lengkap'] ?? '', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text('Jl. Kenanga No. 8, Perum WishWash, Semarang - Alamat ${widget.selectedCustomer['nama_lengkap']}', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                   ],
                 ),
               ),
@@ -281,7 +284,8 @@ class _ReviewIroningOnlyScreenState extends State<ReviewIroningOnlyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Delivery Address', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
-                  Text('Jalan Kesana Kemari', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('${widget.selectedCustomer['nama_lengkap']} (${widget.selectedCustomer['no_telp']})', style: GoogleFonts.poppins(color: navyColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text('Jl. Kenanga No. 8, Perum WishWash, Semarang - Alamat ${widget.selectedCustomer['nama_lengkap']}', style: GoogleFonts.poppins(color: navyColor, fontSize: 10)),
                 ],
               ),
             ],

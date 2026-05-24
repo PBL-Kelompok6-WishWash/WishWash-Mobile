@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'review_ironing_only.dart';
 
 class IroningOnlyScreen extends StatefulWidget {
-  const IroningOnlyScreen({super.key});
+  final Map<String, dynamic> selectedCustomer;
+  const IroningOnlyScreen({super.key, required this.selectedCustomer});
 
   @override
   State<IroningOnlyScreen> createState() => _IroningOnlyScreenState();
@@ -365,6 +366,10 @@ class _IroningOnlyScreenState extends State<IroningOnlyScreen> {
   }
 
   Widget _buildLocationCard({required bool isDelivery}) {
+    final String customerName = widget.selectedCustomer['nama_lengkap'] ?? '';
+    final String customerPhone = widget.selectedCustomer['no_telp'] ?? '';
+    final String customerAddress = 'Jl. Kenanga No. 8, Perum WishWash, Semarang - Alamat $customerName';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -409,7 +414,7 @@ class _IroningOnlyScreenState extends State<IroningOnlyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Address',
+                      isDelivery ? 'Delivery Address' : 'Pick Up Address',
                       style: GoogleFonts.poppins(
                         color: textGrey,
                         fontWeight: FontWeight.bold,
@@ -418,7 +423,16 @@ class _IroningOnlyScreenState extends State<IroningOnlyScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Jalan Kesana Kesini, No. 12, Semarang, Central Java, 123456',
+                      '$customerName ($customerPhone)',
+                      style: GoogleFonts.poppins(
+                        color: navyColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      customerAddress,
                       style: GoogleFonts.poppins(
                         color: Colors.grey.shade600,
                         fontSize: 11,
@@ -643,7 +657,11 @@ class _IroningOnlyScreenState extends State<IroningOnlyScreen> {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ReviewIroningOnlyScreen()),
+            MaterialPageRoute(
+              builder: (context) => ReviewIroningOnlyScreen(
+                selectedCustomer: widget.selectedCustomer,
+              ),
+            ),
           );
         },
         style: ElevatedButton.styleFrom(

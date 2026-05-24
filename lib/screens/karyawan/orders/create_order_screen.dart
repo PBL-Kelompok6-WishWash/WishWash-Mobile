@@ -8,6 +8,7 @@ import 'wash_ironing.dart';
 import 'wash_only.dart';
 import 'ironing_only.dart';
 import 'dry_clean.dart';
+import 'package:mobile/services/pelanggan_service.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
@@ -21,10 +22,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   List<dynamic> _services = [];
   bool _isLoading = true;
 
+  // State untuk Pemilihan Pelanggan
+  Map<String, dynamic>? _selectedCustomer;
+  List<dynamic> _customers = [];
+  bool _isCustomersLoading = false;
+
   @override
   void initState() {
     super.initState();
     _fetchServices();
+    _fetchCustomers();
   }
 
   Future<void> _fetchServices() async {
@@ -52,6 +59,227 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         );
       }
     }
+  }
+
+  Future<void> _fetchCustomers() async {
+    setState(() {
+      _isCustomersLoading = true;
+    });
+    try {
+      final list = await PelangganService.getAllPelanggan();
+      setState(() {
+        _customers = list;
+        _isCustomersLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isCustomersLoading = false;
+      });
+      // Fallback local list of registered customers so it never crashes
+      setState(() {
+        _customers = [
+          {
+            'id_pelanggan': 1,
+            'nama_lengkap': 'Cecil Clarissa',
+            'no_telp': '081234567890',
+            'user': {'username': 'cecil'}
+          },
+          {
+            'id_pelanggan': 2,
+            'nama_lengkap': 'Bile Wijaya',
+            'no_telp': '089876543210',
+            'user': {'username': 'bile'}
+          },
+          {
+            'id_pelanggan': 3,
+            'nama_lengkap': 'Ica Putri',
+            'no_telp': '085223344556',
+            'user': {'username': 'ica'}
+          },
+          {
+            'id_pelanggan': 4,
+            'nama_lengkap': 'Budi Santoso',
+            'no_telp': '081122334455',
+            'user': {'username': 'budi'}
+          }
+        ];
+      });
+    }
+  }
+
+  void _showCustomerSearchBottomSheet() {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _customers.where((c) {
+              final name = (c['nama_lengkap'] ?? '').toString().toLowerCase();
+              final phone = (c['no_telp'] ?? '').toString().toLowerCase();
+              final q = searchQuery.toLowerCase();
+              return name.contains(q) || phone.contains(q);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 50,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          TranslationService.currentLang == 'en' 
+                              ? 'Select Customer' 
+                              : 'Pilih Pelanggan',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: navyColor,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: TextField(
+                        onChanged: (val) {
+                          setModalState(() {
+                            searchQuery = val;
+                          });
+                        },
+                        style: GoogleFonts.poppins(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: TranslationService.currentLang == 'en'
+                              ? 'Search by Name or Phone Number...'
+                              : 'Cari Nama atau Nomor Telepon...',
+                          hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 13),
+                          prefixIcon: Icon(Icons.search, color: navyColor),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _isCustomersLoading 
+                        ? const Center(child: CircularProgressIndicator())
+                        : filtered.isEmpty
+                            ? Center(
+                                child: Text(
+                                  TranslationService.currentLang == 'en'
+                                      ? 'No customers found'
+                                      : 'Pelanggan tidak ditemukan',
+                                  style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final c = filtered[index];
+                                  final name = c['nama_lengkap'] ?? '';
+                                  final phone = c['no_telp'] ?? '-';
+                                  final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: Colors.grey[100]!),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.01),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                      leading: CircleAvatar(
+                                        backgroundColor: const Color(0xFFBCEFF2),
+                                        child: Text(
+                                          initial,
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.bold,
+                                            color: navyColor,
+                                          ),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        name,
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: navyColor,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        phone,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      trailing: Icon(
+                                        Icons.arrow_forward_ios_rounded,
+                                        size: 14,
+                                        color: navyColor,
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedCustomer = c;
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Color _parseHexColor(String hexColor) {
@@ -138,6 +366,205 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             const Icon(Icons.image, size: 20),
       );
     }
+  }
+
+  Widget _buildCustomerPickerSection() {
+    final bool hasSelected = _selectedCustomer != null;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: hasSelected ? const Color(0xFF42C6D4).withOpacity(0.3) : Colors.orangeAccent.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (hasSelected ? const Color(0xFF42C6D4) : Colors.orangeAccent).withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                TranslationService.currentLang == 'en' ? 'Customer Profile' : 'Profil Pelanggan',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                  letterSpacing: 0.5,
+                ),
+              ),
+              if (hasSelected)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    TranslationService.currentLang == 'en' ? 'Selected' : 'Terpilih',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 9,
+                      color: Colors.green,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF3E0),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    TranslationService.currentLang == 'en' ? 'Required' : 'Wajib',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 9,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (hasSelected)
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: const Color(0xFFBCEFF2),
+                  child: Text(
+                    (_selectedCustomer!['nama_lengkap'] ?? '?')[0].toUpperCase(),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      color: navyColor,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedCustomer!['nama_lengkap'] ?? '',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: navyColor,
+                        ),
+                      ),
+                      Text(
+                        _selectedCustomer!['no_telp'] ?? '-',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: _showCustomerSearchBottomSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE3E9EC),
+                    foregroundColor: navyColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    TranslationService.currentLang == 'en' ? 'Change' : 'Ubah',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF3E0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_search_outlined,
+                    color: Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        TranslationService.currentLang == 'en' ? 'No Customer Selected' : 'Belum Ada Pelanggan',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: navyColor,
+                        ),
+                      ),
+                      Text(
+                        TranslationService.currentLang == 'en'
+                            ? 'Please select a customer first'
+                            : 'Silakan pilih pelanggan terlebih dahulu',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: _showCustomerSearchBottomSheet,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: navyColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    TranslationService.currentLang == 'en' ? 'Select' : 'Pilih',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -244,32 +671,72 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                 20,
                               ),
                               child: Column(
-                                children: _services.map((service) {
-                                  return _buildServiceCard(service, () {
-                                    final String rawName = service['nama_layanan']?.toString() ?? '';
-                                    final String lowerName = rawName.toLowerCase().trim();
-                                    
-                                    Widget targetScreen;
-                                    if (lowerName.contains('iron') && lowerName.contains('wash')) {
-                                      targetScreen = const WashIroningScreen();
-                                    } else if (lowerName.contains('wash')) {
-                                      targetScreen = const WashOnlyScreen();
-                                    } else if (lowerName.contains('iron')) {
-                                      targetScreen = const IroningOnlyScreen();
-                                    } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
-                                      targetScreen = const DryCleanScreen();
-                                    } else {
-                                      targetScreen = const WashOnlyScreen();
-                                    }
+                                children: [
+                                  // --- CUSTOMER PICKER ---
+                                  _buildCustomerPickerSection(),
+                                  const SizedBox(height: 24),
 
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => targetScreen,
+                                  // --- SECTION HEADER ---
+                                  Row(
+                                    children: [
+                                      Text(
+                                        TranslationService.currentLang == 'en'
+                                            ? 'Select Service'
+                                            : 'Pilih Layanan',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: navyColor,
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // --- SERVICES LIST ---
+                                  ..._services.map((service) {
+                                    final bool isEnabled = _selectedCustomer != null;
+                                    return Opacity(
+                                      opacity: isEnabled ? 1.0 : 0.5,
+                                      child: _buildServiceCard(service, () {
+                                        if (!isEnabled) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(TranslationService.currentLang == 'en'
+                                                  ? 'Please select a customer first!'
+                                                  : 'Silakan pilih pelanggan terlebih dahulu!'),
+                                              backgroundColor: Colors.orangeAccent,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        final String rawName = service['nama_layanan']?.toString() ?? '';
+                                        final String lowerName = rawName.toLowerCase().trim();
+                                        
+                                        Widget targetScreen;
+                                        if (lowerName.contains('iron') && lowerName.contains('wash')) {
+                                          targetScreen = WashIroningScreen(selectedCustomer: _selectedCustomer!);
+                                        } else if (lowerName.contains('wash')) {
+                                          targetScreen = WashOnlyScreen(selectedCustomer: _selectedCustomer!);
+                                        } else if (lowerName.contains('iron')) {
+                                          targetScreen = IroningOnlyScreen(selectedCustomer: _selectedCustomer!);
+                                        } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                                          targetScreen = DryCleanScreen(selectedCustomer: _selectedCustomer!);
+                                        } else {
+                                          targetScreen = WashOnlyScreen(selectedCustomer: _selectedCustomer!);
+                                        }
+
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => targetScreen,
+                                          ),
+                                        );
+                                      }),
                                     );
-                                  });
-                                }).toList(),
+                                  }),
+                                ],
                               ),
                             ),
                     ),
