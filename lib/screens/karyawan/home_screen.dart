@@ -11,7 +11,8 @@ import 'dart:convert';
 import 'dart:ui';
 
 class DashboardKaryawan extends StatefulWidget {
-  const DashboardKaryawan({super.key});
+  final VoidCallback? onProfileTap;
+  const DashboardKaryawan({super.key, this.onProfileTap});
 
   @override
   State<DashboardKaryawan> createState() => _DashboardKaryawanState();
@@ -222,22 +223,27 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       children: [
         Row(
           children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: _buildProfileImage(),
+            GestureDetector(
+              onTap: () {
+                widget.onProfileTap?.call();
+              },
+              child: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _buildProfileImage(),
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -417,7 +423,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       mainAxisSpacing: 16,
       childAspectRatio: 1.15, // slightly wider than tall
       children: [
-        _buildGridCard("ORDER", "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
+        _buildGridCard("Order Masuk", "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
           final acceptedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananScreen()));
           if (acceptedCount != null && acceptedCount is int && acceptedCount > 0) {
             setState(() {
@@ -427,7 +433,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("PROSES", "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
+        _buildGridCard("Diproses", "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
           final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
           if (finishedCount != null && finishedCount is int && finishedCount > 0) {
             setState(() {
@@ -437,7 +443,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("ANTAR", "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
+        _buildGridCard("Siap Diantar", "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
           final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen()));
           if (finishedCount != null && finishedCount is int && finishedCount > 0) {
             setState(() {
@@ -447,7 +453,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("SELESAI", "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
+        _buildGridCard("Selesai", "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
         }),
       ],
@@ -504,7 +510,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                       style: GoogleFonts.poppins(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF123B6B),
+                        color: const Color(0xFF0C4B8E),
                         height: 1.1,
                       ),
                     ),
@@ -528,14 +534,46 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
   Widget _buildRecentActivities(Color navyColor, Color cyanColor) {
     final List<Map<String, dynamic>> recentOrders = [
-      {"id": "TR001", "name": "Ica", "status": "PickUp", "color": Colors.orange},
-      {"id": "TR002", "name": "Budi", "status": "Setrika", "color": Colors.blue},
-      {"id": "TR003", "name": "Siti", "status": "Qris", "color": Colors.purple},
-      {"id": "TR004", "name": "Andi", "status": "Selesai", "color": Colors.green},
+      {
+        "id": "TR0245",
+        "name": "Ica Nurhaliza",
+        "action": "Pickup Laundry",
+        "time": "10m lalu",
+        "status": "Selesai",
+        "color": Colors.green,
+        "icon": Icons.local_shipping_rounded,
+      },
+      {
+        "id": "TR0242",
+        "name": "Budi Santoso",
+        "action": "Setrika Pakaian",
+        "time": "1j lalu",
+        "status": "Proses",
+        "color": Colors.blue,
+        "icon": Icons.iron_rounded,
+      },
+      {
+        "id": "TR0240",
+        "name": "Siti Aminah",
+        "action": "Pembayaran Qris",
+        "time": "3j lalu",
+        "status": "Lunas",
+        "color": Colors.purple,
+        "icon": Icons.qr_code_rounded,
+      },
+      {
+        "id": "TR0238",
+        "name": "Andi Wijaya",
+        "action": "Siap Diantar",
+        "time": "5j lalu",
+        "status": "Siap",
+        "color": Colors.amber.shade700,
+        "icon": Icons.delivery_dining_rounded,
+      },
     ];
 
     return SizedBox(
-      height: 140,
+      height: 155,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -544,15 +582,15 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         itemBuilder: (context, index) {
           final order = recentOrders[index];
           return Container(
-            width: 140,
+            width: 155,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: Colors.grey.shade100),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withOpacity(0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -560,41 +598,64 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: (order["color"] as Color).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(order["icon"] as IconData, color: order["color"], size: 16),
+                    ),
+                    Text(
+                      order["time"],
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: Colors.grey.shade400,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Text(
                   order["id"],
                   style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    color: cyanColor,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
                 Text(
                   order["name"],
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: navyColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(),
+                const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: (order["color"] as Color).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: (order["color"] as Color).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    order["status"],
+                    order["action"],
                     style: GoogleFonts.poppins(
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: order["color"],
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

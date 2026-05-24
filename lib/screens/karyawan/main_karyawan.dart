@@ -16,20 +16,20 @@ class MainKaryawan extends StatefulWidget {
 
 class _MainKaryawanState extends State<MainKaryawan> {
   late int _currentIndex;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _pages = [
+      DashboardKaryawan(onProfileTap: () => _onTap(4)),
+      const OrderScreenKaryawan(),
+      const SizedBox(), // Placeholder for + button
+      const KaryawanChatScreen(),
+      const ProfileScreenKaryawan(),
+    ];
   }
-
-  final List<Widget> _pages = [
-    const DashboardKaryawan(),
-    const OrderScreenKaryawan(),
-    const SizedBox(), // Placeholder for + button
-    const KaryawanChatScreen(),
-    const ProfileScreenKaryawan(),
-  ];
 
   void _onTap(int index) {
     if (index == 2) {
