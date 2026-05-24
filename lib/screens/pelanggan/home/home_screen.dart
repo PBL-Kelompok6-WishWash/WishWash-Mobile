@@ -49,10 +49,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   final Color _cyan = const Color(0xFF42C6D4);
 
   int _currentPromoIndex = 0;
+  int _currentActiveOrderIndex = 0;
   bool _isLocationMenuOpen = false;
 
-  // Perubahan 1: Gunakan viewportFraction agar kartu berikutnya sedikit terlihat
   final PageController _promoController = PageController(viewportFraction: 0.9);
+  final PageController _activeOrderController = PageController();
 
   String _namaLengkap = 'User';
   String _fotoPelanggan = '';
@@ -252,7 +253,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       return isEn ? 'Received' : 'Diterima';
     }
     if (status.contains('jemput') || status.contains('pickup') || status.contains('pick up') || status.contains('penjemputan')) {
-      return isEn ? 'Pick Up' : 'Jemput';
+      return isEn ? 'Pickup' : 'Jemput';
     }
     if (status.contains('timbang') || status.contains('weigh')) {
       return isEn ? 'Weigh' : 'Timbang';
@@ -1480,7 +1481,59 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       return const SizedBox.shrink();
     }
 
-    final order = _activeOrders.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          TranslationService.currentLang == 'en' ? 'Your Order Status' : 'Status Pesanan Anda',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF0D47A1),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 242,
+          child: PageView.builder(
+            controller: _activeOrderController,
+            itemCount: _activeOrders.length,
+            onPageChanged: (index) {
+              setState(() {
+                _currentActiveOrderIndex = index;
+              });
+            },
+            itemBuilder: (context, index) {
+              final order = _activeOrders[index];
+              return _buildActiveOrderCardItem(order);
+            },
+          ),
+        ),
+        if (_activeOrders.length > 1) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_activeOrders.length, (index) {
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                width: _currentActiveOrderIndex == index ? 12 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: _currentActiveOrderIndex == index
+                      ? const Color(0xFF0C4B8E)
+                      : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildActiveOrderCardItem(Map<String, dynamic> order) {
     final String orderId = order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
         ? order['kode_order'].toString()
         : 'WW-${order['id_order']}';
@@ -1501,218 +1554,204 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
     final statusInfo = _getCurrentStatusInfo(order);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          TranslationService.currentLang == 'en' ? 'Your Order Status' : 'Status Pesanan Anda',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0D47A1),
-          ),
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
-          decoration: BoxDecoration(
-            color: Color.alphaBlend(baseOrderColor.withValues(alpha: 0.18), Colors.white),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: orderColor.withValues(alpha: 0.4), width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(baseOrderColor.withValues(alpha: 0.18), Colors.white),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: orderColor.withValues(alpha: 0.4), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Baris Atas: Order ID & Estimasi (Warna Merah)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Order #$orderId',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: orderColor,
+                    fontSize: 12,
+                  ),
+                ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 13,
+                    color: Colors.redAccent,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Est: $estDate',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          // Jenis Layanan
+          Text(
+            '${TranslationService.translateService(serviceName)}$qtyStr',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: orderColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Baris Harga & Kapsul Pembayaran
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Baris Atas: Order ID & Estimasi (Warna Merah)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Order #$orderId',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: orderColor,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 13,
-                        color: Colors.redAccent,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Est: $estDate',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Jenis Layanan
               Text(
-                '${TranslationService.translateService(serviceName)}$qtyStr',
+                price,
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  color: orderColor,
+                  fontSize: 13,
+                  color: orderColor.withOpacity(0.7),
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 8),
-              // Baris Harga & Kapsul Pembayaran
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    price,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: orderColor.withOpacity(0.7),
-                      fontWeight: FontWeight.w600,
+              if (kuantitas > 0.0) ...[
+                const SizedBox(width: 8),
+                (() {
+                  final pembayaran = order['Pembayaran'];
+                  final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
+                  final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+                  final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                  final String capLabel = isLunas 
+                      ? (TranslationService.currentLang == 'en' ? 'Paid' : 'Lunas')
+                      : (TranslationService.currentLang == 'en' ? 'Unpaid' : 'Belum Lunas');
+                  
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: capBg,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: capText.withOpacity(0.2), width: 1),
                     ),
-                  ),
-                  if (kuantitas > 0.0) ...[
-                    const SizedBox(width: 8),
-                    (() {
-                      final pembayaran = order['Pembayaran'];
-                      final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
-                      final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
-                      final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
-                      final String capLabel = isLunas 
-                          ? (TranslationService.currentLang == 'en' ? 'Paid' : 'Lunas')
-                          : (TranslationService.currentLang == 'en' ? 'Unpaid' : 'Belum Lunas');
-                      
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: capBg,
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: capText.withOpacity(0.2), width: 1),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: capText,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: capText,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              capLabel,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: capText,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 4),
+                        Text(
+                          capLabel,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: capText,
+                          ),
                         ),
-                      );
-                    })(),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
-              (() {
-                final lang = TranslationService.currentLang;
-                final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
-                final int activeIdx = statusInfo['active_index'];
-                final bool isSelesai = statusInfo['is_selesai'] == true;
-
-                List<Widget> steps = [];
-                for (int i = 0; i < refStatuses.length; i++) {
-                  final rawName = refStatuses[i]['nama_status'] ?? '';
-                  final String shortLabel = _getShortStatusLabel(rawName, lang);
-                  final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
-                  final bool isCurrent = i == activeIdx && !isSelesai;
-                  final bool isActive = isDone || isCurrent;
-
-                  steps.add(
-                    _buildStepItem(
-                      label: shortLabel,
-                      isActive: isActive,
-                      isDone: isDone,
-                      isCurrent: isCurrent,
-                      themeColor: orderColor,
-                      index: i,
-                      totalSteps: refStatuses.length,
+                      ],
                     ),
                   );
-                }
-
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: steps,
-                );
-              })(),
-
-              const SizedBox(height: 20),
-              // Tombol View More
-              SizedBox(
-                width: double.infinity,
-                height: 40,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (widget.onViewOrdersTap != null) {
-                      widget.onViewOrdersTap!();
-                    } else {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainPelanggan(initialIndex: 1),
-                        ),
-                        (route) => false,
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: orderColor,
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: EdgeInsets.zero,
-                  ),
-                  child: Text(
-                    TranslationService.currentLang == 'en' ? 'View Detail' : 'Lihat Detail',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ),
+                })(),
+              ],
             ],
           ),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 24),
+
+          // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
+          (() {
+            final lang = TranslationService.currentLang;
+            final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+            final int activeIdx = statusInfo['active_index'];
+            final bool isSelesai = statusInfo['is_selesai'] == true;
+
+            List<Widget> steps = [];
+            for (int i = 0; i < refStatuses.length; i++) {
+              final rawName = refStatuses[i]['nama_status'] ?? '';
+              final String shortLabel = _getShortStatusLabel(rawName, lang);
+              final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
+              final bool isCurrent = i == activeIdx && !isSelesai;
+              final bool isActive = isDone || isCurrent;
+
+              steps.add(
+                _buildStepItem(
+                  label: shortLabel,
+                  isActive: isActive,
+                  isDone: isDone,
+                  isCurrent: isCurrent,
+                  themeColor: orderColor,
+                  index: i,
+                  totalSteps: refStatuses.length,
+                ),
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: steps,
+            );
+          })(),
+
+          const SizedBox(height: 20),
+          // Tombol View Detail
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderDetailScreen(order: order),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: orderColor,
+                elevation: 1,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.zero,
+              ),
+              child: Text(
+                TranslationService.currentLang == 'en' ? 'View Detail' : 'Lihat Detail',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   // Widget Helper Ikon + Label (Seamless Stepper)
   Widget _buildStepItem({
@@ -1790,10 +1829,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
+              softWrap: false,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
                 color: isActive ? themeColor : Colors.grey.shade600,
               ),

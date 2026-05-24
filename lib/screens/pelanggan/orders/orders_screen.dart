@@ -548,7 +548,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       return isEn ? 'Received' : 'Diterima';
     }
     if (status.contains('jemput') || status.contains('pickup') || status.contains('pick up') || status.contains('penjemputan')) {
-      return isEn ? 'Pick Up' : 'Jemput';
+      return isEn ? 'Pickup' : 'Jemput';
     }
     if (status.contains('timbang') || status.contains('weigh')) {
       return isEn ? 'Weigh' : 'Timbang';
@@ -1196,10 +1196,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
+              softWrap: false,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
                 color: isActive ? themeColor : Colors.grey.shade600,
               ),

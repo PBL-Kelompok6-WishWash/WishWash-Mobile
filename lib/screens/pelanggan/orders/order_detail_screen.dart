@@ -6,7 +6,7 @@ import 'package:mobile/services/translation_service.dart';
 class OrderDetailScreen extends StatelessWidget {
   final Map<String, dynamic> order;
 
-  const OrderDetailScreen({Key? key, required this.order}) : super(key: key);
+  const OrderDetailScreen({super.key, required this.order});
 
   List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
     final layanan = order['Layanan'];
@@ -42,7 +42,7 @@ class OrderDetailScreen extends StatelessWidget {
       return isEn ? 'Received' : 'Diterima';
     }
     if (status.contains('jemput') || status.contains('pickup') || status.contains('pick up') || status.contains('penjemputan')) {
-      return isEn ? 'Pick Up' : 'Jemput';
+      return isEn ? 'Pickup' : 'Jemput';
     }
     if (status.contains('timbang') || status.contains('weigh')) {
       return isEn ? 'Weigh' : 'Timbang';
@@ -247,7 +247,37 @@ class OrderDetailScreen extends StatelessWidget {
     final orderColor = _getDarkenedTextColor(baseColor);
 
     final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
-    final price = _formatRupiah(totalBayar);
+    final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double subtotalCucian = kuantitas * hargaPerSatuan;
+    final paketLayanan = order['PaketLayanan'] ?? {};
+    final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+
+    final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
+    double promoDiscount = 0.0;
+    if (promoOrders.isNotEmpty) {
+      final promoOrderObj = promoOrders.first;
+      final promo = promoOrderObj['Promo'] ?? {};
+      if (promo.isNotEmpty) {
+        final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
+        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+        
+        if (tipePromo.toLowerCase().contains('persen')) {
+          promoDiscount = subtotalCucian * (nominalPotongan / 100);
+          if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
+            promoDiscount = maksimalPotongan;
+          }
+        } else {
+          promoDiscount = nominalPotongan;
+        }
+      }
+    }
+
+    final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+    final double totalTagihan = kuantitas > 0.0 
+        ? (computedTotal > 0.0 ? computedTotal : 0.0)
+        : 0.0;
+    final price = _formatRupiah(totalTagihan);
     final estDate = _getEstSelesaiDate(order);
     final orderDate = _formatDate(order['tgl_pesanan']);
 
@@ -268,7 +298,6 @@ class OrderDetailScreen extends StatelessWidget {
     final parfum = order['Parfum'] ?? {};
     final String perfumeName = parfum['nama_parfum'] ?? 'Lavender Bliss';
 
-    final paketLayanan = order['PaketLayanan'] ?? {};
     final String packageName = paketLayanan['nama_paket'] ?? 'Reguler';
 
     return Scaffold(
@@ -342,6 +371,7 @@ class OrderDetailScreen extends StatelessWidget {
                       const SizedBox(height: 24),
                       // Receipt/Invoice Details Card
                       _buildReceiptSection(
+                        order: order,
                         orderId: orderId,
                         orderDate: orderDate,
                         customerName: customerName,
@@ -496,7 +526,7 @@ class OrderDetailScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: capBg,
                           borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: capText.withOpacity(0.2), width: 1),
+                          border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -643,10 +673,11 @@ class OrderDetailScreen extends StatelessWidget {
             child: Text(
               label,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
+              softWrap: false,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
-                fontSize: 9,
+                fontSize: 8,
                 fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
                 color: isActive ? themeColor : Colors.grey.shade600,
               ),
@@ -793,7 +824,35 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDashedDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final boxWidth = constraints.constrainWidth();
+          const dashWidth = 5.0;
+          const dashHeight = 1.2;
+          final dashCount = (boxWidth / (2 * dashWidth)).floor();
+          return Flex(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            direction: Axis.horizontal,
+            children: List.generate(dashCount, (_) {
+              return SizedBox(
+                width: dashWidth,
+                height: dashHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: Colors.grey.shade300),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildReceiptSection({
+    required Map<String, dynamic> order,
     required String orderId,
     required String orderDate,
     required String customerName,
@@ -806,122 +865,322 @@ class OrderDetailScreen extends StatelessWidget {
     required Color navyColor,
     required String currentStatus,
   }) {
+    final lang = TranslationService.currentLang;
+    final isEn = lang == 'en';
+
+    final String estDateText = _getEstSelesaiDate(order);
+
+    final pelanggan = order['Pelanggan'] ?? {};
+    final String customerPhone = pelanggan['no_telp'] ?? '-';
+
+    final alamatPengambilan = order['AlamatPengambilan'] ?? {};
+    final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
+
+    final alamatPenyerahan = order['AlamatPenyerahan'];
+    final String deliveryAddr = (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+        ? alamatPenyerahan['alamat_lengkap'].toString()
+        : (isEn ? 'Not specified yet' : 'Belum ditentukan');
+
+    final layanan = order['Layanan'] ?? {};
+    final String mainService = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan Laundry');
+
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String weightText = kuantitas == 0.0
+        ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
+        : '$kuantitas kg';
+
+    final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double subtotalCucian = kuantitas * hargaPerSatuan;
+    final paketLayanan = order['PaketLayanan'] ?? {};
+    final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+
+    final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
+    double promoDiscount = 0.0;
+    String promoCode = '';
+
+    if (promoOrders.isNotEmpty) {
+      final promoOrderObj = promoOrders.first;
+      final promo = promoOrderObj['Promo'] ?? {};
+      if (promo.isNotEmpty) {
+        promoCode = promo['kode_promo'] ?? '';
+        final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
+        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+        
+        if (tipePromo.toLowerCase().contains('persen')) {
+          promoDiscount = subtotalCucian * (nominalPotongan / 100);
+          if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
+            promoDiscount = maksimalPotongan;
+          }
+        } else {
+          promoDiscount = nominalPotongan;
+        }
+      }
+    }
+
+    final karyawan = order['Karyawan'];
+    final String employeeName = karyawan != null && karyawan['nama_karyawan'] != null
+        ? karyawan['nama_karyawan'].toString()
+        : (isEn ? 'Assigning Courier...' : 'Menunggu Kurir...');
+
+    final pembayaran = order['Pembayaran'];
+    final String paymentMethod = pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString()
+        : (isEn ? 'Unpaid Yet' : 'Belum Dibayar');
+
+    final String paymentStatusLabel = pembayaran != null && pembayaran['status_pembayaran'] != null
+        ? (pembayaran['status_pembayaran'] == 'Lunas' ? (isEn ? 'Paid' : 'Lunas') : (isEn ? 'Unpaid' : 'Belum Lunas'))
+        : (isEn ? 'Unpaid' : 'Belum Lunas');
+
+    final String patokanLokasi = order['keterangan_lokasi'] != null && order['keterangan_lokasi'].toString().trim().isNotEmpty
+        ? order['keterangan_lokasi'].toString().trim()
+        : '-';
+
+    final String paymentRef = pembayaran != null && pembayaran['referensi_bayar'] != null && pembayaran['referensi_bayar'].toString().trim().isNotEmpty
+        ? pembayaran['referensi_bayar'].toString().trim()
+        : '-';
+
+    final Color charBlack = const Color(0xFF2D3748); // Charcoal Black utama struk
+    final Color slateGray = const Color(0xFF718096); // Slate Gray label struk
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Text(
-              'Receipt',
+              isEn ? 'Transaction Receipt' : 'Resi Transaksi',
               style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
                 color: navyColor,
+                letterSpacing: 0.5,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Container(
-                height: 2,
-                color: navyColor,
+                height: 1.5,
+                color: navyColor.withValues(alpha: 0.3),
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade200, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Order #$orderId',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
-                        ),
-                      ),
-                      Text(
-                        orderDate,
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+              // Bagian Atas Struk (Header Struk Belanja)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: currentStatus.toLowerCase().contains('selesai') || currentStatus.toLowerCase().contains('completed') || currentStatus.toLowerCase().contains('success')
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFFF3E0),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      currentStatus,
-                      style: GoogleFonts.poppins(
-                        color: currentStatus.toLowerCase().contains('selesai') || currentStatus.toLowerCase().contains('completed') || currentStatus.toLowerCase().contains('success')
-                            ? Colors.green
-                            : Colors.orange.shade700,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
-                    ),
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildReceiptRow('Customer', customerName),
-              _buildReceiptRow('Package & Perfume', '$packageName Package - $perfumeName'),
-              _buildReceiptRow('Logistics Method', logistikType),
-              if (catatan != null && catatan.trim().isNotEmpty)
-                _buildReceiptRow('Note / Instruction', catatan),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Divider(
-                  color: Colors.blue.shade100,
-                  thickness: 1,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'WISHWASH LAUNDRY',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: charBlack,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Order #$orderId',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0C4B8E), // Kode pesanan tetap berwarna brand WishWash
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          isEn ? 'DATE' : 'TANGGAL',
+                          style: GoogleFonts.poppins(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: slateGray,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          orderDate,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: charBlack,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              _buildPriceRow('Sub Total', price, isBoldLabel: false),
-              const SizedBox(height: 4),
-              _buildPriceRow('Paid Total', price, isTotal: true),
-              const SizedBox(height: 24),
-              BarcodeWidget(
-                barcode: Barcode.code128(),
-                data: 'Order#$orderId',
-                drawText: false,
-                height: 50,
-                width: double.infinity,
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  '*Show this receipt when picking up your order',
-                  style: GoogleFonts.poppins(
-                    color: Colors.grey,
-                    fontSize: 9,
-                    fontStyle: FontStyle.italic,
-                  ),
+              // Bagian Isi Struk Belanja
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildReceiptRow(isEn ? 'Customer' : 'Pelanggan', customerName),
+                    _buildReceiptRow(isEn ? 'Phone Number' : 'No. Telepon', customerPhone),
+                    _buildReceiptRow(isEn ? 'Service Type' : 'Jenis Layanan', mainService),
+                    _buildReceiptRow(isEn ? 'Estimated Finish' : 'Estimasi Selesai', estDateText),
+                    _buildReceiptRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
+                    _buildReceiptRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
+                    _buildReceiptRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
+                    _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
+                    if (patokanLokasi != '-')
+                      _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
+                    _buildReceiptRow(isEn ? 'Logistics Method' : 'Metode Logistik', logistikType),
+                    _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),
+                    _buildReceiptRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
+                    _buildReceiptRow(
+                      isEn ? 'Payment Status' : 'Status Pembayaran', 
+                      paymentStatusLabel,
+                      isStatus: true,
+                      statusColor: paymentStatusLabel == 'Lunas' || paymentStatusLabel == 'Paid' ? Colors.green.shade700 : Colors.orange.shade700,
+                    ),
+                    if (paymentRef != '-')
+                      _buildReceiptRow(isEn ? 'Transaction Ref' : 'Ref. Transaksi', paymentRef),
+                    if (catatan != null && catatan.trim().isNotEmpty)
+                      _buildReceiptRow(isEn ? 'Note / Instruction' : 'Catatan Khusus', catatan),
+                    
+                    _buildDashedDivider(),
+
+                    // Perhitungan Harga
+                    _buildPriceRow(
+                      isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
+                      _formatRupiah(subtotalCucian),
+                      detailText: kuantitas > 0.0
+                          ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
+                          : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      isEn ? 'Package Surcharge' : 'Biaya Paket',
+                      _formatRupiah(biayaTambahan),
+                      detailText: packageName,
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      promoCode.isNotEmpty
+                          ? (isEn ? 'Promo Discount ($promoCode)' : 'Diskon Promo ($promoCode)')
+                          : (isEn ? 'Promo Discount' : 'Diskon Promo'),
+                      promoDiscount > 0.0
+                          ? '- ${_formatRupiah(promoDiscount)}'
+                          : _formatRupiah(0.0),
+                      isBoldLabel: false,
+                      textColor: promoDiscount > 0.0 ? Colors.red.shade700 : charBlack,
+                    ),
+                    _buildDashedDivider(),
+                    
+                    // Grand Total Bayar
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          isEn ? 'TOTAL AMOUNT' : 'TOTAL BAYAR',
+                          style: GoogleFonts.poppins(
+                            color: charBlack,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          price,
+                          style: GoogleFonts.poppins(
+                            color: charBlack,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+                    Center(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade100, width: 1),
+                        ),
+                        child: Column(
+                          children: [
+                            BarcodeWidget(
+                              barcode: Barcode.code128(),
+                              data: 'Order#$orderId',
+                              drawText: false,
+                              height: 75,
+                              width: double.infinity,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              isEn ? '*Show this receipt when picking up your order' : '*Tunjukkan kuitansi ini saat pengambilan cucian Anda',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                color: slateGray,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Divider(color: Colors.grey.shade200, thickness: 1),
+                            const SizedBox(height: 6),
+                            Text(
+                              isEn
+                                  ? 'TERMS & CONDITIONS:\n1. Claims for complaints must be submitted within 24h after receiving clothes and accompanied by this receipt.\n2. Clothes not picked up within 30 days are beyond the responsibility of management.'
+                                  : 'SYARAT & KETENTUAN:\n1. Klaim keluhan wajib diajukan maks. 24 jam setelah pakaian diterima dengan menyertakan resi ini.\n2. Pakaian yang tidak diambil dalam 30 hari di luar tanggung jawab manajemen.',
+                              textAlign: TextAlign.left,
+                              style: GoogleFonts.poppins(
+                                color: slateGray.withValues(alpha: 0.8),
+                                fontSize: 8,
+                                height: 1.4,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -931,26 +1190,31 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReceiptRow(String label, String value) {
+  Widget _buildReceiptRow(String label, String value, {bool isStatus = false, Color? statusColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             label,
             style: GoogleFonts.poppins(
-              color: Colors.grey,
-              fontSize: 10,
+              color: const Color(0xFF718096), // Slate Gray
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0C4B8E),
-              fontSize: 13,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: isStatus ? (statusColor ?? const Color(0xFF2D3748)) : const Color(0xFF2D3748), // Charcoal Black
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -963,27 +1227,54 @@ class OrderDetailScreen extends StatelessWidget {
     String price, {
     bool isTotal = false,
     bool isBoldLabel = true,
+    String? detailText,
+    Color? textColor,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF0C4B8E),
-            fontWeight: isTotal || isBoldLabel ? FontWeight.bold : FontWeight.normal,
-            fontSize: isTotal ? 14 : 12,
+    final Color charBlack = const Color(0xFF2D3748);
+    final Color slateGray = const Color(0xFF718096);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: textColor ?? charBlack,
+                    fontWeight: isTotal || isBoldLabel ? FontWeight.bold : FontWeight.w500,
+                    fontSize: isTotal ? 14 : 12,
+                  ),
+                ),
+                if (detailText != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    detailText,
+                    style: GoogleFonts.poppins(
+                      color: slateGray,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        Text(
-          price,
-          style: GoogleFonts.poppins(
-            color: const Color(0xFF0C4B8E),
-            fontWeight: FontWeight.bold,
-            fontSize: isTotal ? 14 : 12,
+          Text(
+            price,
+            style: GoogleFonts.poppins(
+              color: textColor ?? charBlack,
+              fontWeight: FontWeight.bold,
+              fontSize: isTotal ? 14 : 12,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
