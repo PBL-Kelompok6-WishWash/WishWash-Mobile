@@ -442,9 +442,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildSummaryMetrics() {
-    // Menampilkan kartu metrik hanya pada tab "Semua" (Dashboard Overview)
-    // untuk menghemat ruang vertikal ketika kasir/kurir fokus bekerja di tab spesifik.
-    if (_activeTabIndex != 0) return const SizedBox.shrink();
+    // Selalu tampilkan kartu metrik di semua tab agar karyawan dapat memantau ringkasan global
+    // setiap saat dengan mudah.
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
@@ -453,10 +452,10 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: navyColor.withOpacity(0.08), width: 1.5),
+          border: Border.all(color: navyColor.withValues(alpha: 0.08), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: navyColor.withOpacity(0.04),
+              color: navyColor.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -593,28 +592,27 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           const SizedBox(height: 16),
 
           // Menu Utama Segmented Card (Level 1 - Premium Sliding Capsule Design)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final double totalWidth = constraints.maxWidth;
-              // Subtract the 4px padding on both left and right sides of the capsule (total 8px)
-              final double tabWidth = (totalWidth - 8) / 4; 
-
-              return Container(
-                height: 50,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: navyColor.withOpacity(0.06), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: navyColor.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          Container(
+            height: 50,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: navyColor.withValues(alpha: 0.06), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: navyColor.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: Stack(
+              ],
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double totalWidth = constraints.maxWidth;
+                final double tabWidth = totalWidth / 4; 
+
+                return Stack(
                   children: [
                     // 1. Sliding Pill Background Container
                     AnimatedPositioned(
@@ -630,7 +628,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: navyColor.withOpacity(0.2),
+                              color: navyColor.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -668,9 +666,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                       }),
                     ),
                   ],
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
 
           // Sub-Filter Dinamis (Level 2)
