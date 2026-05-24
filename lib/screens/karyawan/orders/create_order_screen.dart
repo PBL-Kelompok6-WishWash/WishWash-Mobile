@@ -229,16 +229,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                     ),
                                     child: ListTile(
                                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                                      leading: CircleAvatar(
-                                        backgroundColor: const Color(0xFFBCEFF2),
-                                        child: Text(
-                                          initial,
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.bold,
-                                            color: navyColor,
-                                          ),
-                                        ),
-                                      ),
+                                      leading: _buildCustomerAvatar(c, radius: 20),
                                       title: Text(
                                         name,
                                         style: GoogleFonts.poppins(
@@ -365,6 +356,77 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
+  Widget _buildCustomerAvatar(Map<String, dynamic> customer, {double radius = 24}) {
+    final String foto = customer['foto_pelanggan'] ?? '';
+    final String name = customer['nama_lengkap'] ?? '?';
+    final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+
+    Widget fallback() {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xFFBCEFF2),
+        child: Text(
+          initial,
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: navyColor,
+            fontSize: radius * 0.75,
+          ),
+        ),
+      );
+    }
+
+    if (foto.isEmpty) {
+      return fallback();
+    }
+
+    Widget imageWidget;
+    if (foto.startsWith('http://') || foto.startsWith('https://')) {
+      imageWidget = Image.network(
+        foto,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback(),
+      );
+    } else if (foto.startsWith('data:image')) {
+      try {
+        final base64Content = foto.split(',').last;
+        final bytes = base64Decode(base64Content);
+        imageWidget = Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback(),
+        );
+      } catch (e) {
+        return fallback();
+      }
+    } else if (foto.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      imageWidget = Image.network(
+        '$staticHost$foto',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback(),
+      );
+    } else {
+      imageWidget = Image.asset(
+        foto,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback(),
+      );
+    }
+
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: imageWidget,
+      ),
+    );
+  }
+
   Widget _buildCustomerPickerSection() {
     final bool hasSelected = _selectedCustomer != null;
     return Container(
@@ -438,18 +500,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           if (hasSelected)
             Row(
               children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: const Color(0xFFBCEFF2),
-                  child: Text(
-                    (_selectedCustomer!['nama_lengkap'] ?? '?')[0].toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      color: navyColor,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
+                _buildCustomerAvatar(_selectedCustomer!, radius: 24),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
