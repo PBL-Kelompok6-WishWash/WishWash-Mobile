@@ -6,12 +6,14 @@ import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
+import 'package:mobile/screens/karyawan/main_karyawan.dart';
 import 'package:mobile/utils/constants.dart';
 
 class LaundryOrderScreen extends StatefulWidget {
   final Map<String, dynamic> service;
+  final Map<String, dynamic>? selectedCustomer;
 
-  const LaundryOrderScreen({super.key, required this.service});
+  const LaundryOrderScreen({super.key, required this.service, this.selectedCustomer});
 
   @override
   State<LaundryOrderScreen> createState() => _LaundryOrderScreenState();
@@ -144,7 +146,9 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
   Future<void> _loadAddresses() async {
     try {
-      final list = await AlamatService.getAlamat();
+      final list = await AlamatService.getAlamat(
+        idPelanggan: widget.selectedCustomer?['id_pelanggan'],
+      );
       setState(() {
         addresses = list;
         if (list.isNotEmpty) {
@@ -1292,6 +1296,8 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
       final double basePrice = (widget.service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
 
       final orderData = {
+        if (widget.selectedCustomer != null)
+          'id_pelanggan': widget.selectedCustomer!['id_pelanggan'],
         'id_layanan': widget.service['id_layanan'],
         'id_paket_layanan': selectedPackageMap!['id_paket_layanan'],
         'id_alamat_pengambilan': selectedPickupAddress!['id_alamat'],
@@ -1386,15 +1392,25 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const MainPelanggan(
-                            showOrderSuccessNotification: true,
+                      if (widget.selectedCustomer != null) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MainKaryawan(),
                           ),
-                        ),
-                        (route) => false,
-                      );
+                          (route) => false,
+                        );
+                      } else {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MainPelanggan(
+                              showOrderSuccessNotification: true,
+                            ),
+                          ),
+                          (route) => false,
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: navyColor,

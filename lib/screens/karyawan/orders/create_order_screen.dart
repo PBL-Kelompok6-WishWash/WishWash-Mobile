@@ -9,6 +9,7 @@ import 'wash_only.dart';
 import 'ironing_only.dart';
 import 'dry_clean.dart';
 import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/screens/pelanggan/orders/laundry_order_screen.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
@@ -711,26 +712,13 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                           return;
                                         }
 
-                                        final String rawName = service['nama_layanan']?.toString() ?? '';
-                                        final String lowerName = rawName.toLowerCase().trim();
-                                        
-                                        Widget targetScreen;
-                                        if (lowerName.contains('iron') && lowerName.contains('wash')) {
-                                          targetScreen = WashIroningScreen(selectedCustomer: _selectedCustomer!);
-                                        } else if (lowerName.contains('wash')) {
-                                          targetScreen = WashOnlyScreen(selectedCustomer: _selectedCustomer!);
-                                        } else if (lowerName.contains('iron')) {
-                                          targetScreen = IroningOnlyScreen(selectedCustomer: _selectedCustomer!);
-                                        } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
-                                          targetScreen = DryCleanScreen(selectedCustomer: _selectedCustomer!);
-                                        } else {
-                                          targetScreen = WashOnlyScreen(selectedCustomer: _selectedCustomer!);
-                                        }
-
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => targetScreen,
+                                            builder: (context) => LaundryOrderScreen(
+                                              service: service,
+                                              selectedCustomer: _selectedCustomer!,
+                                            ),
                                           ),
                                         );
                                       }),

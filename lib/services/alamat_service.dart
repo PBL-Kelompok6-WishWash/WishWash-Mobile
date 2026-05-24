@@ -6,13 +6,18 @@ import 'package:mobile/utils/constants.dart';
 class AlamatService {
   static const String baseUrl = '${Constants.baseUrl}/alamat';
 
-  static Future<List<dynamic>> getAlamat() async {
+  static Future<List<dynamic>> getAlamat({int? idPelanggan}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('jwt_token');
     if (token == null) throw Exception('No token found');
 
+    String urlStr = baseUrl;
+    if (idPelanggan != null) {
+      urlStr = '$baseUrl?id_pelanggan=$idPelanggan';
+    }
+
     final response = await http.get(
-      Uri.parse(baseUrl),
+      Uri.parse(urlStr),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
