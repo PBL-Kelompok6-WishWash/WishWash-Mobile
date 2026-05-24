@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/widgets/background.dart'; 
 import 'package:mobile/widgets/navbar_karyawan.dart';
-import 'package:mobile/screens/karyawan/home_screen.dart';
-import 'package:mobile/screens/karyawan/profile.dart';
-import 'package:mobile/screens/karyawan/pesanan.dart';
-import 'package:mobile/screens/karyawan/pesanan_diproses.dart';
-import 'package:mobile/screens/karyawan/pesanan_diantar.dart';
-import 'package:mobile/screens/karyawan/pesanan_selesai.dart';
+import 'package:mobile/screens/karyawan/home/home_screen.dart';
+import 'package:mobile/screens/karyawan/profile/profile.dart';
+import 'package:mobile/screens/karyawan/orders/pesanan.dart';
+import 'package:mobile/screens/karyawan/orders/pesanan_diproses.dart';
+import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
+import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});

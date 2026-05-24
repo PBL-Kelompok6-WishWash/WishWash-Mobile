@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/widgets/background.dart';
 import 'package:mobile/widgets/navbar_karyawan.dart';
-import 'home_screen.dart';
-import 'orders.dart';
-import 'profile.dart';
+import 'home/home_screen.dart';
+import 'orders/orders.dart';
+import 'profile/profile.dart';
 import 'chat/chat_screen.dart';
 
 class MainKaryawan extends StatefulWidget {

@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
-import 'package:mobile/screens/karyawan/edit_profile.dart';
-import 'package:mobile/screens/karyawan/change_password.dart';
-import 'package:mobile/screens/karyawan/preferences_language.dart';
+import 'package:mobile/screens/karyawan/profile/edit_profile.dart';
+import 'package:mobile/screens/karyawan/profile/change_password.dart';
+import 'package:mobile/screens/karyawan/profile/preferences_language.dart';
 import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
 
