@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/screens/karyawan/profile/edit_profile.dart';
 import 'package:mobile/screens/karyawan/profile/change_password.dart';
@@ -68,32 +69,37 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
-        ? Center(child: CircularProgressIndicator(color: cyanColor))
-        : ListView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
-            children: [
-              // Header
-              Center(
-                child: Text(
-                  'My Profile',
-                  style: GoogleFonts.poppins(
-                    color: navyColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return isLoading
+            ? Center(child: CircularProgressIndicator(color: cyanColor))
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+                children: [
+                  // Header
+                  Center(
+                    child: Text(
+                      TranslationService.translate('my_profile'),
+                      style: GoogleFonts.poppins(
+                        color: navyColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Profile Card
-              _buildProfileCard(),
-              const SizedBox(height: 24),
+                  // Profile Card
+                  _buildProfileCard(),
+                  const SizedBox(height: 24),
 
-              // Menu List Card
-              _buildMenuListCard(),
-            ],
-          );
+                  // Menu List Card
+                  _buildMenuListCard(),
+                ],
+              );
+      },
+    );
   }
 
   Widget _buildProfileCard() {
@@ -156,7 +162,11 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         _buildStatusBadge(
                           icon: Icons.circle,
                           iconSize: 6,
-                          text: statusKetersediaan,
+                          text: statusKetersediaan.toLowerCase() == 'aktif'
+                              ? TranslationService.translate('active')
+                              : (statusKetersediaan.toLowerCase() == 'sibuk'
+                                  ? TranslationService.translate('busy')
+                                  : statusKetersediaan),
                           bgColor: _getStatusColor(statusKetersediaan).withOpacity(0.1),
                           textColor: _getStatusColor(statusKetersediaan),
                         ),
@@ -183,19 +193,19 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.phone_rounded,
-            label: 'No. Telepon',
+            label: TranslationService.translate('phone_number'),
             value: noTelp.isEmpty ? '-' : noTelp,
           ),
           const SizedBox(height: 14),
           _buildInfoRow(
             icon: Icons.email_rounded,
-            label: 'Email',
+            label: TranslationService.translate('email_address'),
             value: email.isEmpty ? '-' : email,
           ),
           const SizedBox(height: 14),
           _buildInfoRow(
             icon: Icons.motorcycle_rounded,
-            label: 'Detail Kendaraan',
+            label: TranslationService.translate('vehicle_details'),
             value: jenisKendaraan == '-' && platNomor == '-'
                 ? '-'
                 : '$jenisKendaraan ($platNomor)',
@@ -251,7 +261,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                     const Icon(Icons.edit_rounded, color: Colors.white, size: 16),
                     const SizedBox(width: 8),
                     Text(
-                      'Edit Profile',
+                      TranslationService.translate('edit_profile'),
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -430,7 +440,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
         children: [
           _buildMenuItem(
             Icons.lock_outline_rounded,
-            'Ubah Password',
+            TranslationService.translate('change_password'),
             onTap: () {
               Navigator.push(
                 context,
@@ -440,7 +450,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
           ),
           _buildMenuItem(
             Icons.language_rounded,
-            'Pengaturan & Bahasa',
+            TranslationService.translate('preferences_language'),
             onTap: () {
               Navigator.push(
                 context,
@@ -448,7 +458,10 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
               );
             },
           ),
-          _buildMenuItem(Icons.help_outline_rounded, 'Bantuan & FAQ'),
+          _buildMenuItem(
+            Icons.help_outline_rounded,
+            TranslationService.translate('help_faq'),
+          ),
           _buildLogoutItem(),
         ],
       ),
@@ -587,7 +600,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    'Log Out',
+                    TranslationService.translate('logout'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -652,7 +665,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Konfirmasi Keluar',
+                  TranslationService.translate('logout_confirm_title'),
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -661,7 +674,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Apakah Anda yakin ingin keluar dari akun WishWash Anda?',
+                  TranslationService.translate('logout_confirm_message'),
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 14,
@@ -682,7 +695,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: Text(
-                          'Batal',
+                          TranslationService.translate('cancel'),
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             color: Colors.grey.shade700,
@@ -726,7 +739,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               alignment: Alignment.center,
                               child: Text(
-                                'Keluar',
+                                TranslationService.translate('logout'),
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,

@@ -8,6 +8,7 @@ import 'package:mobile/screens/karyawan/orders/pesanan.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_diproses.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -43,38 +44,43 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-            // --- SECTION KASIR ---
-            _buildExpandableSection(
-              context,
-              title: "Aktivitas Kasir",
-              data: kasirData,
-              isExpanded: _isKasirExpanded,
-              onToggle: () => setState(() => _isKasirExpanded = !_isKasirExpanded),
-            ),
+              // --- SECTION KASIR ---
+              _buildExpandableSection(
+                context,
+                title: TranslationService.translate('cashier_activity'),
+                data: kasirData,
+                isExpanded: _isKasirExpanded,
+                onToggle: () => setState(() => _isKasirExpanded = !_isKasirExpanded),
+              ),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            // --- SECTION KURIR ---
-            _buildExpandableSection(
-              context,
-              title: "Tugas Kurir",
-              data: kurirData,
-              isExpanded: _isKurirExpanded,
-              onToggle: () => setState(() => _isKurirExpanded = !_isKurirExpanded),
-            ),
+              // --- SECTION KURIR ---
+              _buildExpandableSection(
+                context,
+                title: TranslationService.translate('courier_task'),
+                data: kurirData,
+                isExpanded: _isKurirExpanded,
+                onToggle: () => setState(() => _isKurirExpanded = !_isKurirExpanded),
+              ),
 
-            const SizedBox(height: 100),
-          ],
-        ),
-      );
+              const SizedBox(height: 100),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   // Widget buat bikin Section yang bisa dibuka-tutup
@@ -96,16 +102,39 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         ),
         const SizedBox(height: 12),
         // Render List Card
-        ...data.take(displayCount).map((item) => _buildOrderCard(
-              context,
-              item['id']!,
-              item['nama']!,
-              item['layanan']!,
-              item['harga']!,
-              item['status']!,
-              item['status'] == "LUNAS" ? const Color(0xFFE8F5E9) : const Color(0xFFF5F5F5),
-              item['status'] == "LUNAS" ? Colors.green : Colors.grey,
-            )),
+        ...data.take(displayCount).map((item) {
+          final rawLayanan = item['layanan']!;
+          String translatedLayanan = rawLayanan;
+          if (rawLayanan == 'Wash & Ironing') {
+            translatedLayanan = TranslationService.translate('cuci_dan_setrika');
+          } else if (rawLayanan == 'PickUp') {
+            translatedLayanan = TranslationService.translate('pickup');
+          } else if (rawLayanan == 'Delivery') {
+            translatedLayanan = TranslationService.translate('delivery');
+          }
+
+          final rawStatus = item['status']!;
+          String translatedStatus = rawStatus;
+          if (rawStatus == 'LUNAS') {
+            translatedStatus = TranslationService.translate('paid');
+          } else if (rawStatus == 'PENDING') {
+            translatedStatus = TranslationService.translate('pending');
+          } else if (rawStatus == 'PickUp') {
+            translatedStatus = TranslationService.translate('pickup');
+          } else if (rawStatus == 'Delivery') {
+            translatedStatus = TranslationService.translate('delivery');
+          }
+
+          return _buildOrderCard(
+            context,
+            item['id']!,
+            item['nama']!,
+            translatedLayanan,
+            item['harga']!,
+            translatedStatus,
+            rawStatus,
+          );
+        }),
         
         // Tombol Panah di tengah bawah card terakhir
         if (data.length > 3)
@@ -123,27 +152,30 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     );
   }
 
-  Widget _buildOrderCard(BuildContext context, String id, String nama, String layanan, String harga, String status, Color defaultStatusBg, Color defaultStatusText) {
-    Color bg = defaultStatusBg;
-    Color text = defaultStatusText;
+  Widget _buildOrderCard(BuildContext context, String id, String nama, String layanan, String harga, String statusText, String rawStatus) {
+    Color bg = const Color(0xFFF5F5F5);
+    Color text = Colors.grey;
 
-    if (status == "PickUp") {
+    if (rawStatus == "LUNAS") {
+      bg = const Color(0xFFE8F5E9);
+      text = Colors.green;
+    } else if (rawStatus == "PickUp") {
       bg = const Color(0xFFFFF3A3); // Latar kuning terang
       text = const Color(0xFFD8BA1C); // Teks kuning gelap
-    } else if (status == "Delivery") {
+    } else if (rawStatus == "Delivery") {
       bg = const Color(0xFFBDE0FE); // Latar biru terang
       text = const Color(0xFF0288D1); // Teks biru gelap
     }
 
     return GestureDetector(
       onTap: () {
-        if (status == "LUNAS") {
+        if (rawStatus == "LUNAS") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
-        } else if (status == "PENDING") {
+        } else if (rawStatus == "PENDING") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
-        } else if (status == "PickUp") {
+        } else if (rawStatus == "PickUp") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen(initialIsPickup: true)));
-        } else if (status == "Delivery") {
+        } else if (rawStatus == "Delivery") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen(initialIsPickup: false)));
         }
       },
@@ -178,7 +210,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                   color: bg, 
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(status, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: text)),
+                child: Text(statusText, style: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.bold, color: text)),
               ),
             ],
           ),

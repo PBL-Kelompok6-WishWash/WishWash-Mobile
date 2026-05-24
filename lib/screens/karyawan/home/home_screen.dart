@@ -6,6 +6,7 @@ import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
 import 'dart:ui';
@@ -112,95 +113,100 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     const Color cyanColor = Color(0xFF42C6D4);
     const Color lightCyan = Color(0xFFBCEFF2);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FBFC),
-      body: Stack(
-        children: [
-          // Background Blobs - Employee Signature style
-          Positioned(
-            top: -50,
-            right: -80,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                color: const Color(0xFF42C6D4).withOpacity(0.35),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            left: -80,
-            child: Container(
-              width: 350,
-              height: 350,
-              decoration: BoxDecoration(
-                color: const Color(0xFF42C6D4).withOpacity(0.35),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _onRefresh,
-              color: const Color(0xFF0C4B8E),
-              backgroundColor: Colors.white,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-          const SizedBox(height: 20),
-
-          // --- HEADER PRIBADI ---
-          _buildHeader(navyColor),
-          const SizedBox(height: 30),
-
-          // --- HERO INCOME CARD (PREMIUM) ---
-          _buildIncomeCard(navyColor, cyanColor, lightCyan),
-          const SizedBox(height: 30),
-
-          // --- GRID STATUS 2x2 ---
-          Text(
-            "Pantau Pesanan",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: navyColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildStatusGrid(context),
-          const SizedBox(height: 30),
-
-          // --- AKTIVITAS TERKINI ---
-          Text(
-            "Aktivitas Terkini",
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: navyColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildRecentActivities(navyColor, cyanColor),
-
-                    const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
-                  ],
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FBFC),
+          body: Stack(
+            children: [
+              // Background Blobs - Employee Signature style
+              Positioned(
+                top: -50,
+                right: -80,
+                child: Container(
+                  width: 300,
+                  height: 300,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF42C6D4).withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
-            ),
+              Positioned(
+                bottom: -100,
+                left: -80,
+                child: Container(
+                  width: 350,
+                  height: 350,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF42C6D4).withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+              SafeArea(
+                child: RefreshIndicator(
+                  onRefresh: _onRefresh,
+                  color: const Color(0xFF0C4B8E),
+                  backgroundColor: Colors.white,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+
+                        // --- HEADER PRIBADI ---
+                        _buildHeader(navyColor),
+                        const SizedBox(height: 30),
+
+                        // --- HERO INCOME CARD (PREMIUM) ---
+                        _buildIncomeCard(navyColor, cyanColor, lightCyan),
+                        const SizedBox(height: 30),
+
+                        // --- GRID STATUS 2x2 ---
+                        Text(
+                          TranslationService.translate('monitor_orders'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStatusGrid(context),
+                        const SizedBox(height: 30),
+
+                        // --- AKTIVITAS TERKINI ---
+                        Text(
+                          TranslationService.translate('recent_activities'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildRecentActivities(navyColor, cyanColor),
+
+                        const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -242,7 +248,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Selamat datang,",
+                  TranslationService.translate('welcome_greeting'),
                   style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: navyColor.withOpacity(0.7),
@@ -366,7 +372,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    "Total Pendapatan Hari Ini",
+                    TranslationService.translate('total_revenue_today'),
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       color: Colors.white.withOpacity(0.9),
@@ -389,7 +395,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   Icon(Icons.trending_up_rounded, color: lightCyan, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    "+12.5% dari kemarin",
+                    TranslationService.translate('revenue_trending'),
                     style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: lightCyan,
@@ -414,7 +420,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       mainAxisSpacing: 16,
       childAspectRatio: 1.15, // slightly wider than tall
       children: [
-        _buildGridCard("Order Masuk", "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
+        _buildGridCard(TranslationService.translate('order_incoming'), "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
           final acceptedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananScreen()));
           if (acceptedCount != null && acceptedCount is int && acceptedCount > 0) {
             setState(() {
@@ -424,7 +430,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("Diproses", "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
+        _buildGridCard(TranslationService.translate('in_progress'), "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
           final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
           if (finishedCount != null && finishedCount is int && finishedCount > 0) {
             setState(() {
@@ -434,7 +440,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("Siap Diantar", "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
+        _buildGridCard(TranslationService.translate('ready_for_delivery'), "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
           final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen()));
           if (finishedCount != null && finishedCount is int && finishedCount > 0) {
             setState(() {
@@ -444,7 +450,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             });
           }
         }),
-        _buildGridCard("Selesai", "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
+        _buildGridCard(TranslationService.translate('completed'), "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
         }),
       ],
@@ -524,40 +530,41 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   }
 
   Widget _buildRecentActivities(Color navyColor, Color cyanColor) {
+    final bool isEn = TranslationService.currentLang == 'en';
     final List<Map<String, dynamic>> recentOrders = [
       {
         "id": "TR0245",
         "name": "Ica Nurhaliza",
-        "action": "Pickup Laundry",
-        "time": "10m lalu",
-        "status": "Selesai",
+        "action": isEn ? "Pickup Laundry" : "Penjemputan Laundry",
+        "time": isEn ? "10m ago" : "10m lalu",
+        "status": isEn ? "Completed" : "Selesai",
         "color": Colors.green,
         "icon": Icons.local_shipping_rounded,
       },
       {
         "id": "TR0242",
         "name": "Budi Santoso",
-        "action": "Setrika Pakaian",
-        "time": "1j lalu",
-        "status": "Proses",
+        "action": isEn ? "Ironing Clothes" : "Setrika Pakaian",
+        "time": isEn ? "1h ago" : "1j lalu",
+        "status": isEn ? "Process" : "Proses",
         "color": Colors.blue,
         "icon": Icons.iron_rounded,
       },
       {
         "id": "TR0240",
         "name": "Siti Aminah",
-        "action": "Pembayaran Qris",
-        "time": "3j lalu",
-        "status": "Lunas",
+        "action": isEn ? "Qris Payment" : "Pembayaran Qris",
+        "time": isEn ? "3h ago" : "3j lalu",
+        "status": isEn ? "Paid" : "Lunas",
         "color": Colors.purple,
         "icon": Icons.qr_code_rounded,
       },
       {
         "id": "TR0238",
         "name": "Andi Wijaya",
-        "action": "Siap Diantar",
-        "time": "5j lalu",
-        "status": "Siap",
+        "action": isEn ? "Ready to Deliver" : "Siap Diantar",
+        "time": isEn ? "5h ago" : "5j lalu",
+        "status": isEn ? "Ready" : "Siap",
         "color": Colors.amber.shade700,
         "icon": Icons.delivery_dining_rounded,
       },
