@@ -125,6 +125,11 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     _generateDates();
     _loadAddresses();
     _initDefaultPackage();
+
+    // Automatically switch default selectedTime to Afternoon if today is already past 12:00 PM
+    if (DateTime.now().hour >= 12) {
+      selectedTime = 'Afternoon';
+    }
   }
 
   void _initDefaultPackage() {
@@ -1073,7 +1078,14 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
           final date = dates[index];
           final isSelected = selectedDateIndex == index;
           return GestureDetector(
-            onTap: () => setState(() => selectedDateIndex = index),
+            onTap: () {
+              setState(() {
+                selectedDateIndex = index;
+                if (index == 0 && DateTime.now().hour >= 12) {
+                  selectedTime = 'Afternoon';
+                }
+              });
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 70,
@@ -1151,70 +1163,100 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   Widget _buildTimeOption(String title, String time, Color themeColor) {
     final isSelected = selectedTime == title;
     final isMorning = title == 'Morning';
+    final bool isToday = selectedDateIndex == 0;
+    final bool isPastMidday = DateTime.now().hour >= 12;
+    final bool isOptionDisabled = isToday && isPastMidday && isMorning;
+
+    Color cardBgColor = Colors.white;
+    Color borderCol = Colors.grey.shade200;
+    double borderW = 1.0;
+
+    if (isOptionDisabled) {
+      cardBgColor = Colors.grey.shade100;
+      borderCol = Colors.grey.shade200;
+    } else if (isSelected) {
+      cardBgColor = activeSelectionColor.withOpacity(0.04);
+      borderCol = activeSelectionColor;
+      borderW = 2.0;
+    }
+
     return GestureDetector(
-      onTap: () => setState(() => selectedTime = title),
+      onTap: isOptionDisabled
+          ? null
+          : () => setState(() => selectedTime = title),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? activeSelectionColor.withOpacity(0.04) : Colors.white,
+          color: cardBgColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? activeSelectionColor : Colors.grey.shade200,
-            width: isSelected ? 2 : 1,
+            color: borderCol,
+            width: borderW,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected 
-                  ? activeSelectionColor.withOpacity(0.08) 
-                  : Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected 
-                    ? activeSelectionColor 
-                    : Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded,
-                color: isSelected ? Colors.white : Colors.grey.shade600,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
-                    style: GoogleFonts.poppins(
-                      color: navyColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
+          boxShadow: isSelected && !isOptionDisabled
+              ? [
+                  BoxShadow(
+                    color: activeSelectionColor.withOpacity(0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    time,
-                    style: GoogleFonts.poppins(
-                      color: textGrey,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                    ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
+        ),
+        child: Opacity(
+          opacity: isOptionDisabled ? 0.45 : 1.0,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isOptionDisabled
+                      ? Colors.grey.shade200
+                      : (isSelected ? activeSelectionColor : Colors.grey.shade100),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded,
+                  color: isOptionDisabled
+                      ? Colors.grey.shade400
+                      : (isSelected ? Colors.white : Colors.grey.shade600),
+                  size: 18,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
+                      style: GoogleFonts.poppins(
+                        color: isOptionDisabled ? Colors.grey.shade400 : navyColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      time,
+                      style: GoogleFonts.poppins(
+                        color: isOptionDisabled ? Colors.grey.shade400 : textGrey,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
