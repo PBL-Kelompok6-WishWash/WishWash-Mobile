@@ -111,6 +111,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
@@ -124,15 +125,26 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                     Text(
                       namaKaryawan,
                       style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
                         color: navyColor,
                       ),
                     ),
+                    if (username.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        '@$username',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: navyColor.withOpacity(0.55),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Container(
-                          margin: const EdgeInsets.only(top: 4, bottom: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: cyanColor.withOpacity(0.12),
@@ -165,7 +177,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.phone, size: 14, color: navyColor),
@@ -173,8 +185,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         Text(
                           noTelp.isEmpty ? '-' : noTelp,
                           style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: navyColor.withOpacity(0.8),
+                            fontSize: 13,
+                            color: navyColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -189,8 +201,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                           child: Text(
                             email.isEmpty ? '-' : email,
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: navyColor.withOpacity(0.8),
+                              fontSize: 13,
+                              color: navyColor,
                               fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -209,8 +221,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                                 ? '-'
                                 : '$jenisKendaraan ($platNomor)',
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: navyColor.withOpacity(0.8),
+                              fontSize: 13,
+                              color: navyColor,
                               fontWeight: FontWeight.w500,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -224,45 +236,59 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
             ],
           ),
           const SizedBox(height: 20),
-          SizedBox(
+          Container(
             width: double.infinity,
-            height: 45,
-            child: ElevatedButton(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditProfileScreenKaryawan(
-                      namaKaryawan: namaKaryawan,
-                      noTelp: noTelp,
-                      email: email,
-                      username: username,
-                      platNomor: platNomor,
-                      jenisKendaraan: jenisKendaraan,
-                      fotoKaryawan: fotoKaryawan,
+            height: 46,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(
+                colors: [cyanColor, const Color(0xFF00ACC1)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: cyanColor.withOpacity(0.3),
+                  offset: const Offset(0, 4),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditProfileScreenKaryawan(
+                        namaKaryawan: namaKaryawan,
+                        noTelp: noTelp,
+                        email: email,
+                        username: username,
+                        platNomor: platNomor,
+                        jenisKendaraan: jenisKendaraan,
+                        fotoKaryawan: fotoKaryawan,
+                      ),
+                    ),
+                  );
+                  if (result == true) {
+                    setState(() {
+                      isLoading = true;
+                    });
+                    _fetchProfile();
+                  }
+                },
+                child: Center(
+                  child: Text(
+                    'Edit Profile',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.white,
                     ),
                   ),
-                );
-                if (result == true) {
-                  setState(() {
-                    isLoading = true;
-                  });
-                  _fetchProfile();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: cyanColor.withOpacity(0.1),
-                foregroundColor: cyanColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Edit Profile',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
                 ),
               ),
             ),

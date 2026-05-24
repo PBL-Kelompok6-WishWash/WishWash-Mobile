@@ -5,6 +5,10 @@ import 'package:mobile/screens/karyawan/pesanan_diproses.dart';
 import 'package:mobile/screens/karyawan/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/pesanan_selesai.dart';
 import 'package:mobile/screens/karyawan/notifikasi.dart';
+import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/utils/constants.dart';
+import 'dart:convert';
+import 'dart:ui';
 
 class DashboardKaryawan extends StatefulWidget {
   const DashboardKaryawan({super.key});
@@ -19,18 +23,149 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   int antarCount = 0;
   int selesaiCount = 8;
 
+  bool _isLoading = true;
+  String _namaKaryawan = 'Karyawan';
+  String _fotoKaryawan = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final response = await PelangganService.getProfile();
+      if (response['success'] == true) {
+        final data = response['data'] ?? {};
+        setState(() {
+          _namaKaryawan = data['nama_karyawan'] ?? 'Karyawan';
+          _fotoKaryawan = data['foto_karyawan'] ?? '';
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching employee profile on dashboard: $e");
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    await _fetchProfile();
+  }
+
+  Widget _buildProfileImage() {
+    if (_fotoKaryawan.startsWith('http://') || _fotoKaryawan.startsWith('https://')) {
+      return Image.network(
+        _fotoKaryawan,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+      );
+    } else if (_fotoKaryawan.startsWith('data:image')) {
+      try {
+        final base64Content = _fotoKaryawan.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+        );
+      } catch (e) {
+        return _buildDefaultAvatar();
+      }
+    } else if (_fotoKaryawan.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$_fotoKaryawan',
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+      );
+    } else if (_fotoKaryawan.isNotEmpty) {
+      return Image.asset(
+        _fotoKaryawan,
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
+      );
+    } else {
+      return _buildDefaultAvatar();
+    }
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      width: 50,
+      height: 50,
+      color: const Color(0xFFBCEFF2),
+      child: const Icon(Icons.person, size: 28, color: Color(0xFF42C6D4)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color navyColor = Color(0xFF0C4B8E);
     const Color cyanColor = Color(0xFF42C6D4);
     const Color lightCyan = Color(0xFFBCEFF2);
 
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FBFC),
+      body: Stack(
         children: [
+          // Background Blobs - Employee Signature style
+          Positioned(
+            top: -50,
+            right: -80,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: const Color(0xFF42C6D4).withOpacity(0.35),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -80,
+            child: Container(
+              width: 350,
+              height: 350,
+              decoration: BoxDecoration(
+                color: const Color(0xFF42C6D4).withOpacity(0.35),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              color: const Color(0xFF0C4B8E),
+              backgroundColor: Colors.white,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
           const SizedBox(height: 20),
 
           // --- HEADER PRIBADI ---
@@ -66,7 +201,12 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           const SizedBox(height: 16),
           _buildRecentActivities(navyColor, cyanColor),
 
-          const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
+                    const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -87,10 +227,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               height: 50,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: const DecorationImage(
-                  image: NetworkImage('https://storage.googleapis.com/a1aa/image/eI2cOqN07H4qL1lC9rIqYl32E2T9e8lF4vNf0t2I5kE.jpg'), // Contoh Avatar
-                  fit: BoxFit.cover,
-                ),
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
                   BoxShadow(
@@ -99,6 +235,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     offset: const Offset(0, 4),
                   ),
                 ],
+              ),
+              child: ClipOval(
+                child: _buildProfileImage(),
               ),
             ),
             const SizedBox(width: 16),
@@ -113,7 +252,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   ),
                 ),
                 Text(
-                  "Mahesa!",
+                  _namaKaryawan,
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
