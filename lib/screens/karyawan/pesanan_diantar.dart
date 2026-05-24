@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile/widgets/background.dart';
 
 // PALET WARNA — samain sama profile
-const Color _navy = Color(0xFF123B6B);
-const Color _teal = Color(0xFF1E9A9F);
-const Color _tealLight = Color(0xFFD6FAFA);
+const Color _navy = Color(0xFF0C4B8E);
+const Color _teal = Color(0xFF42C6D4);
+const Color _tealLight = Color(0xFFBCEFF2);
 
 class PesananDiantarScreen extends StatefulWidget {
   final bool initialIsPickup;

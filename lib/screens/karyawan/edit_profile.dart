@@ -34,7 +34,7 @@ class EditProfileScreenKaryawan extends StatefulWidget {
 
 class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
   final Color navyColor = const Color(0xFF0C4B8E);
-  final Color tealColor = const Color(0xFF1E9A9F);
+  final Color cyanColor = const Color(0xFF42C6D4);
 
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
@@ -130,10 +130,10 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
               borderRadius: BorderRadius.circular(55),
               child: CircleAvatar(
                 radius: 50,
-                backgroundColor: const Color(0xFFE0F2F1), // Teal/Cyan soft
+                backgroundColor: const Color(0xFFBCEFF2), // Soft Cyan
                 backgroundImage: imageProvider,
                 child: imageProvider == null
-                    ? Icon(Icons.person_rounded, size: 55, color: tealColor)
+                    ? Icon(Icons.person_rounded, size: 55, color: cyanColor)
                     : null,
               ),
             ),
@@ -146,7 +146,7 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: tealColor,
+                  color: cyanColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -210,7 +210,7 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: tealColor, width: 1.5),
+          borderSide: BorderSide(color: cyanColor, width: 1.5),
         ),
       ),
     );
@@ -539,13 +539,13 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
                                 gradient: LinearGradient(
-                                  colors: [tealColor, const Color(0xFF167B80)],
+                                  colors: [cyanColor, const Color(0xFF2CA5B3)],
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: tealColor.withOpacity(0.4),
+                                    color: cyanColor.withOpacity(0.4),
                                     offset: const Offset(0, 4),
                                     blurRadius: 8,
                                   ),

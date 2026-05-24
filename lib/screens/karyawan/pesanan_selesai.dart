@@ -102,10 +102,10 @@ class _PesananSelesaiScreenState extends State<PesananSelesaiScreen> {
   ];
 
   // DEFINISI PALET WARNA
-  final Color navyColor = const Color(0xFF123B6B);
-  final Color tealColor = const Color(0xFF1E9A9F);
-  final Color tengahColor = const Color(0xFF45D0D5);
-  final Color blueColor = const Color(0xFF0F9CE6);
+  final Color navyColor = const Color(0xFF0C4B8E);
+  final Color tealColor = const Color(0xFF42C6D4);
+  final Color tengahColor = const Color(0xFF42C6D4);
+  final Color blueColor = const Color(0xFF42C6D4);
 
   void _toggleExpand(int index) {
     setState(() {
@@ -184,7 +184,7 @@ class _PesananSelesaiScreenState extends State<PesananSelesaiScreen> {
           end: Alignment.bottomRight,
           colors: [
             Colors.white,
-            const Color(0xFFE0F7FA), // Light cyan/teal
+            const Color(0xFFBCEFF2), // Light Cyan
           ],
         ),
         borderRadius: BorderRadius.circular(24.0),

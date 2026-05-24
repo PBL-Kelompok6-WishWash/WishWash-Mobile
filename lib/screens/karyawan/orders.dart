@@ -21,8 +21,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   bool _isKasirExpanded = false;
   bool _isKurirExpanded = false;
 
-  final Color navyColor = const Color(0xFF123B6B);
-  final Color tealColor = const Color(0xFF1E9A9F);
+  final Color navyColor = const Color(0xFF0C4B8E);
+  final Color cyanColor = const Color(0xFF42C6D4);
 
   // Data Dummy sesuai request (7 Kasir, 11 Kurir)
   final List<Map<String, String>> kasirData = List.generate(7, (i) => {
@@ -114,7 +114,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
               onPressed: onToggle,
               icon: Icon(
                 isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                color: tealColor,
+                color: cyanColor,
                 size: 35,
               ),
             ),
@@ -170,7 +170,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(harga, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: tealColor)),
+              Text(harga, style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: cyanColor)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),

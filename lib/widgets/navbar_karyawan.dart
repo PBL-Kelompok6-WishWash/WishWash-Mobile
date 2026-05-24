@@ -74,7 +74,7 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
   Widget build(BuildContext context) {
     const Color activeColor = Color(0xFF0C4B8E);
     const Color inactiveColor = Color(0xFF8E9AA6); // Grey for inactive state
-    const Color cyanColor = Color(0xFF5ACFD6);
+    const Color cyanColor = Color(0xFF42C6D4);
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double itemWidth = (screenWidth - 20) / 5;
@@ -162,20 +162,20 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF8CFAFF), // Light bright cyan highlight (5% brighter)
-                          Color(0xFF47B2BA), // Rich solid cyan depth (5% brighter)
+                          Color(0xFFBCEFF2), // Soft bright brand cyan
+                          Color(0xFF42C6D4), // Standard brand cyan
                         ],
                       ),
                       boxShadow: [
                         // 3D bottom edge line (tipis)
                         BoxShadow(
-                          color: const Color(0xFF104447).withOpacity(0.25),
+                          color: const Color(0xFF0C4B8E).withOpacity(0.25),
                           blurRadius: 3,
                           offset: const Offset(0, 2),
                         ),
                         // Soft ambient glow (tipis)
                         BoxShadow(
-                          color: const Color(0xFF47B2BA).withOpacity(0.25),
+                          color: const Color(0xFF42C6D4).withOpacity(0.25),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -359,10 +359,8 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
 
   @override
   Widget build(BuildContext context) {
-    const Color cyanColor = Color(0xFF5ACFD6);
-    const Color navyColor = Color(0xFF0F2F53);
+    const Color navyColor = Color(0xFF0C4B8E);
     final double screenWidth = MediaQuery.of(context).size.width;
-    final double bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Material(
       color: Colors.transparent,
@@ -498,15 +496,15 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                           shape: BoxShape.circle,
                                           gradient: const LinearGradient(
                                             colors: [
-                                              Color(0xFF8CFAFF), // Light bright highlighted cyan (solid)
-                                              Color(0xFF47B2BA), // Rich solid deep cyan (solid)
+                                              Color(0xFFBCEFF2), // Soft bright brand cyan
+                                              Color(0xFF42C6D4), // Standard brand cyan
                                             ],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF47B2BA).withOpacity(0.25),
+                                              color: const Color(0xFF42C6D4).withOpacity(0.25),
                                               blurRadius: 8,
                                               offset: const Offset(0, 4),
                                             ),
@@ -542,15 +540,15 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                           shape: BoxShape.circle,
                                           gradient: const LinearGradient(
                                             colors: [
-                                              Color(0xFF8CFAFF), // Light bright highlighted cyan (solid)
-                                              Color(0xFF47B2BA), // Rich solid deep cyan (solid)
+                                              Color(0xFFBCEFF2), // Soft bright brand cyan
+                                              Color(0xFF42C6D4), // Standard brand cyan
                                             ],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF47B2BA).withOpacity(0.25),
+                                              color: const Color(0xFF42C6D4).withOpacity(0.25),
                                               blurRadius: 8,
                                               offset: const Offset(0, 4),
                                             ),
@@ -585,20 +583,20 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            Color(0xFF8CFAFF), // Light bright cyan highlight (5% brighter)
-                            Color(0xFF47B2BA), // Rich solid cyan depth (5% brighter)
+                            Color(0xFFBCEFF2), // Soft bright brand cyan
+                            Color(0xFF42C6D4), // Standard brand cyan
                           ],
                         ),
                         boxShadow: [
                           // 3D bottom edge line (tipis)
                           BoxShadow(
-                            color: const Color(0xFF104447).withOpacity(0.25),
+                            color: const Color(0xFF0C4B8E).withOpacity(0.25),
                             blurRadius: 3,
                             offset: const Offset(0, 2),
                           ),
                           // Soft ambient glow (tipis)
                           BoxShadow(
-                            color: const Color(0xFF47B2BA).withOpacity(0.25),
+                            color: const Color(0xFF42C6D4).withOpacity(0.25),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),

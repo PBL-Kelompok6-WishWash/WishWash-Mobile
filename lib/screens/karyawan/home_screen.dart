@@ -21,9 +21,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF123B6B);
-    const Color tealColor = Color(0xFF1E9A9F);
-    const Color lightTeal = Color(0xFF4FD1D9);
+    const Color navyColor = Color(0xFF0C4B8E);
+    const Color cyanColor = Color(0xFF42C6D4);
+    const Color lightCyan = Color(0xFFBCEFF2);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -38,7 +38,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           const SizedBox(height: 30),
 
           // --- HERO INCOME CARD (PREMIUM) ---
-          _buildIncomeCard(navyColor, tealColor, lightTeal),
+          _buildIncomeCard(navyColor, cyanColor, lightCyan),
           const SizedBox(height: 30),
 
           // --- GRID STATUS 2x2 ---
@@ -64,7 +64,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildRecentActivities(navyColor, tealColor),
+          _buildRecentActivities(navyColor, cyanColor),
 
           const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
         ],
@@ -169,7 +169,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     );
   }
 
-  Widget _buildIncomeCard(Color navyColor, Color tealColor, Color lightTeal) {
+  Widget _buildIncomeCard(Color navyColor, Color cyanColor, Color lightCyan) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -250,13 +250,13 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.trending_up_rounded, color: lightTeal, size: 16),
+                  Icon(Icons.trending_up_rounded, color: lightCyan, size: 16),
                   const SizedBox(width: 6),
                   Text(
                     "+12.5% dari kemarin",
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color: lightTeal,
+                      color: lightCyan,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -387,7 +387,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     ));
   }
 
-  Widget _buildRecentActivities(Color navyColor, Color tealColor) {
+  Widget _buildRecentActivities(Color navyColor, Color cyanColor) {
     final List<Map<String, dynamic>> recentOrders = [
       {"id": "TR001", "name": "Ica", "status": "PickUp", "color": Colors.orange},
       {"id": "TR002", "name": "Budi", "status": "Setrika", "color": Colors.blue},

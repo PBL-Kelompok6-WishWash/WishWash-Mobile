@@ -26,7 +26,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
   String fotoKaryawan = '';
 
   final Color navyColor = const Color(0xFF0C4B8E);
-  final Color tealColor = const Color(0xFF1E9A9F);
+  final Color cyanColor = const Color(0xFF42C6D4);
   final Color bgGrey = const Color(0xFFF8FBFC);
 
   @override
@@ -67,7 +67,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
   @override
   Widget build(BuildContext context) {
     return isLoading
-        ? Center(child: CircularProgressIndicator(color: tealColor))
+        ? Center(child: CircularProgressIndicator(color: cyanColor))
         : ListView(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
             children: [
@@ -135,7 +135,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                           margin: const EdgeInsets.only(top: 4, bottom: 4),
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: tealColor.withOpacity(0.12),
+                            color: cyanColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -143,7 +143,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                             style: GoogleFonts.poppins(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: tealColor,
+                              color: cyanColor,
                             ),
                           ),
                         ),
@@ -251,8 +251,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: tealColor.withOpacity(0.1),
-                foregroundColor: tealColor,
+                backgroundColor: cyanColor.withOpacity(0.1),
+                foregroundColor: cyanColor,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -322,9 +322,9 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: tealColor.withOpacity(0.12),
+        color: cyanColor.withOpacity(0.12),
       ),
-      child: Icon(Icons.person, size: 42, color: tealColor),
+      child: Icon(Icons.person, size: 42, color: cyanColor),
     );
   }
 
@@ -389,14 +389,14 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [tealColor.withOpacity(0.7), tealColor],
+                      colors: [cyanColor.withOpacity(0.7), cyanColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: tealColor.withOpacity(0.3),
+                        color: cyanColor.withOpacity(0.3),
                         offset: const Offset(2, 4),
                         blurRadius: 6,
                       ),

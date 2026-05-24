@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile/widgets/background.dart';
 
 // DEFINISI PALET WARNA SESUAI PERMINTAAN
-final Color tealColor = const Color(0xFFD6FAFA);
-final Color tengahColor = const Color(0xFF45D0D5);
-final Color blueColor = const Color(0xFF0F9CE6);
-final Color navyColor = const Color(0xFF0A4D8C);
+final Color tealColor = const Color(0xFFBCEFF2);
+final Color tengahColor = const Color(0xFF42C6D4);
+final Color blueColor = const Color(0xFF42C6D4);
+final Color navyColor = const Color(0xFF0C4B8E);
 
 class PesananDiprosesScreen extends StatefulWidget {
   const PesananDiprosesScreen({super.key});
@@ -158,11 +158,11 @@ class _PesananDiprosesScreenState extends State<PesananDiprosesScreen> {
             OutlinedButton(
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF45D0D5)),
+                side: BorderSide(color: tengahColor),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               ),
-              child: const Text("Batal", style: TextStyle(color: Color(0xFF45D0D5), fontWeight: FontWeight.bold)),
+              child: Text("Batal", style: TextStyle(color: tengahColor, fontWeight: FontWeight.bold)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -174,7 +174,7 @@ class _PesananDiprosesScreenState extends State<PesananDiprosesScreen> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF45D0D5),
+                backgroundColor: tengahColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                 elevation: 0,
@@ -636,7 +636,7 @@ class _StatusPesananScreenState extends State<StatusPesananScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("Total", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                        Text("Rp ${widget.pesanan['harga'].toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F9CE6))),
+                        Text("Rp ${widget.pesanan['harga'].toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: blueColor)),
                       ],
                     ),
                   ],
@@ -657,7 +657,7 @@ class _StatusPesananScreenState extends State<StatusPesananScreen> {
                     Navigator.pop(context); // Tutup layar tracking status
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF45D0D5),
+                    backgroundColor: tengahColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,

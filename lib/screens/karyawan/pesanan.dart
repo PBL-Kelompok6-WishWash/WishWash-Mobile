@@ -15,10 +15,9 @@ class _PesananScreenState extends State<PesananScreen> {
   int acceptedCount = 0;
 
   // DEFINISI PALET WARNA SESUAI PERMINTAAN
-  final Color tealColor = const Color(0xFFD6FAFA);
-  final Color tengahColor = const Color(0xFF45D0D5);
-  final Color blueColor = const Color(0xFF0F9CE6);
-  final Color navyColor = const Color(0xFF0A4D8C);
+  final Color cyanSoftColor = const Color(0xFFBCEFF2);
+  final Color cyanColor = const Color(0xFF42C6D4);
+  final Color navyColor = const Color(0xFF0C4B8E);
 
   @override
   void initState() {
@@ -94,14 +93,14 @@ class _PesananScreenState extends State<PesananScreen> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                        color: blueColor.withOpacity(0.15),
+                        color: cyanColor.withOpacity(0.15),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new, color: blueColor, size: 20),
+                    icon: Icon(Icons.arrow_back_ios_new, color: cyanColor, size: 20),
                     onPressed: () {
                       if (Navigator.canPop(context)) {
                         Navigator.pop(context, acceptedCount);
@@ -150,7 +149,7 @@ class _PesananScreenState extends State<PesananScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24.0),
-        border: Border.all(color: tealColor, width: 2), 
+        border: Border.all(color: cyanSoftColor, width: 2), 
         boxShadow: [
           BoxShadow(
             color: navyColor.withOpacity(0.15),
@@ -169,7 +168,7 @@ class _PesananScreenState extends State<PesananScreen> {
             child: Icon(
               Icons.water_drop_rounded,
               size: 120,
-              color: tealColor.withOpacity(0.4),
+              color: cyanSoftColor.withOpacity(0.4),
             ),
           ),
           
@@ -186,13 +185,13 @@ class _PesananScreenState extends State<PesananScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: blueColor.withOpacity(0.1),
+                        color: cyanColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: blueColor.withOpacity(0.2)),
+                        border: Border.all(color: cyanColor.withOpacity(0.2)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.receipt_long_rounded, size: 18, color: blueColor),
+                          Icon(Icons.receipt_long_rounded, size: 18, color: cyanColor),
                           const SizedBox(width: 8),
                           Text(
                             pesanan['title'],
@@ -215,10 +214,10 @@ class _PesananScreenState extends State<PesananScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isExpanded ? blueColor : Colors.white,
+                          color: isExpanded ? cyanColor : Colors.white,
                           boxShadow: [
                             BoxShadow(
-                              color: blueColor.withOpacity(0.2),
+                              color: cyanColor.withOpacity(0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             )
@@ -227,7 +226,7 @@ class _PesananScreenState extends State<PesananScreen> {
                         child: Icon(
                           isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                           size: 20,
-                          color: isExpanded ? Colors.white : blueColor,
+                          color: isExpanded ? Colors.white : cyanColor,
                         ),
                       ),
                     ),
@@ -259,7 +258,7 @@ class _PesananScreenState extends State<PesananScreen> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(20),
                         gradient: LinearGradient(
-                          colors: [blueColor, navyColor],
+                          colors: [cyanColor, navyColor],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -311,16 +310,16 @@ class _PesananScreenState extends State<PesananScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: tealColor.withOpacity(0.2),
+                          color: cyanSoftColor.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: tealColor.withOpacity(0.5)),
+                          border: Border.all(color: cyanSoftColor.withOpacity(0.5)),
                         ),
                         child: Column(
                           children: [
                             _buildModernInfoRow(Icons.timer_outlined, 'Durasi', pesanan['durasi']),
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10.0),
-                              child: Divider(height: 1, color: blueColor.withOpacity(0.1)),
+                              child: Divider(height: 1, color: cyanColor.withOpacity(0.1)),
                             ),
                             _buildModernInfoRow(Icons.delivery_dining_outlined, 'Pengantaran', pesanan['pengantaran']),
                           ],
@@ -341,7 +340,7 @@ class _PesananScreenState extends State<PesananScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: tengahColor),
+        Icon(icon, size: 18, color: cyanColor),
         const SizedBox(width: 8),
         Expanded(
           child: Text.rich(
