@@ -1,177 +1,280 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/utils/constants.dart';
 import 'wash_ironing.dart';
 import 'wash_only.dart';
 import 'ironing_only.dart';
 import 'dry_clean.dart';
 
-class CreateOrderScreen extends StatelessWidget {
+class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const Color cyanColor = Color(0xFF42C6D4);
-    const Color navyColor = Color(0xFF0C4B8E);
+  State<CreateOrderScreen> createState() => _CreateOrderScreenState();
+}
 
+class _CreateOrderScreenState extends State<CreateOrderScreen> {
+  final Color navyColor = const Color(0xFF0C4B8E);
+  List<dynamic> _services = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchServices();
+  }
+
+  Future<void> _fetchServices() async {
+    try {
+      final list = await LayananService.getLayanan();
+      setState(() {
+        _services = list.where((s) {
+          final status = s['status_layanan']?.toString() ?? 'Aktif';
+          return status.toLowerCase() == 'aktif';
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(TranslationService.currentLang == 'en' 
+                ? 'Failed to load services: $e' 
+                : 'Gagal memuat layanan: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Color _parseHexColor(String hexColor) {
+    hexColor = hexColor.replaceAll('#', '');
+    if (hexColor.length == 6) {
+      hexColor = 'FF$hexColor';
+    }
+    try {
+      return Color(int.parse('0x$hexColor'));
+    } catch (e) {
+      return const Color(0xFF00BCD4);
+    }
+  }
+
+  Color _getDarkenedTextColor(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    if (hsl.hue >= 160 && hsl.hue <= 210) {
+      return const Color(0xFF0C4B8E); // Memaksa Navy untuk Cyan/Teal agar kontras tinggi
+    }
+    if (hsl.lightness > 0.45) {
+      double targetLightness = 0.30;
+      if (hsl.hue >= 45 && hsl.hue <= 65) {
+        targetLightness = 0.25; // Warm Golden Amber for Yellow
+      } else if (hsl.hue >= 70 && hsl.hue <= 150) {
+        targetLightness = 0.30; // Deep Forest Green for Green
+      } else if (hsl.hue >= 170 && hsl.hue <= 200) {
+        targetLightness = 0.35; // Rich Oceanic Teal for Cyan
+      }
+      return hsl.withLightness(targetLightness).toColor();
+    }
+    return color;
+  }
+
+  String _formatPrice(double price) {
+    final str = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(str[i]);
+    }
+    return 'Rp ${buffer.toString()}';
+  }
+
+  Widget _buildServiceImage(String imagePath) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    } else if (imagePath.startsWith('data:image')) {
+      try {
+        final base64Content = imagePath.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          height: double.infinity,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.image, size: 20),
+        );
+      } catch (e) {
+        return const Icon(Icons.broken_image, size: 20);
+      }
+    } else if (imagePath.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$imagePath',
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    } else {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
-        final isEn = lang == 'en';
         return Scaffold(
-          backgroundColor: const Color(0xFFBCEFF2), // Soft Cyan Signature
-          extendBody: true,
-          body: Stack(
+          backgroundColor: const Color(0xFFBCEFF2),
+          body: Column(
             children: [
-              Column(
-                children: [
-                  // Header
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: IconButton(
-                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 20),
-                              onPressed: () => Navigator.pop(context),
-                            ),
+              // --- HEADER & APPBAR ---
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  child: SizedBox(
+                    height: 48,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: navyColor,
                           ),
-                          Text(
-                            isEn ? 'Create New Order' : 'Buat Pesanan Baru',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: navyColor,
-                            ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Text(
+                          TranslationService.translate('create_order'),
+                          style: GoogleFonts.poppins(
+                            color: navyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 48), // Balancing spacer
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
 
-                  // Content Card
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FBFC),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 15,
-                            offset: const Offset(0, -5),
-                          ),
-                        ],
+              // --- CONTENT CONTAINER SHEET ---
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FBFC),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, -5),
                       ),
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(40),
-                          topRight: Radius.circular(40),
-                        ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 32, 24, 100),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isEn ? 'Select Service Category' : 'Pilih Kategori Layanan',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: navyColor,
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                    child: RefreshIndicator(
+                      color: const Color(0xFF0C4B8E),
+                      backgroundColor: Colors.white,
+                      onRefresh: _fetchServices,
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _services.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.6,
+                                  child: Center(
+                                    child: Text(
+                                      TranslationService.translate(
+                                        'no_services',
+                                      ),
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                              ],
+                            )
+                          : SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                30,
+                                24,
+                                20,
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                isEn 
-                                    ? 'Choose the appropriate category to continue creating a new laundry order.' 
-                                    : 'Pilih kategori yang sesuai untuk melanjutkan pembuatan pesanan laundry baru.',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              const SizedBox(height: 28),
+                              child: Column(
+                                children: _services.map((service) {
+                                  return _buildServiceCard(service, () {
+                                    final String rawName = service['nama_layanan']?.toString() ?? '';
+                                    final String lowerName = rawName.toLowerCase().trim();
+                                    
+                                    Widget targetScreen;
+                                    if (lowerName.contains('iron') && lowerName.contains('wash')) {
+                                      targetScreen = const WashIroningScreen();
+                                    } else if (lowerName.contains('wash')) {
+                                      targetScreen = const WashOnlyScreen();
+                                    } else if (lowerName.contains('iron')) {
+                                      targetScreen = const IroningOnlyScreen();
+                                    } else if (lowerName.contains('dry') || lowerName.contains('clean')) {
+                                      targetScreen = const DryCleanScreen();
+                                    } else {
+                                      targetScreen = const WashOnlyScreen();
+                                    }
 
-                              _buildOrderOption(
-                                icon: Icons.local_laundry_service_outlined,
-                                title: isEn ? 'Wash & Ironing' : 'Cuci & Setrika',
-                                subtitle: isEn 
-                                    ? 'Complete washing, drying, and ironing service' 
-                                    : 'Layanan lengkap cuci bersih, kering, dan disetrika rapi',
-                                color: cyanColor,
-                                navyColor: navyColor,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const WashIroningScreen()),
-                                  );
-                                },
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => targetScreen,
+                                      ),
+                                    );
+                                  });
+                                }).toList(),
                               ),
-                              const SizedBox(height: 16),
-                              _buildOrderOption(
-                                icon: Icons.wash_outlined,
-                                title: isEn ? 'Wash Only' : 'Cuci Saja',
-                                subtitle: isEn 
-                                    ? 'Washing and drying service without ironing' 
-                                    : 'Layanan mencuci bersih dan mengeringkan tanpa disetrika',
-                                color: const Color(0xFF5ACFD6),
-                                navyColor: navyColor,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const WashOnlyScreen()),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              _buildOrderOption(
-                                icon: Icons.dry_cleaning_outlined, 
-                                title: isEn ? 'Ironing Only' : 'Setrika Saja',
-                                subtitle: isEn 
-                                    ? 'Professional ironing and premium fragrance service' 
-                                    : 'Layanan menyetrika rapi dan disemprot pewangi premium',
-                                color: const Color(0xFF28A0A8),
-                                navyColor: navyColor,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const IroningOnlyScreen()),
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 16),
-                              _buildOrderOption(
-                                icon: Icons.checkroom_outlined, 
-                                title: isEn ? 'Dry Clean' : 'Dry Clean',
-                                subtitle: isEn 
-                                    ? 'Premium dry cleaning for special garments' 
-                                    : 'Layanan dry clean premium untuk pakaian khusus',
-                                color: const Color(0xFF70D6E3),
-                                navyColor: navyColor,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const DryCleanScreen()),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -180,83 +283,227 @@ class CreateOrderScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required Color navyColor,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  Widget _buildServiceCard(Map<String, dynamic> service, VoidCallback onTap) {
+    final String rawName = service['nama_layanan'] ?? '';
+    final String name = TranslationService.translateService(rawName);
+    final String hexColor = service['warna_layanan'] ?? '#00BCD4';
+    final String imagePath =
+        service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
+    final double price =
+        (service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final String unit = service['jenis_satuan'] ?? 'Kg';
+    final String dbDesc = service['deskripsi_layanan'] ?? '';
+
+    // Multi-language translation support
+    String description = dbDesc;
+    final key = rawName
+        .toLowerCase()
+        .replaceAll(' ', '_')
+        .replaceAll('&', 'and');
+    final localKey = '${key}_desc';
+    if (TranslationService.translate(localKey) != localKey) {
+      description = TranslationService.translate(localKey);
+    }
+
+    final Color baseColor = _parseHexColor(hexColor);
+    final Color bgColor = baseColor.withOpacity(0.08);
+    final Color textColor = _getDarkenedTextColor(baseColor);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double screenWidth = constraints.maxWidth;
+        final bool isCompact = screenWidth < 300;
+        final double imageSize = isCompact ? 88 : 108;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: baseColor.withOpacity(0.12),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: baseColor.withOpacity(0.06),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 26),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                splashColor: baseColor.withOpacity(0.08),
+                highlightColor: baseColor.withOpacity(0.04),
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
+                      // 1. Styled Image Area with colored background halo
+                      Container(
+                        width: imageSize,
+                        height: imageSize,
+                        margin: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: baseColor.withOpacity(0.1),
+                              blurRadius: 10,
+                              spreadRadius: -2,
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                  child: _buildServiceImage(imagePath),
+                              ),
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.bottomCenter,
+                                      end: Alignment.topCenter,
+                                      colors: [
+                                        baseColor.withOpacity(0.2),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11.5,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
+
+                      // 2. Central Service details info
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.poppins(
+                                  fontSize: isCompact ? 14 : 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: navyColor,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              
+                              Expanded(
+                                child: Text(
+                                  description.isNotEmpty ? description : 'Layanan perawatan laundry premium handal.',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: bgColor,
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(
+                                        color: baseColor.withOpacity(0.2),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.local_offer_outlined,
+                                          size: 11,
+                                          color: textColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_formatPrice(price)} / $unit',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 3. Elegant custom navigation trigger chevron button
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: baseColor.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: baseColor.withOpacity(0.15),
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 11,
+                              color: textColor,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.arrow_forward_ios_rounded, size: 12, color: color),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
