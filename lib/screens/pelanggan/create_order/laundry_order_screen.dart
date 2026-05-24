@@ -1431,8 +1431,8 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                 const SizedBox(height: 8),
                 Text(
                   TranslationService.currentLang == 'en'
-                      ? 'Wait for your order to be confirmed by our admin.'
-                      : 'Mohon tunggu konfirmasi pesanan Anda dari admin kami.',
+                      ? 'Wait for your order to be confirmed by our karyawan.'
+                      : 'Mohon tunggu konfirmasi pesanan Anda dari karyawan kami.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     color: textGrey,

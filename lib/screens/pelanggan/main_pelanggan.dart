@@ -3,7 +3,7 @@ import 'home/home_screen.dart';
 import 'chat/chat_screen.dart';
 import 'profile/profile_screen.dart';
 import 'orders/orders_screen.dart';
-import 'orders/create_order_screen.dart';
+import 'create_order/create_order_screen.dart';
 import '../../widgets/navbar_pelanggan.dart';
 import 'package:mobile/services/translation_service.dart';
 

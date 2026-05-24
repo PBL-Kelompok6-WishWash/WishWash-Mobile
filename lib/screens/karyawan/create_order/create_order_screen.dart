@@ -5,7 +5,7 @@ import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/services/pelanggan_service.dart';
-import 'package:mobile/screens/pelanggan/orders/laundry_order_screen.dart';
+import 'package:mobile/screens/pelanggan/create_order/laundry_order_screen.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   const CreateOrderScreen({super.key});

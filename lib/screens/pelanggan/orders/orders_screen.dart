@@ -7,7 +7,7 @@ import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
-import 'package:mobile/screens/pelanggan/orders/create_order_screen.dart';
+import 'package:mobile/screens/pelanggan/create_order/create_order_screen.dart';
 import 'package:mobile/services/order_service.dart';
 
 class OrdersScreen extends StatefulWidget {
