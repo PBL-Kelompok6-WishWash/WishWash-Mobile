@@ -1172,8 +1172,8 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     double borderW = 1.0;
 
     if (isOptionDisabled) {
-      cardBgColor = Colors.grey.shade100;
-      borderCol = Colors.grey.shade200;
+      cardBgColor = const Color(0xFFF7F8FA);
+      borderCol = Colors.grey.shade300;
     } else if (isSelected) {
       cardBgColor = activeSelectionColor.withOpacity(0.04);
       borderCol = activeSelectionColor;
@@ -1184,80 +1184,113 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
       onTap: isOptionDisabled
           ? null
           : () => setState(() => selectedTime = title),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: cardBgColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: borderCol,
-            width: borderW,
-          ),
-          boxShadow: isSelected && !isOptionDisabled
-              ? [
-                  BoxShadow(
-                    color: activeSelectionColor.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Opacity(
-          opacity: isOptionDisabled ? 0.45 : 1.0,
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isOptionDisabled
-                      ? Colors.grey.shade200
-                      : (isSelected ? activeSelectionColor : Colors.grey.shade100),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded,
-                  color: isOptionDisabled
-                      ? Colors.grey.shade400
-                      : (isSelected ? Colors.white : Colors.grey.shade600),
-                  size: 18,
-                ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            decoration: BoxDecoration(
+              color: cardBgColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: borderCol,
+                width: borderW,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
-                      style: GoogleFonts.poppins(
-                        color: isOptionDisabled ? Colors.grey.shade400 : navyColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+              boxShadow: isSelected && !isOptionDisabled
+                  ? [
+                      BoxShadow(
+                        color: activeSelectionColor.withOpacity(0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      time,
-                      style: GoogleFonts.poppins(
-                        color: isOptionDisabled ? Colors.grey.shade400 : textGrey,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
+                    ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isOptionDisabled
+                        ? const Color(0xFFFFEBEE)
+                        : (isSelected ? activeSelectionColor : Colors.grey.shade100),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isOptionDisabled
+                        ? Icons.lock_clock_outlined
+                        : (isMorning ? Icons.wb_sunny_rounded : Icons.wb_twilight_rounded),
+                    color: isOptionDisabled
+                        ? const Color(0xFFD32F2F)
+                        : (isSelected ? Colors.white : Colors.grey.shade600),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        TranslationService.currentLang == 'en' ? title : (isMorning ? 'Pagi' : 'Siang'),
+                        style: GoogleFonts.poppins(
+                          color: isOptionDisabled ? Colors.grey.shade500 : navyColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          decoration: isOptionDisabled ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        time,
+                        style: GoogleFonts.poppins(
+                          color: isOptionDisabled ? Colors.grey.shade400 : textGrey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isOptionDisabled)
+            Positioned(
+              top: -6,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD32F2F),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD32F2F).withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
+                child: Text(
+                  TranslationService.currentLang == 'en' ? 'CLOSED' : 'LEWAT',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }
