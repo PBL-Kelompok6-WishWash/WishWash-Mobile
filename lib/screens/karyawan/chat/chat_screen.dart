@@ -12,7 +12,7 @@ class KaryawanChatScreen extends StatelessWidget {
     const Color cyanColor = Color(0xFF42C6D4);
 
     return Container(
-      color: const Color(0xFFBCEFF2),
+      color: Colors.transparent,
       child: Column(
         children: [
           // --- HEADER & APPBAR ---
@@ -91,42 +91,6 @@ class KaryawanChatScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Admin / Pusat Bantuan Section Title
-                  Row(
-                    children: [
-                      Text(
-                        TranslationService.currentLang == 'en' ? 'Support Center' : 'Pusat Bantuan',
-                        style: GoogleFonts.poppins(
-                          color: navyColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Container(
-                          height: 1.5,
-                          color: navyColor.withValues(alpha: 0.2),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Admin Card (Tapped navigates to room chat)
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RoomChatScreenKaryawan(),
-                        ),
-                      );
-                    },
-                    child: _buildAdminCard(navyColor, cyanColor),
-                  ),
-                  const SizedBox(height: 28),
-
                   // Pelanggan Section Title
                   Row(
                     children: [
@@ -186,90 +150,7 @@ class KaryawanChatScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAdminCard(Color navyColor, Color cyanColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 55,
-            height: 55,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: cyanColor.withValues(alpha: 0.3), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: cyanColor.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.all(6.0),
-                child: Image.asset(
-                  'assets/images/brand/logo.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Text(
-                      'W',
-                      style: GoogleFonts.poppins(
-                        color: cyanColor,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        fontStyle: FontStyle.italic,
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Atmint Mahesa',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: navyColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'wjar boi, atmint jg mnusia',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: navyColor.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(Icons.push_pin_rounded, color: navyColor, size: 22),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildCustomerCard({
     required BuildContext context,
