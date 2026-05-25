@@ -93,17 +93,34 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
       );
-    } else {
-      return _buildDefaultAvatar();
     }
+    return _buildDefaultAvatar();
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'K';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
   }
 
   Widget _buildDefaultAvatar() {
+    final initials = _getInitials(_namaKaryawan);
     return Container(
       width: 50,
       height: 50,
-      color: const Color(0xFFBCEFF2),
-      child: const Icon(Icons.person, size: 28, color: Color(0xFF42C6D4)),
+      color: const Color(0xFF42C6D4), // Cyan background
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 

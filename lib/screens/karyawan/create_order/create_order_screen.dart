@@ -364,12 +364,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     Widget fallback() {
       return CircleAvatar(
         radius: radius,
-        backgroundColor: const Color(0xFFBCEFF2),
+        backgroundColor: const Color(0xFF42C6D4), // Cyan background
         child: Text(
           initial,
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
-            color: navyColor,
+            color: Colors.white, // White text
             fontSize: radius * 0.75,
           ),
         ),

@@ -25,6 +25,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   Timer? _errorTimer;
+  bool _isAutoUsernameEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(_onNamaChanged);
+  }
+
+  void _onNamaChanged() {
+    if (!_isAutoUsernameEnabled) return;
+    
+    final String text = _nameController.text.trim().toLowerCase();
+    if (text.isEmpty) {
+      _usernameController.text = '';
+      return;
+    }
+    
+    // Replace spaces and special characters with underscore
+    final String generated = text
+        .replaceAll(RegExp(r'[^a-z0-9\s]'), '')
+        .replaceAll(RegExp(r'\s+'), '_');
+        
+    _usernameController.text = generated;
+  }
 
   // 💡 Helper Error Inline Auto-Clear
   void _showAutoClearError(String message) {
@@ -44,9 +68,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _errorTimer?.cancel();
+    _nameController.removeListener(_onNamaChanged);
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -115,6 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required TextEditingController controller,
     required String label,
     bool isPassword = false,
+    ValueChanged<String>? onChanged,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -131,6 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
+        onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(color: Colors.blueGrey, fontSize: 14),
@@ -251,10 +280,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               else
                                 const SizedBox(height: 20),
 
-                              _buildTextField(controller: _usernameController, label: 'Username'),
+                              _buildTextField(controller: _nameController, label: 'Nama Lengkap'),
                               const SizedBox(height: 20),
 
-                              _buildTextField(controller: _nameController, label: 'Nama Lengkap'),
+                              _buildTextField(
+                                controller: _usernameController,
+                                label: 'Username',
+                                onChanged: (val) {
+                                  if (_isAutoUsernameEnabled) {
+                                    _isAutoUsernameEnabled = false;
+                                  }
+                                },
+                              ),
                               const SizedBox(height: 20),
                               
                               _buildTextField(controller: _phoneController, label: 'Nomor Telepon'),

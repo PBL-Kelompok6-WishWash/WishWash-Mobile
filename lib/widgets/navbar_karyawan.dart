@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/auth/register_screen.dart';
+import 'package:mobile/screens/karyawan/customer/tambah_pelanggan_screen.dart';
 import 'package:mobile/screens/karyawan/create_order/create_order_screen.dart';
 
 class NavbarKaryawan extends StatefulWidget {
@@ -283,7 +283,7 @@ void showKaryawanMenu(BuildContext context) {
     if (value == 'pesanan') {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateOrderScreen()));
     } else if (value == 'akun') {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (context) => const TambahPelangganScreen()));
     }
   });
 }

@@ -373,41 +373,45 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Section 4: Lokasi Penjemputan
-                        _buildCardContainer(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildSectionTitle(
-                                TranslationService.currentLang == 'en'
-                                    ? 'Pick Up Location'
-                                    : 'Lokasi Penjemputan',
-                              ),
-                              const SizedBox(height: 16),
-                              _buildLocationCard(themeColor),
-                            ],
+                        if (widget.selectedCustomer == null) ...[
+                          // Section 4: Lokasi Penjemputan
+                          _buildCardContainer(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionTitle(
+                                  TranslationService.currentLang == 'en'
+                                      ? 'Pick Up Location'
+                                      : 'Lokasi Penjemputan',
+                                ),
+                                const SizedBox(height: 16),
+                                _buildLocationCard(themeColor),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
+                          const SizedBox(height: 20),
 
-                        // Section 5: Tanggal & Waktu Jemput
-                        _buildCardContainer(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildSectionTitle(
-                                TranslationService.currentLang == 'en'
-                                    ? 'Pick Up Date & Time'
-                                    : 'Tanggal & Waktu Jemput',
-                              ),
-                              const SizedBox(height: 16),
-                              _buildDateSelection(themeColor),
-                              const SizedBox(height: 16),
-                              _buildTimeSelection(themeColor),
-                            ],
+                          // Section 5: Tanggal & Waktu Jemput
+                          _buildCardContainer(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSectionTitle(
+                                  TranslationService.currentLang == 'en'
+                                      ? 'Pick Up Date & Time'
+                                      : 'Tanggal & Waktu Jemput',
+                                ),
+                                const SizedBox(height: 16),
+                                _buildDateSelection(themeColor),
+                                const SizedBox(height: 16),
+                                _buildTimeSelection(themeColor),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 32),
+                        ] else ...[
+                          const SizedBox(height: 32),
+                        ],
 
                         // Submit order button
                         _buildReviewOrderButton(),
@@ -1348,17 +1352,19 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
       final double basePrice = (widget.service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
 
+      final isWalkIn = widget.selectedCustomer != null;
+
       final orderData = {
-        if (widget.selectedCustomer != null)
+        if (isWalkIn)
           'id_pelanggan': widget.selectedCustomer!['id_pelanggan'],
         'id_layanan': widget.service['id_layanan'],
         'id_paket_layanan': selectedPackageMap!['id_paket_layanan'],
-        'id_alamat_pengambilan': selectedPickupAddress!['id_alamat'],
+        'id_alamat_pengambilan': isWalkIn ? null : selectedPickupAddress!['id_alamat'],
         'id_alamat_penyerahan': null,
         'id_parfum': perf['id'],
-        'keterangan_lokasi': selectedPickupAddress!['tipe_alamat'] ?? 'Rumah',
-        'jadwal_pickup': '$dateStr ${selectedTime == 'Morning' ? '08:00' : '13:00'}',
-        'tipe_logistik': 'Courier Delivery',
+        'keterangan_lokasi': isWalkIn ? '' : (selectedPickupAddress!['tipe_alamat'] ?? 'Rumah'),
+        'jadwal_pickup': isWalkIn ? null : '$dateStr ${selectedTime == 'Morning' ? '08:00' : '13:00'}',
+        'tipe_logistik': isWalkIn ? 'Drop-off' : 'Courier Delivery',
         'harga_saat_ini': basePrice,
         'kuantitas': 0.0,
         'total_bayar': 0.0,
@@ -1492,6 +1498,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   }
 
   Widget _buildReviewOrderButton() {
+    final isWalkIn = widget.selectedCustomer != null;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -1513,7 +1520,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
         onPressed: _isPlacingOrder
             ? null
             : () {
-                if (selectedPickupAddress == null) {
+                if (!isWalkIn && selectedPickupAddress == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(TranslationService.currentLang == 'en'
@@ -1540,7 +1547,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
               },
         icon: _isPlacingOrder
             ? const SizedBox.shrink()
-            : const Icon(Icons.local_shipping_rounded, color: Colors.white, size: 20),
+            : Icon(isWalkIn ? Icons.add_shopping_cart_rounded : Icons.local_shipping_rounded, color: Colors.white, size: 20),
         label: _isPlacingOrder
             ? const SizedBox(
                 height: 20,
@@ -1553,9 +1560,9 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
             : Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Text(
-                  TranslationService.currentLang == 'en'
-                      ? 'Request Pick Up'
-                      : 'Ajukan Penjemputan',
+                  isWalkIn
+                      ? (TranslationService.currentLang == 'en' ? 'Create Order' : 'Buat Pesanan')
+                      : (TranslationService.currentLang == 'en' ? 'Request Pick Up' : 'Ajukan Penjemputan'),
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,

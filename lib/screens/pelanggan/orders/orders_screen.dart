@@ -68,19 +68,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   String _getEstSelesaiDate(Map<String, dynamic> order) {
-    if (order['jadwal_pickup'] == null || order['jadwal_pickup'].toString().isEmpty) {
+    final String? pickupStr = order['jadwal_pickup']?.toString();
+    final String? tglPesananStr = order['tgl_pesanan']?.toString();
+    final String? baseDateStr = (pickupStr != null && pickupStr.isNotEmpty) ? pickupStr : tglPesananStr;
+
+    if (baseDateStr == null || baseDateStr.isEmpty) {
       return '-';
     }
     try {
-      final pickup = DateTime.parse(order['jadwal_pickup']);
+      final baseDate = DateTime.parse(baseDateStr);
       final paket = order['PaketLayanan'];
       final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
       
       if (durasiJam == 0) {
-        return _formatDate(order['jadwal_pickup']);
+        return _formatDate(baseDateStr);
       }
       
-      final estSelesai = pickup.add(Duration(hours: durasiJam));
+      final estSelesai = baseDate.add(Duration(hours: durasiJam));
       final lang = TranslationService.currentLang;
       final months = lang == 'en' 
           ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -93,7 +97,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final String minuteStr = estSelesai.minute.toString().padLeft(2, '0');
       return '${estSelesai.day} ${months[estSelesai.month - 1]} ${estSelesai.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
-      return _formatDate(order['jadwal_pickup']);
+      return _formatDate(baseDateStr);
     }
   }
 

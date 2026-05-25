@@ -395,14 +395,30 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
   Widget _buildDefaultAvatar(Color cyanColor) {
+    final initials = _getInitials(namaLengkap);
     return Container(
       width: 80,
       height: 80,
-      decoration: BoxDecoration(
-        color: cyanColor.withOpacity(0.12),
+      color: cyanColor, // Cyan background
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+        ),
       ),
-      child: Icon(Icons.person, size: 42, color: cyanColor),
     );
   }
 

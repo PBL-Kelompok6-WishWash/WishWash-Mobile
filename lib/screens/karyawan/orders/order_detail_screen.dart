@@ -37,8 +37,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final layanan = order['Layanan'];
     final List<dynamic>? refList = layanan != null ? layanan['ReferensiStatus'] : null;
     
+    List<Map<String, dynamic>> sortedList;
     if (refList == null || refList.isEmpty) {
-      return const [
+      sortedList = [
         {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
         {'nama_status': 'Penjemputan', 'urutan_tahap': 2},
         {'nama_status': 'Proses Timbang', 'urutan_tahap': 3},
@@ -48,14 +49,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         {'nama_status': 'Siap Diantar', 'urutan_tahap': 7},
         {'nama_status': 'Selesai', 'urutan_tahap': 8},
       ];
+    } else {
+      sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
+      sortedList.sort((a, b) {
+        final int seqA = a['urutan_tahap'] as int? ?? 0;
+        final int seqB = b['urutan_tahap'] as int? ?? 0;
+        return seqA.compareTo(seqB);
+      });
     }
-    
-    List<Map<String, dynamic>> sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
-    sortedList.sort((a, b) {
-      final int seqA = a['urutan_tahap'] as int? ?? 0;
-      final int seqB = b['urutan_tahap'] as int? ?? 0;
-      return seqA.compareTo(seqB);
-    });
+
+    if (order['tipe_logistik'] == 'Drop-off') {
+      sortedList.removeWhere((element) {
+        final name = (element['nama_status'] ?? '').toString().toLowerCase();
+        return name.contains('jemput') || name.contains('pickup') || name.contains('penjemputan');
+      });
+    }
+
     return sortedList;
   }
 
@@ -141,19 +150,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   String _getEstSelesaiDate(Map<String, dynamic> order) {
-    if (order['jadwal_pickup'] == null || order['jadwal_pickup'].toString().isEmpty) {
+    final String? pickupStr = order['jadwal_pickup']?.toString();
+    final String? tglPesananStr = order['tgl_pesanan']?.toString();
+    final String? baseDateStr = (pickupStr != null && pickupStr.isNotEmpty) ? pickupStr : tglPesananStr;
+
+    if (baseDateStr == null || baseDateStr.isEmpty) {
       return '-';
     }
     try {
-      final pickup = DateTime.parse(order['jadwal_pickup']);
+      final baseDate = DateTime.parse(baseDateStr);
       final paket = order['PaketLayanan'];
       final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
       
       if (durasiJam == 0) {
-        return _formatDate(order['jadwal_pickup']);
+        return _formatDate(baseDateStr);
       }
       
-      final estSelesai = pickup.add(Duration(hours: durasiJam));
+      final estSelesai = baseDate.add(Duration(hours: durasiJam));
       final lang = TranslationService.currentLang;
       final months = lang == 'en' 
           ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -166,7 +179,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       final String minuteStr = estSelesai.minute.toString().padLeft(2, '0');
       return '${estSelesai.day} ${months[estSelesai.month - 1]} ${estSelesai.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
-      return _formatDate(order['jadwal_pickup']);
+      return _formatDate(baseDateStr);
     }
   }
 
@@ -886,6 +899,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required String logistikType,
     required Color navyColor,
   }) {
+    final bool isDropOff = logistikType == 'Drop-off';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -901,60 +915,62 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       ),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pick Up',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey,
-                        fontSize: 11,
+          if (!isDropOff) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pick Up',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      pickupDate,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: navyColor,
+                      const SizedBox(height: 4),
+                      Text(
+                        pickupDate,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: navyColor,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pick Up Address',
-                      style: GoogleFonts.poppins(
-                        color: Colors.grey,
-                        fontSize: 11,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pick Up Address',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey,
+                          fontSize: 11,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      pickupAddr,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: navyColor,
+                      const SizedBox(height: 4),
+                      Text(
+                        pickupAddr,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: navyColor,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const Divider(height: 24),
+              ],
+            ),
+            const Divider(height: 24),
+          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1220,7 +1236,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     _buildReceiptRow(isEn ? 'Estimated Finish' : 'Estimasi Selesai', estDateText),
                     _buildReceiptRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
                     _buildReceiptRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
-                    _buildReceiptRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
+                    if (logistikType != 'Drop-off')
+                      _buildReceiptRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
                     _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                     if (patokanLokasi != '-')
                       _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
