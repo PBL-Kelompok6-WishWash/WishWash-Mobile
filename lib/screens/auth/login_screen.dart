@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // A. Validasi kosong
     if (username.isEmpty || password.isEmpty) {
-      _showAutoClearError('Oops! Username dan Password wajib diisi ya.');
+      _showAutoClearError(TranslationService.translate('username_required'));
       return;
     }
 
@@ -223,378 +223,383 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LandingPage()),
-          );
-        }
-      },
-      child: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          body: LoadingOverlay(
-          isLoading: _isLoading,
-          child: Stack(
-            children: [
-              // Background awan atas
-              Positioned(
-                top: -250,
-                left: -100,
-                width: screenWidth * 1.5,
-                child: Image.asset(
-                  'assets/images/backgrounds/bg_atas.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LandingPage()),
+              );
+            }
+          },
+          child: GestureDetector(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+            },
+            child: Scaffold(
+              backgroundColor: Colors.white,
+              body: LoadingOverlay(
+                isLoading: _isLoading,
+                child: Stack(
+                  children: [
+                    // Background awan atas
+                    Positioned(
+                      top: -250,
+                      left: -100,
+                      width: screenWidth * 1.5,
+                      child: Image.asset(
+                        'assets/images/backgrounds/bg_atas.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
 
-              // Background awan bawah
-              Positioned(
-                bottom: -250,
-                left: -100,
-                width: screenWidth * 1.5,
-                child: Image.asset(
-                  'assets/images/backgrounds/bg_bawah.png',
-                  fit: BoxFit.fitWidth,
-                ),
-              ),
+                    // Background awan bawah
+                    Positioned(
+                      bottom: -250,
+                      left: -100,
+                      width: screenWidth * 1.5,
+                      child: Image.asset(
+                        'assets/images/backgrounds/bg_bawah.png',
+                        fit: BoxFit.fitWidth,
+                      ),
+                    ),
 
-              const BubbleBackground(), // Gelembung sabun animasi
+                    const BubbleBackground(), // Gelembung sabun animasi
 
-              // Konten form login responsif
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints
-                              .maxHeight, // Memastikan tinggi minimal sama dengan layar
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 16),
-
-                              GestureDetector(
-                                onTap: () {
-                                  if (Navigator.canPop(context)) {
-                                    Navigator.pop(context);
-                                  } else {
-                                    Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(builder: (context) => const LandingPage()),
-                                    );
-                                  }
-                                },
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
+                    // Konten form login responsif
+                    SafeArea(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight, // Memastikan tinggi minimal sama dengan layar
+                              ),
+                              child: IntrinsicHeight(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.arrow_back_ios_new,
-                                      size: 16,
-                                      color: Constants.colorDarkBlue,
+                                    const SizedBox(height: 16),
+
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (Navigator.canPop(context)) {
+                                          Navigator.pop(context);
+                                        } else {
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (context) => const LandingPage()),
+                                          );
+                                        }
+                                      },
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.arrow_back_ios_new,
+                                            size: 16,
+                                            color: Constants.colorDarkBlue,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            TranslationService.translate('back'),
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Constants.colorDarkBlue,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    SizedBox(width: 4),
+
+                                    // Pengganti SizedBox statis 130
+                                    const Spacer(flex: 1),
+
+                                    // Header Logo & Teks Sign In
+                                    Row(
+                                      children: [
+                                        Image.asset(
+                                          'assets/images/brand/logo.png',
+                                          height: 40,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          TranslationService.translate('sign_in'),
+                                          style: const TextStyle(
+                                            fontSize: 32,
+                                            fontWeight: FontWeight.w900,
+                                            color: Constants.colorDarkBlue,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+
+                                    // Subtitle
                                     Text(
-                                      'Back',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Constants.colorDarkBlue,
+                                      TranslationService.translate('login_welcome'),
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.blueGrey,
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
+                                    const SizedBox(height: 20),
 
-                              // Pengganti SizedBox statis 130
-                              const Spacer(flex: 1),
-
-                              // Header Logo & Teks Sign In
-                              Row(
-                                children: [
-                                  Image.asset(
-                                    'assets/images/brand/logo.png',
-                                    height: 40,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.w900,
-                                      color: Constants.colorDarkBlue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Subtitle
-                              const Text(
-                                'Welcome! Please sign in to your account.',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-
-                              if (_errorMessage != null)
-                                Container(
-                                  width: double.infinity, // Sepanjang textfield
-                                  margin: const EdgeInsets.only(bottom: 20),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF0F0),
-                                    borderRadius: BorderRadius.circular(
-                                      16,
-                                    ), // Samakan dengan textfield
-                                    border: Border.all(
-                                      color: Colors.redAccent.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _errorMessage!,
-                                    style: const TextStyle(
-                                      color: Colors.redAccent,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                )
-                              else if (_successMessage != null)
-                                Container(
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(bottom: 20),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFF0FFF4,
-                                    ), // Hijau pastel
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Colors.green.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _successMessage!,
-                                    style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                )
-                              else
-                                const SizedBox(height: 20),
-
-                              // Form Input Username
-                              _buildTextField(
-                                controller: _usernameController,
-                                label: 'Username',
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Form Input Password
-                              _buildTextField(
-                                controller: _passwordController,
-                                label: 'Password',
-                                isPassword: true,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Baris Remember me & Forgot Password
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: Checkbox(
-                                          value: _rememberMe,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _rememberMe = value ?? false;
-                                            });
-                                          },
-                                          activeColor: Constants.colorCyan,
-                                          side: const BorderSide(
-                                            color: Colors.blueGrey,
+                                    if (_errorMessage != null)
+                                      Container(
+                                        width: double.infinity, // Sepanjang textfield
+                                        margin: const EdgeInsets.only(bottom: 20),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFFFF0F0),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ), // Samakan dengan textfield
+                                          border: Border.all(
+                                            color: Colors.redAccent.withValues(
+                                              alpha: 0.3,
+                                            ),
                                             width: 1.5,
                                           ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                        ),
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(
+                                            color: Colors.redAccent,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      )
+                                    else if (_successMessage != null)
+                                      Container(
+                                        width: double.infinity,
+                                        margin: const EdgeInsets.only(bottom: 20),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xFFF0FFF4,
+                                          ), // Hijau pastel
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: Colors.green.withValues(
+                                              alpha: 0.3,
                                             ),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _successMessage!,
+                                          style: const TextStyle(
+                                            color: Colors.green,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      const SizedBox(height: 20),
+
+                                    // Form Input Username
+                                    _buildTextField(
+                                      controller: _usernameController,
+                                      label: TranslationService.translate('username'),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    // Form Input Password
+                                    _buildTextField(
+                                      controller: _passwordController,
+                                      label: TranslationService.translate('password'),
+                                      isPassword: true,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Baris Remember me & Forgot Password
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: Checkbox(
+                                                value: _rememberMe,
+                                                onChanged: (value) {
+                                                  setState(() {
+                                                    _rememberMe = value ?? false;
+                                                  });
+                                                },
+                                                activeColor: Constants.colorCyan,
+                                                side: const BorderSide(
+                                                  color: Colors.blueGrey,
+                                                  width: 1.5,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(
+                                                    4,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              TranslationService.translate('remember_me'),
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.blueGrey,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        HoverLinkText(
+                                          text: TranslationService.translate('forgot_password'),
+                                          onTap: () {
+                                            //  Aksi saat lupa password
+                                          },
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: Constants.colorDarkBlue,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 32),
+
+                                    // Tombol Sign In
+                                    Container(
+                                      width: double.infinity,
+                                      height: 55,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF4DD0E1), Color(0xFF00BCD4)], // Primary Cyan face
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF0097A7), // Dark Cyan shadow simulating the 3D edge directly
+                                            blurRadius: 0,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(16),
+                                          onTap: _isLoading ? null : _handleLogin,
+                                          splashColor: Colors.white.withValues(alpha: 0.25),
+                                          child: Center(
+                                            child: _isLoading
+                                                ? const SizedBox(
+                                                    height: 24,
+                                                    width: 24,
+                                                    child: CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    TranslationService.translate('sign_in'),
+                                                    style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        'Remember me',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.blueGrey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  HoverLinkText(
-                                    text: 'Forgot Password?',
-                                    onTap: () {
-                                      //  Aksi saat lupa password
-                                    },
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Constants.colorDarkBlue,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 32),
+                                    const SizedBox(height: 40),
 
-                              // Tombol Sign In
-                              Container(
-                                width: double.infinity,
-                                height: 55,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF4DD0E1), Color(0xFF00BCD4)], // Primary Cyan face
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF0097A7), // Dark Cyan shadow simulating the 3D edge directly
-                                      blurRadius: 0,
-                                      offset: const Offset(0, 4),
+                                    // Tautan Create Account
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          TranslationService.translate('no_account'),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.blueGrey,
+                                          ),
+                                        ),
+                                        HoverLinkText(
+                                          text: TranslationService.translate('create_account'),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Constants.colorDarkBlue,
+                                          ),
+                                          onTap: () async {
+                                            //  1. Tunggu user kembali dari halaman Register
+                                            final result = await Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const RegisterScreen(),
+                                              ),
+                                            );
+
+                                            //  2. Tangkap pesan suksesnya (jika ada)
+                                            if (result != null && mounted) {
+                                              setState(() {
+                                                _successMessage = result.toString();
+                                                _errorMessage =
+                                                    null; // Hapus error merah jika ada
+                                              });
+
+                                              //  3. Hilangkan pesan sukses otomatis setelah 5 detik
+                                              Timer(const Duration(seconds: 5), () {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _successMessage = null;
+                                                  });
+                                                }
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ],
                                     ),
+
+                                    // Pengganti SizedBox statis 300
+                                    const Spacer(flex: 2),
                                   ],
                                 ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: _isLoading ? null : _handleLogin,
-                                    splashColor: Colors.white.withValues(alpha: 0.25),
-                                    child: Center(
-                                      child: _isLoading
-                                          ? const SizedBox(
-                                              height: 24,
-                                              width: 24,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : const Text(
-                                              'Sign In',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ),
                               ),
-                              const SizedBox(height: 40),
-
-                              // Tautan Create Account
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Text(
-                                    "Don't have an account? ",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.blueGrey,
-                                    ),
-                                  ),
-                                  HoverLinkText(
-                                    text: "Create Account",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Constants.colorDarkBlue,
-                                    ),
-                                    onTap: () async {
-                                      //  1. Tunggu user kembali dari halaman Register
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              const RegisterScreen(),
-                                        ),
-                                      );
-
-                                      //  2. Tangkap pesan suksesnya (jika ada)
-                                      if (result != null && mounted) {
-                                        setState(() {
-                                          _successMessage = result.toString();
-                                          _errorMessage =
-                                              null; // Hapus error merah jika ada
-                                        });
-
-                                        //  3. Hilangkan pesan sukses otomatis setelah 5 detik
-                                        Timer(const Duration(seconds: 5), () {
-                                          if (mounted) {
-                                            setState(() {
-                                              _successMessage = null;
-                                            });
-                                          }
-                                        });
-                                      }
-                                    },
-                                  ),
-                                ],
-                              ),
-
-                              // Pengganti SizedBox statis 300
-                              const Spacer(flex: 2),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    ),);
+        );
+      },
+    );
   }
 }

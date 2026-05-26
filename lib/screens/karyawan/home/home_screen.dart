@@ -164,7 +164,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               ),
               Positioned.fill(
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
                   child: Container(color: Colors.transparent),
                 ),
               ),

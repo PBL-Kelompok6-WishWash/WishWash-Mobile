@@ -512,6 +512,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap ?? () {},
+          splashColor: cyanColor.withOpacity(0.12),
+          highlightColor: cyanColor.withOpacity(0.06),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(
@@ -590,6 +592,8 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: _showLogoutConfirmation,
+          splashColor: Colors.redAccent.withOpacity(0.12),
+          highlightColor: Colors.redAccent.withOpacity(0.06),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             child: Row(

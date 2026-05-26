@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/karyawan/customer/tambah_pelanggan_screen.dart';
 import 'package:mobile/screens/karyawan/create_order/create_order_screen.dart';
+import 'package:mobile/services/translation_service.dart';
 
 class NavbarKaryawan extends StatefulWidget {
   final int currentIndex;
@@ -87,139 +88,144 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
       _isFirstBuild = false;
     }
 
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(35),
-          topRight: Radius.circular(35),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 25,
-            offset: const Offset(0, -10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(35),
-          topRight: Radius.circular(35),
-        ),
-        child: Stack(
-          children: [
-            // Smooth Curved 'Liquid' Indicator (Inside Top Edge)
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Positioned(
-                  top: _topAnimation.value,
-                  left: _leftAnimation.value,
-                  child: CustomPaint(
-                    size: Size(indicatorWidth, 24),
-                    painter: IndicatorPainter(cyanColor),
-                  ),
-                );
-              },
+    return ValueListenableBuilder<String>(
+      valueListenable: TranslationService.languageNotifier,
+      builder: (context, lang, child) {
+        return Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(35),
+              topRight: Radius.circular(35),
             ),
-
-            // Navbar Content
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(
-                    icon: Icons.home_outlined,
-                    activeIcon: Icons.home_rounded,
-                    label: 'Home',
-                    index: 0,
-                    currentIndex: widget.currentIndex,
-                    onTap: widget.onTap,
-                    activeColor: activeColor,
-                    inactiveColor: inactiveColor,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.local_laundry_service_outlined,
-                    activeIcon: Icons.local_laundry_service_rounded,
-                    label: 'Orders',
-                    index: 1,
-                    currentIndex: widget.currentIndex,
-                    onTap: widget.onTap,
-                    activeColor: activeColor,
-                    inactiveColor: inactiveColor,
-                  ),
-
-                  // Smaller Aesthetic Plus Button
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFFBCEFF2), // Soft bright brand cyan
-                          Color(0xFF42C6D4), // Standard brand cyan
-                        ],
-                      ),
-                      boxShadow: [
-                        // 3D bottom edge line (tipis)
-                        BoxShadow(
-                          color: const Color(0xFF0C4B8E).withOpacity(0.25),
-                          blurRadius: 3,
-                          offset: const Offset(0, 2),
-                        ),
-                        // Soft ambient glow (tipis)
-                        BoxShadow(
-                          color: const Color(0xFF42C6D4).withOpacity(0.25),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: GestureDetector(
-                      onTap: () => showKaryawanMenu(context),
-                      behavior: HitTestBehavior.opaque,
-                      child: const Center(
-                        child: Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  _buildNavItem(
-                    icon: Icons.message_outlined,
-                    activeIcon: Icons.message_rounded,
-                    label: 'Message',
-                    index: 3,
-                    currentIndex: widget.currentIndex,
-                    onTap: widget.onTap,
-                    activeColor: activeColor,
-                    inactiveColor: inactiveColor,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.person_outline_rounded,
-                    activeIcon: Icons.person_rounded,
-                    label: 'Profile',
-                    index: 4,
-                    currentIndex: widget.currentIndex,
-                    onTap: widget.onTap,
-                    activeColor: activeColor,
-                    inactiveColor: inactiveColor,
-                  ),
-                ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 25,
+                offset: const Offset(0, -10),
               ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(35),
+              topRight: Radius.circular(35),
             ),
-          ],
-        ),
-      ),
+            child: Stack(
+              children: [
+                // Smooth Curved 'Liquid' Indicator (Inside Top Edge)
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, child) {
+                    return Positioned(
+                      top: _topAnimation.value,
+                      left: _leftAnimation.value,
+                      child: CustomPaint(
+                        size: Size(indicatorWidth, 24),
+                        painter: IndicatorPainter(cyanColor),
+                      ),
+                    );
+                  },
+                ),
+
+                // Navbar Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildNavItem(
+                        icon: Icons.home_outlined,
+                        activeIcon: Icons.home_rounded,
+                        label: TranslationService.translate('home'),
+                        index: 0,
+                        currentIndex: widget.currentIndex,
+                        onTap: widget.onTap,
+                        activeColor: activeColor,
+                        inactiveColor: inactiveColor,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.local_laundry_service_outlined,
+                        activeIcon: Icons.local_laundry_service_rounded,
+                        label: TranslationService.translate('orders'),
+                        index: 1,
+                        currentIndex: widget.currentIndex,
+                        onTap: widget.onTap,
+                        activeColor: activeColor,
+                        inactiveColor: inactiveColor,
+                      ),
+
+                      // Smaller Aesthetic Plus Button
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFFBCEFF2), // Soft bright brand cyan
+                              Color(0xFF42C6D4), // Standard brand cyan
+                            ],
+                          ),
+                          boxShadow: [
+                            // 3D bottom edge line (tipis)
+                            BoxShadow(
+                              color: const Color(0xFF0C4B8E).withOpacity(0.25),
+                              blurRadius: 3,
+                              offset: const Offset(0, 2),
+                            ),
+                            // Soft ambient glow (tipis)
+                            BoxShadow(
+                              color: const Color(0xFF42C6D4).withOpacity(0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: GestureDetector(
+                          onTap: () => showKaryawanMenu(context),
+                          behavior: HitTestBehavior.opaque,
+                          child: const Center(
+                            child: Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      _buildNavItem(
+                        icon: Icons.message_outlined,
+                        activeIcon: Icons.message_rounded,
+                        label: TranslationService.translate('message'),
+                        index: 3,
+                        currentIndex: widget.currentIndex,
+                        onTap: widget.onTap,
+                        activeColor: activeColor,
+                        inactiveColor: inactiveColor,
+                      ),
+                      _buildNavItem(
+                        icon: Icons.person_outline_rounded,
+                        activeIcon: Icons.person_rounded,
+                        label: TranslationService.translate('profile'),
+                        index: 4,
+                        currentIndex: widget.currentIndex,
+                        onTap: widget.onTap,
+                        activeColor: activeColor,
+                        inactiveColor: inactiveColor,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -404,7 +410,7 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                     ],
                                   ),
                                   child: Text(
-                                    'Tambah Pesanan',
+                                    TranslationService.translate('add_order'),
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.poppins(
                                       color: Colors.white,
@@ -440,7 +446,7 @@ class _KaryawanMenuDialogContentState extends State<KaryawanMenuDialogContent> w
                                     ],
                                   ),
                                   child: Text(
-                                    'Tambah Akun',
+                                    TranslationService.translate('add_account'),
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.poppins(
                                       color: Colors.white,
