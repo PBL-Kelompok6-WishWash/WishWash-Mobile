@@ -214,10 +214,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
     final layanan = order['Layanan'];
-    final List<dynamic>? refList = layanan != null ? layanan['ReferensiStatus'] : null;
+    final List<dynamic>? refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
     
+    List<Map<String, dynamic>> sortedList = [];
     if (refList == null || refList.isEmpty) {
-      return const [
+      sortedList = [
         {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
         {'nama_status': 'Penjemputan', 'urutan_tahap': 2},
         {'nama_status': 'Proses Timbang', 'urutan_tahap': 3},
@@ -227,14 +228,36 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         {'nama_status': 'Siap Diantar', 'urutan_tahap': 7},
         {'nama_status': 'Selesai', 'urutan_tahap': 8},
       ];
+    } else {
+      final temp = refList.map((e) => Map<String, dynamic>.from(e)).toList();
+      temp.sort((a, b) {
+        final int seqA = a['urutan_tahap'] as int? ?? 0;
+        final int seqB = b['urutan_tahap'] as int? ?? 0;
+        return seqA.compareTo(seqB);
+      });
+
+      sortedList.add({'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1});
+      for (int i = 0; i < temp.length; i++) {
+        final item = temp[i];
+        final name = (item['nama_status'] ?? '').toString();
+        if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
+          continue;
+        }
+        sortedList.add({
+          'id_referensi_status_layanan': item['id_referensi_status_layanan'],
+          'nama_status': name,
+          'urutan_tahap': i + 2,
+        });
+      }
     }
-    
-    List<Map<String, dynamic>> sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
-    sortedList.sort((a, b) {
-      final int seqA = a['urutan_tahap'] as int? ?? 0;
-      final int seqB = b['urutan_tahap'] as int? ?? 0;
-      return seqA.compareTo(seqB);
-    });
+
+    if (order['tipe_logistik'] == 'Drop-off') {
+      sortedList.removeWhere((element) {
+        final name = (element['nama_status'] ?? '').toString().toLowerCase();
+        return name.contains('jemput') || name.contains('pickup') || name.contains('penjemputan');
+      });
+    }
+
     return sortedList;
   }
 
@@ -282,10 +305,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     final historyList = order['RiwayatStatusDetail'];
     if (historyList == null || historyList is! List || historyList.isEmpty) {
       final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
       return {
         'nama_status': TranslationService.translateStatus(rawStatus),
         'raw_status': rawStatus,
-        'active_index': 0,
+        'active_index': initialActiveIndex,
         'statuses': refStatuses,
         'is_selesai': false,
       };
@@ -302,10 +326,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     final refStatus = latestHistory['ReferensiStatus'];
     if (refStatus == null || refStatus is! Map) {
       final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
       return {
         'nama_status': TranslationService.translateStatus(rawStatus),
         'raw_status': rawStatus,
-        'active_index': 0,
+        'active_index': initialActiveIndex,
         'statuses': refStatuses,
         'is_selesai': false,
       };
@@ -326,12 +351,26 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     } else {
       final String lowerRaw = rawStatus.toLowerCase().trim();
       for (int i = 0; i < refStatuses.length; i++) {
-        final String name = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
-        if (name == lowerRaw) {
+        final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+        if (refName == lowerRaw ||
+            (lowerRaw.contains('diterima') && refName.contains('diterima')) ||
+            (lowerRaw.contains('jemput') && refName.contains('jemput')) ||
+            (lowerRaw.contains('timbang') && refName.contains('timbang')) ||
+            (lowerRaw.contains('cuci') && refName.contains('cuci')) ||
+            (lowerRaw.contains('kering') && refName.contains('kering')) ||
+            (lowerRaw.contains('lipat') && refName.contains('lipat')) ||
+            (lowerRaw.contains('setrika') && refName.contains('setrika')) ||
+            (lowerRaw.contains('antar') && refName.contains('antar')) ||
+            (lowerRaw.contains('selesai') && refName.contains('selesai'))) {
           activeIndex = i;
           break;
         }
       }
+    }
+
+    // Shift activeIndex to 1 if it is 0 and we have more states, so 'Pesanan Diterima' shows checked and stage 2 has active dot
+    if (activeIndex == 0 && refStatuses.length > 1) {
+      activeIndex = 1;
     }
 
     final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
@@ -1688,8 +1727,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
               final String shortLabel = _getShortStatusLabel(rawName, lang);
-              final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
+              
               final bool isCurrent = i == activeIdx && !isSelesai;
+              final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
               final bool isActive = isDone || isCurrent;
 
               steps.add(
@@ -1812,7 +1852,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     ),
                     child: Center(
                       child: isCurrent
-                          ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
+                          ? Icon(Icons.circle, size: 8, color: themeColor)
                           : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
                     ),
                   ),

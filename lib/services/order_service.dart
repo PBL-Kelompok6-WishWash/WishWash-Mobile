@@ -48,4 +48,26 @@ class OrderService {
       throw Exception(data['error'] ?? 'Gagal membuat pesanan');
     }
   }
+
+  static Future<Map<String, dynamic>> updateOrder(int orderId, Map<String, dynamic> updateData) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token == null) throw Exception('No token found');
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/$orderId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(updateData),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return data['data'] ?? data;
+    } else {
+      throw Exception(data['error'] ?? 'Gagal memperbarui pesanan');
+    }
+  }
 }

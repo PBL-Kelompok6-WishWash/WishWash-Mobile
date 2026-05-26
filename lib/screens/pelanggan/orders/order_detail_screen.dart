@@ -10,9 +10,9 @@ class OrderDetailScreen extends StatelessWidget {
 
   List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
     final layanan = order['Layanan'];
-    final List<dynamic>? refList = layanan != null ? layanan['ReferensiStatus'] : null;
+    final List<dynamic>? refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
     
-    List<Map<String, dynamic>> sortedList;
+    List<Map<String, dynamic>> sortedList = [];
     if (refList == null || refList.isEmpty) {
       sortedList = [
         {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
@@ -25,12 +25,29 @@ class OrderDetailScreen extends StatelessWidget {
         {'nama_status': 'Selesai', 'urutan_tahap': 8},
       ];
     } else {
-      sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
-      sortedList.sort((a, b) {
+      // Dynamic service statuses from DB alur
+      final temp = refList.map((e) => Map<String, dynamic>.from(e)).toList();
+      temp.sort((a, b) {
         final int seqA = a['urutan_tahap'] as int? ?? 0;
         final int seqB = b['urutan_tahap'] as int? ?? 0;
         return seqA.compareTo(seqB);
       });
+
+      // Always prepend 'Pesanan Diterima' as the absolute first phase (urutan_tahap: 1)
+      sortedList.add({'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1});
+      for (int i = 0; i < temp.length; i++) {
+        final item = temp[i];
+        final name = (item['nama_status'] ?? '').toString();
+        // Skip if they accidentally put 'Pesanan Diterima' or equivalent in DB list to avoid duplicate
+        if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
+          continue;
+        }
+        sortedList.add({
+          'id_referensi_status_layanan': item['id_referensi_status_layanan'],
+          'nama_status': name,
+          'urutan_tahap': i + 2, // offset everything dynamically
+        });
+      }
     }
 
     if (order['tipe_logistik'] == 'Drop-off') {
@@ -87,10 +104,11 @@ class OrderDetailScreen extends StatelessWidget {
     final historyList = order['RiwayatStatusDetail'];
     if (historyList == null || historyList is! List || historyList.isEmpty) {
       final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
       return {
         'nama_status': TranslationService.translateStatus(rawStatus),
         'raw_status': rawStatus,
-        'active_index': 0,
+        'active_index': initialActiveIndex,
         'statuses': refStatuses,
         'is_selesai': false,
       };
@@ -107,10 +125,11 @@ class OrderDetailScreen extends StatelessWidget {
     final refStatus = latestHistory['ReferensiStatus'];
     if (refStatus == null || refStatus is! Map) {
       final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
+      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
       return {
         'nama_status': TranslationService.translateStatus(rawStatus),
         'raw_status': rawStatus,
-        'active_index': 0,
+        'active_index': initialActiveIndex,
         'statuses': refStatuses,
         'is_selesai': false,
       };
@@ -131,12 +150,26 @@ class OrderDetailScreen extends StatelessWidget {
     } else {
       final String lowerRaw = rawStatus.toLowerCase().trim();
       for (int i = 0; i < refStatuses.length; i++) {
-        final String name = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
-        if (name == lowerRaw) {
+        final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+        if (refName == lowerRaw ||
+            (lowerRaw.contains('diterima') && refName.contains('diterima')) ||
+            (lowerRaw.contains('jemput') && refName.contains('jemput')) ||
+            (lowerRaw.contains('timbang') && refName.contains('timbang')) ||
+            (lowerRaw.contains('cuci') && refName.contains('cuci')) ||
+            (lowerRaw.contains('kering') && refName.contains('kering')) ||
+            (lowerRaw.contains('lipat') && refName.contains('lipat')) ||
+            (lowerRaw.contains('setrika') && refName.contains('setrika')) ||
+            (lowerRaw.contains('antar') && refName.contains('antar')) ||
+            (lowerRaw.contains('selesai') && refName.contains('selesai'))) {
           activeIndex = i;
           break;
         }
       }
+    }
+
+    // Shift activeIndex to 1 if it is 0 and we have more states, so 'Pesanan Diterima' shows checked and stage 2 has active dot
+    if (activeIndex == 0 && refStatuses.length > 1) {
+      activeIndex = 1;
     }
 
     final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
@@ -561,8 +594,12 @@ class OrderDetailScreen extends StatelessWidget {
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
               final String shortLabel = _getShortStatusLabel(rawName, lang);
-              final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
+              
+              // (1) i == 0 (Pesanan Diterima) is marked DONE immediately once active index > 0.
+              // (2) If current status (i == activeIdx), it's the dot (isCurrent = true, isDone = false) indicating 'in progress'.
+              // (3) Once it moves beyond (i < activeIdx), it gets checked (isDone = true).
               final bool isCurrent = i == activeIdx && !isSelesai;
+              final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
               final bool isActive = isDone || isCurrent;
 
               steps.add(

@@ -4,6 +4,7 @@ import 'package:mobile/services/translation_service.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
+import 'package:mobile/services/order_service.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -24,7 +25,82 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   final Color bgGrey = const Color(0xFFF8FBFC);
   final Color softTeal = const Color(0xFFBCEFF2);
 
-  // High-fidelity Mock Orders berstruktur persis seperti database/JSON API riil
+  List<dynamic> _orders = [];
+  bool _isLoading = true;
+  String _errorMessage = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  Future<void> _fetchOrders() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = "";
+    });
+    try {
+      final list = await OrderService.getOrders();
+      if (mounted) {
+        setState(() {
+          _orders = list;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getOrderStatus(Map<String, dynamic> order) {
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList == null || historyList is! List || historyList.isEmpty) {
+      final layanan = order['Layanan'];
+      final refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
+      if (layanan != null && refList != null && refList is List) {
+        if (refList.isNotEmpty) {
+          List<dynamic> sortedRef = List.from(refList);
+          sortedRef.sort((a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(b['urutan_tahap'] as int? ?? 0));
+          return sortedRef.first['nama_status'] ?? 'Pesanan Diterima';
+        }
+      }
+      return 'Pesanan Diterima';
+    }
+
+    List<dynamic> sortedHistory = List.from(historyList);
+    sortedHistory.sort((a, b) {
+      final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+      final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+      return idA.compareTo(idB);
+    });
+
+    final latestHistory = sortedHistory.last;
+    final refStatus = latestHistory['ReferensiStatus'];
+    if (refStatus != null && refStatus is Map) {
+      return refStatus['nama_status'] ?? 'Pesanan Diterima';
+    }
+    return 'Pesanan Diterima';
+  }
+
+  String _getPaymentStatus(Map<String, dynamic> order) {
+    final pembayaran = order['Pembayaran'];
+    if (pembayaran == null || pembayaran is! Map) {
+      return 'Belum Lunas';
+    }
+    final status = pembayaran['status_pembayaran'] ?? 'Belum Lunas';
+    if (status == 'Paid' || status == 'Lunas') {
+      return 'Lunas';
+    }
+    return 'Belum Lunas';
+  }
+
   final List<Map<String, dynamic>> _mockOrders = [
     {
       'id_order': 1,
@@ -297,8 +373,11 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     }
   }
 
-  bool _isOutletOrder(String status) {
+  bool _isOutletOrder(String status, String logistikType) {
     final s = status.toLowerCase();
+    if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
+      return false;
+    }
     return s == 'pesanan diterima' ||
         s == 'proses timbang' ||
         s == 'proses cuci' ||
@@ -307,8 +386,11 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         s == 'proses setrika';
   }
 
-  bool _isLogistikOrder(String status) {
+  bool _isLogistikOrder(String status, String logistikType) {
     final s = status.toLowerCase();
+    if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
+      return true;
+    }
     return s == 'penjemputan' || s == 'siap diantar';
   }
 
@@ -317,11 +399,13 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   List<Map<String, dynamic>> get _filteredOrders {
-    return _mockOrders.where((order) {
-      final status = order['status_operasional'] as String;
-      final pelanggan = order['Pelanggan'] as Map<String, dynamic>;
-      final customerName = pelanggan['nama_lengkap'].toString().toLowerCase();
-      final orderCode = order['kode_order'].toString().toLowerCase();
+    final list = _orders.map((e) => Map<String, dynamic>.from(e)).toList();
+    return list.where((order) {
+      final status = _getOrderStatus(order);
+      final pelanggan = order['Pelanggan'] as Map<String, dynamic>? ?? {};
+      final customerName = (pelanggan['nama_lengkap'] ?? '').toString().toLowerCase();
+      final orderCode = (order['kode_order'] ?? '').toString().toLowerCase();
+      final logistikType = order['tipe_logistik']?.toString() ?? '';
 
       // 1. Check Primary Tab Filter
       bool matchesTab = false;
@@ -330,18 +414,18 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         matchesTab = !_isSelesaiOrder(status);
       } else if (_activeTabIndex == 1) {
         // Logistik
-        matchesTab = _isLogistikOrder(status);
+        matchesTab = _isLogistikOrder(status, logistikType);
         if (matchesTab) {
           // Sub-Filter Logistik
           if (_activeLogistikSubIndex == 1) {
-            matchesTab = status.toLowerCase() == 'penjemputan';
+            matchesTab = status.toLowerCase() == 'penjemputan' || (status.toLowerCase() == 'pesanan diterima' && logistikType == 'Courier Delivery');
           } else if (_activeLogistikSubIndex == 2) {
             matchesTab = status.toLowerCase() == 'siap diantar';
           }
         }
       } else if (_activeTabIndex == 2) {
         // Outlet
-        matchesTab = _isOutletOrder(status);
+        matchesTab = _isOutletOrder(status, logistikType);
         if (matchesTab) {
           // Sub-Filter Outlet
           if (_activeOutletSubIndex == 1) {
@@ -369,9 +453,17 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     }).toList();
   }
 
-  int get _outletCount => _mockOrders.where((o) => _isOutletOrder(o['status_operasional'])).length;
-  int get _logistikCount => _mockOrders.where((o) => _isLogistikOrder(o['status_operasional'])).length;
-  int get _selesaiCount => _mockOrders.where((o) => _isSelesaiOrder(o['status_operasional'])).length;
+  int get _outletCount => _orders.where((o) {
+    final map = Map<String, dynamic>.from(o);
+    return _isOutletOrder(_getOrderStatus(map), map['tipe_logistik']?.toString() ?? '');
+  }).length;
+
+  int get _logistikCount => _orders.where((o) {
+    final map = Map<String, dynamic>.from(o);
+    return _isLogistikOrder(_getOrderStatus(map), map['tipe_logistik']?.toString() ?? '');
+  }).length;
+
+  int get _selesaiCount => _orders.where((o) => _isSelesaiOrder(_getOrderStatus(Map<String, dynamic>.from(o)))).length;
 
   @override
   Widget build(BuildContext context) {
@@ -395,26 +487,60 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
               // --- DAFTAR KARTU PESANAN OPERASIONAL ---
               Expanded(
-                child: _filteredOrders.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: () async {
-                          // Simulasi refresh singkat
-                          await Future.delayed(const Duration(seconds: 1));
-                          if (mounted) setState(() {});
-                        },
-                        color: navyColor,
-                        backgroundColor: Colors.white,
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                          itemCount: _filteredOrders.length,
-                          itemBuilder: (context, index) {
-                            final order = _filteredOrders[index];
-                            return _buildOrderCard(order);
-                          },
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
                         ),
-                      ),
+                      )
+                    : _errorMessage.isNotEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error_outline, size: 40, color: Colors.red),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    _errorMessage,
+                                    style: GoogleFonts.poppins(color: Colors.red, fontSize: 13),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 15),
+                                  ElevatedButton(
+                                    onPressed: _fetchOrders,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: navyColor,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Coba Lagi',
+                                      style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : _filteredOrders.isEmpty
+                            ? _buildEmptyState()
+                            : RefreshIndicator(
+                                onRefresh: _fetchOrders,
+                                color: navyColor,
+                                backgroundColor: Colors.white,
+                                child: ListView.builder(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                                  itemCount: _filteredOrders.length,
+                                  itemBuilder: (context, index) {
+                                    final order = _filteredOrders[index];
+                                    return _buildOrderCard(order);
+                                  },
+                                ),
+                              ),
               ),
             ],
           ),
@@ -921,26 +1047,25 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order) {
-    final pelanggan = order['Pelanggan'] as Map<String, dynamic>;
-    final layanan = order['Layanan'] as Map<String, dynamic>;
-    final paket = order['PaketLayanan'] as Map<String, dynamic>;
-    final pembayaran = order['Pembayaran'] as Map<String, dynamic>;
-    final status = order['status_operasional'] as String;
+    final pelanggan = order['Pelanggan'] as Map<String, dynamic>? ?? {};
+    final layanan = order['Layanan'] as Map<String, dynamic>? ?? {};
+    final paket = order['PaketLayanan'] as Map<String, dynamic>? ?? {};
+    final status = _getOrderStatus(order);
 
     final String orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
     final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
     final String serviceName = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan');
     final String packageName = paket['nama_paket'] ?? 'Reguler';
-    final double totalBayar = order['total_bayar'] as double;
-    final String priceStr = totalBayar == 0.0 ? '-' : _formatPrice(totalBayar);
+    final double totalBayar = (order['total_bayar'] as num? ?? 0.0).toDouble();
+    final String priceStr = totalBayar == 0.0 ? 'Rp 0' : _formatPrice(totalBayar);
 
     final statusColor = _getStatusColor(status);
     final String translatedStatus = TranslationService.translateStatus(status);
 
-    final bool isLunas = pembayaran['status_pembayaran'] == 'Lunas';
+    final String paymentLabel = _getPaymentStatus(order);
+    final bool isLunas = paymentLabel == 'Lunas';
     final Color paymentBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
     final Color paymentText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
-    final String paymentLabel = isLunas ? 'Lunas' : 'Belum Lunas';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -966,12 +1091,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                 builder: (context) => OrderDetailScreenKaryawan(
                   order: order,
                   onOrderUpdated: (updatedOrder) {
-                    setState(() {
-                      final idx = _mockOrders.indexWhere((o) => o['id_order'] == updatedOrder['id_order']);
-                      if (idx != -1) {
-                        _mockOrders[idx] = updatedOrder;
-                      }
-                    });
+                    _fetchOrders();
                   },
                 ),
               ),
@@ -1182,7 +1302,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
         final String orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
         final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
-        final String customerPhone = pelanggan['no_hp'] ?? '-';
+        final String customerPhone = pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? '-';
         final String serviceName = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan');
         final String packageName = paket['nama_paket'] ?? 'Reguler';
         final double kuantitas = (order['kuantitas'] as num).toDouble();

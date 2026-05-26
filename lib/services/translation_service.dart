@@ -319,35 +319,39 @@ class TranslationService {
   static String translateStatus(String dbStatus) {
     if (dbStatus.isEmpty) return dbStatus;
     
-    final Map<String, String> idToEn = {
-      'pesanan diterima': 'Order Received',
-      'penjemputan': 'Pick Up',
-      'proses timbang': 'Weighing Process',
-      'proses cuci': 'Washing Process',
-      'proses kering': 'Drying Process',
-      'proses lipat': 'Folding Process',
-      'proses setrika': 'Ironing Process',
-      'siap diantar': 'Ready for Delivery',
-      'selesai': 'Completed',
-    };
-
-    final Map<String, String> enToId = {
-      'order received': 'Pesanan Diterima',
-      'pick up': 'Penjemputan',
-      'weighing process': 'Proses Timbang',
-      'washing process': 'Proses Cuci',
-      'drying process': 'Proses Kering',
-      'folding process': 'Proses Lipat',
-      'ironing process': 'Proses Setrika',
-      'ready for delivery': 'Siap Diantar',
-      'completed': 'Selesai',
-    };
-
     final lowerStatus = dbStatus.toLowerCase().trim();
-    if (currentLang == 'en') {
-      return idToEn[lowerStatus] ?? dbStatus;
-    } else {
-      return enToId[lowerStatus] ?? dbStatus;
+
+    // Map exact or common lowercase database keys to their target language values
+    final isEn = currentLang == 'en';
+    
+    if (lowerStatus.contains('diterima') || lowerStatus.contains('received')) {
+      return isEn ? 'Order Received' : 'Pesanan Diterima';
     }
+    if (lowerStatus.contains('jemput') || lowerStatus.contains('pickup') || lowerStatus.contains('pick up') || lowerStatus.contains('penjemputan')) {
+      return isEn ? 'Pick Up' : 'Penjemputan';
+    }
+    if (lowerStatus.contains('timbang') || lowerStatus.contains('weigh')) {
+      return isEn ? 'Weighing Process' : 'Proses Timbang';
+    }
+    if (lowerStatus.contains('cuci') || lowerStatus.contains('wash')) {
+      return isEn ? 'Washing Process' : 'Proses Cuci';
+    }
+    if (lowerStatus.contains('kering') || lowerStatus.contains('dry')) {
+      return isEn ? 'Drying Process' : 'Proses Kering';
+    }
+    if (lowerStatus.contains('lipat') || lowerStatus.contains('fold')) {
+      return isEn ? 'Folding Process' : 'Proses Lipat';
+    }
+    if (lowerStatus.contains('setrika') || lowerStatus.contains('iron')) {
+      return isEn ? 'Ironing Process' : 'Proses Setrika';
+    }
+    if (lowerStatus.contains('antar') || lowerStatus.contains('delivery') || lowerStatus.contains('siap diantar')) {
+      return isEn ? 'Ready for Delivery' : 'Siap Diantar';
+    }
+    if (lowerStatus.contains('selesai') || lowerStatus.contains('completed') || lowerStatus.contains('success') || lowerStatus.contains('done')) {
+      return isEn ? 'Completed' : 'Selesai';
+    }
+
+    return dbStatus;
   }
 }

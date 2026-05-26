@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:mobile/services/order_service.dart';
+import 'package:mobile/screens/karyawan/orders/karyawan_tracking_screen.dart';
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -32,12 +35,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   // --- KONSISTENSI DENGAN DETIL PESANAN PELANGGAN ---
-  
   List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
     final layanan = order['Layanan'];
-    final List<dynamic>? refList = layanan != null ? layanan['ReferensiStatus'] : null;
+    final List<dynamic>? refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
     
-    List<Map<String, dynamic>> sortedList;
+    List<Map<String, dynamic>> sortedList = [];
     if (refList == null || refList.isEmpty) {
       sortedList = [
         {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
@@ -50,12 +52,26 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         {'nama_status': 'Selesai', 'urutan_tahap': 8},
       ];
     } else {
-      sortedList = refList.map((e) => Map<String, dynamic>.from(e)).toList();
-      sortedList.sort((a, b) {
+      final temp = refList.map((e) => Map<String, dynamic>.from(e)).toList();
+      temp.sort((a, b) {
         final int seqA = a['urutan_tahap'] as int? ?? 0;
         final int seqB = b['urutan_tahap'] as int? ?? 0;
         return seqA.compareTo(seqB);
       });
+
+      sortedList.add({'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1});
+      for (int i = 0; i < temp.length; i++) {
+        final item = temp[i];
+        final name = (item['nama_status'] ?? '').toString();
+        if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
+          continue;
+        }
+        sortedList.add({
+          'id_referensi_status_layanan': item['id_referensi_status_layanan'],
+          'nama_status': name,
+          'urutan_tahap': i + 2,
+        });
+      }
     }
 
     if (order['tipe_logistik'] == 'Drop-off') {
@@ -106,18 +122,76 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     return rawStatus;
   }
 
+  String _getOrderStatus(Map<String, dynamic> order) {
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList == null || historyList is! List || historyList.isEmpty) {
+      final layanan = order['Layanan'];
+      final refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
+      if (layanan != null && refList != null && refList is List) {
+        if (refList.isNotEmpty) {
+          List<dynamic> sortedRef = List.from(refList);
+          sortedRef.sort((a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(b['urutan_tahap'] as int? ?? 0));
+          return sortedRef.first['nama_status'] ?? 'Pesanan Diterima';
+        }
+      }
+      return 'Pesanan Diterima';
+    }
+
+    List<dynamic> sortedHistory = List.from(historyList);
+    sortedHistory.sort((a, b) {
+      final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+      final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+      return idA.compareTo(idB);
+    });
+
+    final latestHistory = sortedHistory.last;
+    final refStatus = latestHistory['ReferensiStatus'];
+    if (refStatus != null && refStatus is Map) {
+      return refStatus['nama_status'] ?? 'Pesanan Diterima';
+    }
+    return 'Pesanan Diterima';
+  }
+
+  String _getPaymentStatus(Map<String, dynamic> order) {
+    final pembayaran = order['Pembayaran'];
+    if (pembayaran == null || pembayaran is! Map) {
+      return 'Belum Lunas';
+    }
+    final status = pembayaran['status_pembayaran'] ?? 'Belum Lunas';
+    if (status == 'Paid' || status == 'Lunas') {
+      return 'Lunas';
+    }
+    return 'Belum Lunas';
+  }
+
   Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
     final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(order);
-    final String currentStatus = order['status_operasional'] ?? 'Pesanan Diterima';
+    final String currentStatus = _getOrderStatus(order);
     final String lowerCurrent = currentStatus.toLowerCase().trim();
     
     int activeIndex = 0;
     for (int i = 0; i < refStatuses.length; i++) {
-      final String name = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
-      if (name == lowerCurrent) {
+      final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+      
+      // Flexible matching for both dynamic DB alur
+      if (refName == lowerCurrent || 
+          (lowerCurrent.contains('diterima') && refName.contains('diterima')) ||
+          (lowerCurrent.contains('jemput') && refName.contains('jemput')) ||
+          (lowerCurrent.contains('timbang') && refName.contains('timbang')) ||
+          (lowerCurrent.contains('cuci') && refName.contains('cuci')) ||
+          (lowerCurrent.contains('kering') && refName.contains('kering')) ||
+          (lowerCurrent.contains('lipat') && refName.contains('lipat')) ||
+          (lowerCurrent.contains('setrika') && refName.contains('setrika')) ||
+          (lowerCurrent.contains('antar') && refName.contains('antar')) ||
+          (lowerCurrent.contains('selesai') && refName.contains('selesai'))) {
         activeIndex = i;
         break;
       }
+    }
+
+    // Immediately check 'Pesanan Diterima' (index 0) and place the active dot at index 1 right after order creation
+    if (activeIndex == 0 && refStatuses.length > 1) {
+      activeIndex = 1;
     }
 
     final bool isSelesai = lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
@@ -224,128 +298,489 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // --- PEMBARUAN STATUS KARYAWAN & SIMULASI INTERAKSI ---
   
-  void _updateStatus(String newStatus) {
-    setState(() {
-      _currentOrder['status_operasional'] = newStatus;
-    });
-    widget.onOrderUpdated(_currentOrder);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Status pesanan berhasil diperbarui ke: ${TranslationService.translateStatus(newStatus)}',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: _getDarkenedTextColor(_getServiceColor((_currentOrder['Layanan']?['nama_layanan'] ?? ''))),
-        duration: const Duration(seconds: 2),
-      ),
+  void _showConfirmationDialog({
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: navyColor.withValues(alpha: 0.15),
+                  blurRadius: 30,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Header
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [navyColor.withValues(alpha: 0.12), navyColor.withValues(alpha: 0.06)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.sync_rounded,
+                    color: navyColor,
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Title
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Content
+                Text(
+                  content,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                // Buttons - stacked vertically
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: navyColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onConfirm();
+                    },
+                    child: Text(
+                      'Ya, Perbarui',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF3B30),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
-  void _markAsPaid() {
-    setState(() {
-      _currentOrder['Pembayaran'] = {
-        'status_pembayaran': 'Lunas',
-      };
-    });
-    widget.onOrderUpdated(_currentOrder);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Pembayaran berhasil ditandai LUNAS',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: Colors.green.shade700,
-      ),
+  void _showSuccessDialog({
+    required String title,
+    required String content,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 48),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: navyColor),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                content,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 45,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: navyColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Selesai',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  Future<void> _updateStatus(String newStatus) async {
+    final translatedStatus = TranslationService.translateStatus(newStatus);
+    _showConfirmationDialog(
+      title: 'Konfirmasi Perubahan Status',
+      content: 'Apakah Anda yakin ingin memperbarui status pesanan menjadi "$translatedStatus"?',
+      onConfirm: () async {
+        try {
+          final updatedOrder = await OrderService.updateOrder(
+            _currentOrder['id_order'],
+            {'status': newStatus},
+          );
+          if (mounted) {
+            setState(() {
+              _currentOrder = Map<String, dynamic>.from(updatedOrder);
+            });
+            widget.onOrderUpdated(_currentOrder);
+
+            _showSuccessDialog(
+              title: 'Status Berhasil Diperbarui',
+              content: 'Status pesanan berhasil diperbarui ke "$translatedStatus".',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Gagal memperbarui status: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Future<void> _markAsPaid() async {
+    try {
+      final updatedOrder = await OrderService.updateOrder(
+        _currentOrder['id_order'],
+        {
+          'status_pembayaran': 'Lunas',
+          'metode_bayar': 'Cash',
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _currentOrder = Map<String, dynamic>.from(updatedOrder);
+        });
+        widget.onOrderUpdated(_currentOrder);
+
+        _showSuccessDialog(
+          title: 'Pembayaran Lunas!',
+          content: 'Pesanan ini telah berhasil ditandai sebagai LUNAS.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mencatat pembayaran: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _submitWeightAndStatus(double weight, double totalBayar, String status) async {
+    try {
+      final updatedOrder = await OrderService.updateOrder(
+        _currentOrder['id_order'],
+        {
+          'kuantitas': weight,
+          'total_bayar': totalBayar,
+          'status': status,
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _currentOrder = Map<String, dynamic>.from(updatedOrder);
+        });
+        widget.onOrderUpdated(_currentOrder);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Cucian berhasil ditimbang ($weight kg) dan status diperbarui ke: ${TranslationService.translateStatus(status)}',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: _getDarkenedTextColor(_getServiceColor((_currentOrder['Layanan']?['nama_layanan'] ?? ''))),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memperbarui data timbangan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showWeighingDialog() {
     final textController = TextEditingController();
     final double hargaPerKg = (_currentOrder['Layanan']['harga_per_satuan'] as num).toDouble();
     final double biayaTambahan = (_currentOrder['PaketLayanan']['biaya_tambahan'] as num).toDouble();
+    final String namaPaket = (_currentOrder['PaketLayanan']['nama_paket'] as String?) ?? 'Paket Laundry';
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Text(
-            'Timbang Cucian',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Masukkan berat cucian riil dalam kilogram (Kg):',
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: textController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Berat Cucian (Kg)',
-                  labelStyle: GoogleFonts.poppins(color: navyColor),
-                  suffixText: 'Kg',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: navyColor, width: 2),
-                  ),
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            double? previewWeight = double.tryParse(textController.text.replaceAll(',', '.'));
+            double previewTotal = previewWeight != null && previewWeight > 0
+                ? (previewWeight * hargaPerKg) + biayaTambahan
+                : 0;
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: navyColor.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icon Header
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [navyColor.withValues(alpha: 0.12), navyColor.withValues(alpha: 0.06)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.scale_rounded,
+                        color: navyColor,
+                        size: 36,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Timbang Cucian',
+                      style: GoogleFonts.poppins(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Masukkan berat cucian riil dalam kilogram',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // TextField
+                    TextField(
+                      controller: textController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      ],
+                      onChanged: (_) => setStateDialog(() {}),
+                      decoration: InputDecoration(
+                        labelText: 'Berat Cucian',
+                        labelStyle: GoogleFonts.poppins(color: navyColor),
+                        suffixText: 'Kg',
+                        suffixStyle: GoogleFonts.poppins(
+                          color: navyColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: navyColor, width: 2),
+                        ),
+                        filled: true,
+                        fillColor: navyColor.withValues(alpha: 0.04),
+                      ),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: navyColor,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 14),
+                    // Info row
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Harga/Kg', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+                              Text(_formatRupiah(hargaPerKg), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: navyColor)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Biaya $namaPaket', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
+                              Text(_formatRupiah(biayaTambahan), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: navyColor)),
+                            ],
+                          ),
+                          if (previewTotal > 0) ...[
+                            const Divider(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Estimasi Total', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: navyColor)),
+                                Text(
+                                  _formatRupiah(previewTotal),
+                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // Buttons
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: navyColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        onPressed: () {
+                          final double? weight = double.tryParse(textController.text.replaceAll(',', '.'));
+                          if (weight == null || weight <= 0.0) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Harap masukkan angka berat yang valid!')),
+                            );
+                            return;
+                          }
+                          Navigator.pop(context);
+                          final double computedTotal = (weight * hargaPerKg) + biayaTambahan;
+                          _submitWeightAndStatus(weight, computedTotal, 'proses cuci');
+                        },
+                        child: Text(
+                          'Simpan & Proses',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF3B30),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                '*Harga/Kg: ${_formatRupiah(hargaPerKg)}\n*Biaya Paket: ${_formatRupiah(biayaTambahan)}',
-                style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey.shade500, height: 1.4),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Batal',
-                style: GoogleFonts.poppins(color: Colors.grey, fontWeight: FontWeight.bold),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: navyColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                final double? weight = double.tryParse(textController.text.replaceAll(',', '.'));
-                if (weight == null || weight <= 0.0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Harap masukkan angka berat yang valid!')),
-                  );
-                  return;
-                }
-
-                Navigator.pop(context);
-
-                final double computedTotal = (weight * hargaPerKg) + biayaTambahan;
-
-                setState(() {
-                  _currentOrder['kuantitas'] = weight;
-                  _currentOrder['total_bayar'] = computedTotal;
-                });
-
-                _updateStatus('proses cuci');
-              },
-              child: Text(
-                'Simpan & Proses',
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -408,7 +843,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final pelanggan = _currentOrder['Pelanggan'] ?? {};
     final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
-    final String customerPhone = pelanggan['no_hp'] ?? '-';
+    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? pelanggan['NoTelp'] ?? pelanggan['NoHp'] ?? pelanggan['noTelp'] ?? '-').toString();
 
     final alamatPengambilan = _currentOrder['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
@@ -624,8 +1059,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               (() {
                 final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
                 if (kuantitas > 0.0) {
-                  final pembayaran = order['Pembayaran'];
-                  final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
+                  final String paymentStatus = _getPaymentStatus(order);
+                  final bool isLunas = paymentStatus == 'Lunas';
                   final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
                   final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
                   final String capLabel = isLunas ? 'Lunas' : 'Belum Lunas';
@@ -684,8 +1119,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
               final String shortLabel = _getShortStatusLabel(rawName, lang);
-              final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1);
+              
               final bool isCurrent = i == activeIdx && !isSelesai;
+              final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
               final bool isActive = isDone || isCurrent;
 
               steps.add(
@@ -773,7 +1209,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                     child: Center(
                       child: isCurrent
-                          ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
+                          ? Icon(Icons.circle, size: 8, color: themeColor)
                           : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
                     ),
                   ),
@@ -1501,38 +1937,68 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Footer lengket berisi Tombol Update Status & Pembayaran
   Widget _buildStickyActionFooter() {
-    final status = _currentOrder['status_operasional'].toString().toLowerCase();
-    final statusPembayaran = _currentOrder['Pembayaran']?['status_pembayaran'] ?? 'Belum Lunas';
+    final status = _getOrderStatus(_currentOrder).toLowerCase();
+    final statusPembayaran = _getPaymentStatus(_currentOrder);
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
 
     String actionBtnText = '';
     String nextStatus = '';
     VoidCallback? customAction;
 
-    if (status == 'penjemputan') {
-      actionBtnText = 'Konfirmasi Penjemputan Selesai';
-      nextStatus = 'proses timbang';
-    } else if (status == 'pesanan diterima' || status == 'proses timbang') {
-      actionBtnText = 'Mulai Timbang Cucian';
-      customAction = _showWeighingDialog; 
-    } else if (status == 'proses cuci') {
-      actionBtnText = 'Pencucian Selesai ➔ Mulai Keringkan';
-      nextStatus = 'proses kering';
-    } else if (status == 'proses kering') {
-      actionBtnText = 'Pengeringan Selesai ➔ Mulai Lipat';
-      nextStatus = 'proses lipat';
-    } else if (status == 'proses lipat') {
-      actionBtnText = 'Lipat Selesai ➔ Mulai Setrika';
-      nextStatus = 'proses setrika';
-    } else if (status == 'proses setrika') {
-      actionBtnText = 'Penyetrikaan Selesai ➔ Siap Diantar';
-      nextStatus = 'siap diantar';
-    } else if (status == 'siap diantar') {
-      actionBtnText = 'Konfirmasi Pengantaran Selesai';
-      nextStatus = 'selesai';
+    final refStatuses = _getSortedReferenceStatuses(_currentOrder);
+    final currentStatusIdx = refStatuses.indexWhere(
+      (element) => (element['nama_status'] ?? '').toString().toLowerCase().trim() == status
+    );
+
+    if (currentStatusIdx != -1 && currentStatusIdx < refStatuses.length - 1) {
+      final nextRef = refStatuses[currentStatusIdx + 1];
+      final rawNextName = (nextRef['nama_status'] ?? '').toString();
+      final lowerNext = rawNextName.toLowerCase().trim();
+
+      nextStatus = lowerNext;
+
+      // Map button label dynamically
+      if (status.contains('timbang') || status.contains('weigh') ||
+          ((lowerNext.contains('timbang') || lowerNext.contains('weigh')) &&
+           !(status.contains('jemput') || status.contains('pickup') || status.contains('penjemputan')))) {
+        actionBtnText = 'Mulai Timbang Cucian';
+        customAction = _showWeighingDialog;
+      } else if (status.contains('jemput') || status.contains('pickup') || status.contains('penjemputan')) {
+        // HIDE update button because "Selesaikan Penjemputan" (Konfirmasi Sampai di Lokasi) is inside the map page!
+        actionBtnText = ''; 
+      } else if (lowerNext.contains('jemput') || lowerNext.contains('pickup') || lowerNext.contains('penjemputan')) {
+        actionBtnText = 'Pesanan Diterima ➔ Siap Jemput';
+      } else {
+        if (lowerNext.contains('selesai') || lowerNext.contains('completed') || lowerNext.contains('success')) {
+          actionBtnText = 'Tandai Pesanan Selesai';
+        } else if (lowerNext.contains('cuci') || lowerNext.contains('wash')) {
+          actionBtnText = 'Timbang Selesai ➔ Mulai Cuci';
+        } else if (lowerNext.contains('kering') || lowerNext.contains('dry')) {
+          actionBtnText = 'Pencucian Selesai ➔ Mulai Keringkan';
+        } else if (lowerNext.contains('lipat') || lowerNext.contains('fold')) {
+          actionBtnText = 'Pengeringan Selesai ➔ Mulai Lipat';
+        } else if (lowerNext.contains('setrika') || lowerNext.contains('iron')) {
+          actionBtnText = 'Pelipatan Selesai ➔ Mulai Setrika';
+        } else if (lowerNext.contains('antar') || lowerNext.contains('delivery') || lowerNext.contains('siap diantar')) {
+          if (status.contains('kering') || status.contains('dry')) {
+            actionBtnText = 'Pengeringan Selesai ➔ Siap Diantar';
+          } else if (status.contains('lipat') || status.contains('fold')) {
+            actionBtnText = 'Pelipatan Selesai ➔ Siap Diantar';
+          } else if (status.contains('setrika') || status.contains('iron')) {
+            actionBtnText = 'Penyetrikaan Selesai ➔ Siap Diantar';
+          } else if (status.contains('cuci') || status.contains('wash')) {
+            actionBtnText = 'Pencucian Selesai ➔ Siap Diantar';
+          } else {
+            actionBtnText = 'Proses Selesai ➔ Siap Diantar';
+          }
+        } else {
+          actionBtnText = 'Proses Selesai ➔ Siap Diantar';
+        }
+      }
     }
 
-    if (actionBtnText.isEmpty && !isBelumLunas) {
+    final bool hasMapButton = status == 'penjemputan' || status == 'siap diantar' || nextStatus == 'penjemputan';
+    if (actionBtnText.isEmpty && !isBelumLunas && !hasMapButton) {
       return const SizedBox.shrink();
     }
 
@@ -1577,7 +2043,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(status == 'siap diantar' || status == 'penjemputan' 
+                    Icon(status == 'siap diantar' || status == 'penjemputan' || nextStatus == 'penjemputan'
                         ? Icons.local_shipping_outlined 
                         : Icons.check_circle_outline_rounded,
                       size: 20,
@@ -1594,19 +2060,60 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
               ),
             ),
-          
-          if (isBelumLunas) ...[
-            if (actionBtnText.isNotEmpty) const SizedBox(height: 12),
+          if (status == 'penjemputan' || status == 'siap diantar') ...[
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green.shade700,
-                  side: BorderSide(color: Colors.green.shade600, width: 1.5),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: navyColor,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 2,
                 ),
-                onPressed: _markAsPaid,
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => KaryawanTrackingScreen(order: _currentOrder),
+                    ),
+                  );
+                  if (result != null && result is Map<String, dynamic> && mounted) {
+                    setState(() {
+                      _currentOrder = result;
+                    });
+                    widget.onOrderUpdated(_currentOrder);
+                  }
+                },
+                icon: const Icon(Icons.map_outlined),
+                label: Text(
+                  status == 'siap diantar' ? 'Buka Peta Pengantaran' : 'Buka Peta Penjemputan',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+          
+          if (isBelumLunas) ...[
+            if (actionBtnText.isNotEmpty || (status == 'penjemputan' || status == 'siap diantar')) const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 2,
+                ),
+                onPressed: () {
+                  _showConfirmationDialog(
+                    title: 'Tandai Pembayaran Lunas?',
+                    content: 'Pastikan pembayaran sudah diterima sebelum menandai pesanan ini sebagai LUNAS.',
+                    onConfirm: _markAsPaid,
+                  );
+                },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
