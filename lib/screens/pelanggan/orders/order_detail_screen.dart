@@ -313,6 +313,8 @@ class OrderDetailScreen extends StatelessWidget {
 
     final String packageName = paketLayanan['nama_paket'] ?? 'Reguler';
 
+    final bool isEn = TranslationService.currentLang == 'en';
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -343,7 +345,7 @@ class OrderDetailScreen extends StatelessWidget {
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
-                      'Order Details',
+                      isEn ? 'Order Details' : 'Detail Pesanan',
                       style: GoogleFonts.poppins(
                         color: navyColor,
                         fontWeight: FontWeight.bold,
@@ -356,7 +358,7 @@ class OrderDetailScreen extends StatelessWidget {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -401,37 +403,13 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: orderColor,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: Colors.grey.shade300,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      'Download Receipt',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
+      ),
+      bottomSheet: _buildStickyActionFooter(
+        navyColor: navyColor,
+        isEn: isEn,
       ),
     );
   }
@@ -471,7 +449,7 @@ class OrderDetailScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Order #$orderId',
+                TranslationService.currentLang == 'en' ? 'Order #$orderId' : 'Pesanan #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   color: orderColor,
@@ -487,7 +465,7 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Est: $estDate',
+                    TranslationService.currentLang == 'en' ? 'Est: $estDate' : 'Estimasi: $estDate',
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: Colors.redAccent,
@@ -709,6 +687,11 @@ class OrderDetailScreen extends StatelessWidget {
     required Color navyColor,
   }) {
     final bool isDropOff = logistikType == 'Drop-off';
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String translatedLogistik = logistikType.toLowerCase().contains('drop')
+        ? 'Drop-off'
+        : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -733,7 +716,7 @@ class OrderDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pick Up',
+                        isEn ? 'Pick Up' : 'Penjemputan',
                         style: GoogleFonts.poppins(
                           color: Colors.grey,
                           fontSize: 11,
@@ -756,7 +739,7 @@ class OrderDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pick Up Address',
+                        isEn ? 'Pick Up Address' : 'Alamat Jemput',
                         style: GoogleFonts.poppins(
                           color: Colors.grey,
                           fontSize: 11,
@@ -792,7 +775,7 @@ class OrderDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Delivery',
+                      isEn ? 'Delivery' : 'Pengantaran',
                       style: GoogleFonts.poppins(
                         color: Colors.grey,
                         fontSize: 11,
@@ -800,7 +783,7 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      logistikType,
+                      translatedLogistik,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -815,7 +798,7 @@ class OrderDetailScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Delivery Address',
+                      isEn ? 'Delivery Address' : 'Alamat Antar',
                       style: GoogleFonts.poppins(
                         color: Colors.grey,
                         fontSize: 11,
@@ -1079,7 +1062,12 @@ class OrderDetailScreen extends StatelessWidget {
                     _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                     if (patokanLokasi != '-')
                       _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
-                    _buildReceiptRow(isEn ? 'Logistics Method' : 'Metode Logistik', logistikType),
+                    _buildReceiptRow(
+                      isEn ? 'Logistics Method' : 'Metode Logistik', 
+                      logistikType.toLowerCase().contains('drop')
+                          ? 'Drop-off'
+                          : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
+                    ),
                     _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),
                     _buildReceiptRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
                     _buildReceiptRow(
@@ -1288,6 +1276,64 @@ class OrderDetailScreen extends StatelessWidget {
               color: textColor ?? charBlack,
               fontWeight: FontWeight.bold,
               fontSize: isTotal ? 14 : 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStickyActionFooter({required Color navyColor, required bool isEn}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 15,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                shadowColor: navyColor.withValues(alpha: 0.4),
+              ),
+              onPressed: () {
+                // Future trigger for downloading receipt
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.file_download_outlined,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isEn ? 'Download Receipt' : 'Unduh Kuitansi',
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

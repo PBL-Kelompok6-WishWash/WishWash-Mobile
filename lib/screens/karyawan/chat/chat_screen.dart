@@ -9,7 +9,6 @@ class KaryawanChatScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color navyColor = Color(0xFF0C4B8E);
-    const Color cyanColor = Color(0xFF42C6D4);
 
     return Container(
       color: Colors.transparent,

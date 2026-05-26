@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
+import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -424,10 +425,11 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   Widget _buildHeaderSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          const SizedBox(width: 45), // Untuk menyeimbangkan agar judul tetap di tengah
           Text(
             TranslationService.translate('orders'),
             style: GoogleFonts.poppins(
@@ -436,52 +438,174 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
               fontSize: 20,
             ),
           ),
+          _buildGlassIconButton(
+            Icons.notifications_none_rounded,
+            navyColor,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
+  Widget _buildGlassIconButton(IconData icon, Color color, {VoidCallback? onTap}) {
+    return Container(
+      width: 45,
+      height: 45,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        boxShadow: [
+          // 3D Shadow bawah/samping yang berdimensi
+          BoxShadow(
+            color: const Color(0xFFCAD4DE).withOpacity(0.7),
+            blurRadius: 6,
+            offset: const Offset(0, 4),
+          ),
+          // Soft ambient shadow
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Center(
+        child: IconButton(
+          padding: EdgeInsets.zero,
+          onPressed: onTap,
+          icon: Icon(icon, color: color, size: 22),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSummaryMetrics() {
-    // Selalu tampilkan kartu metrik di semua tab agar karyawan dapat memantau ringkasan global
-    // setiap saat dengan mudah.
+    final now = DateTime.now();
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    final todayStr = '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+
+    final int totalAktif = _outletCount + _logistikCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
       child: Container(
-        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: navyColor.withValues(alpha: 0.08), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: navyColor.withValues(alpha: 0.04),
-              blurRadius: 15,
+              color: navyColor.withValues(alpha: 0.05),
+              blurRadius: 18,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           children: [
-            _buildMetricItem(
-              icon: Icons.store_mall_directory_outlined,
-              color: const Color(0xFF9C27B0),
-              label: 'Outlet',
-              count: _outletCount,
+            // ── Header tanggal & total aktif ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              decoration: BoxDecoration(
+                color: navyColor.withValues(alpha: 0.03),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: navyColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.event_note_outlined, color: navyColor, size: 15),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      todayStr,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: navyColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                  // Badge: total
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: navyColor,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${totalAktif + _selesaiCount} total',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            Container(width: 1.5, height: 40, color: Colors.grey.shade200),
-            _buildMetricItem(
-              icon: Icons.local_shipping_outlined,
-              color: const Color(0xFF0288D1),
-              label: 'Logistik',
-              count: _logistikCount,
-            ),
-            Container(width: 1.5, height: 40, color: Colors.grey.shade200),
-            _buildMetricItem(
-              icon: Icons.check_circle_outline_rounded,
-              color: const Color(0xFF2E7D32),
-              label: 'Selesai',
-              count: _selesaiCount,
+
+            // ── Divider ──
+            Divider(height: 1, thickness: 1, color: navyColor.withValues(alpha: 0.06)),
+
+            // ── Metric Row ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+              child: Row(
+                children: [
+                  _buildMetricItem(
+                    icon: Icons.store_mall_directory_outlined,
+                    color: const Color(0xFF9C27B0),
+                    label: 'Outlet',
+                    count: _outletCount,
+                    total: totalAktif + _selesaiCount,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 52,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    color: Colors.grey.shade100,
+                  ),
+                  _buildMetricItem(
+                    icon: Icons.local_shipping_outlined,
+                    color: const Color(0xFF0288D1),
+                    label: 'Logistik',
+                    count: _logistikCount,
+                    total: totalAktif + _selesaiCount,
+                  ),
+                  Container(
+                    width: 1,
+                    height: 60,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    color: Colors.grey.shade100,
+                  ),
+                  _buildMetricItem(
+                    icon: Icons.check_circle_outline_rounded,
+                    color: const Color(0xFF2E7D32),
+                    label: 'Selesai',
+                    count: _selesaiCount,
+                    total: totalAktif + _selesaiCount,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -494,35 +618,75 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     required Color color,
     required String label,
     required int count,
+    required int total,
   }) {
+    final double fraction = (total > 0) ? (count / total).clamp(0.0, 1.0) : 0.0;
+
     return Expanded(
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade600,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Baris atas: icon + label & angka
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Icon besar di kiri
+                Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            count.toString(),
-            style: GoogleFonts.poppins(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: navyColor,
+                const SizedBox(width: 12),
+
+                // Label di atas, angka di bawahnya
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade400,
+                          height: 1.4,
+                        ),
+                      ),
+                      Text(
+                        count.toString(),
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: navyColor,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+
+            // Progress bar full-width di bawah seluruh row
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 5,
+                backgroundColor: color.withValues(alpha: 0.10),
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

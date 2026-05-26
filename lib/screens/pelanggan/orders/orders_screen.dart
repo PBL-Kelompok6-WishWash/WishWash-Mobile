@@ -788,7 +788,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }) {
     final baseColor = _getServiceColor(serviceName);
     final orderColor = _getDarkenedTextColor(baseColor);
-    final String currentStatus = statusInfo['nama_status'];
 
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyStr = kuantitas == 0.0

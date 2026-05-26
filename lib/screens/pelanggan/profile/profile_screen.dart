@@ -781,13 +781,12 @@ class ProfileScreenState extends State<ProfileScreen> {
                             onTap: () async {
                               Navigator.of(context).pop(); // Tutup dialog
                               await AuthService.logout();
-                              if (mounted) {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                  (route) => false,
-                                );
-                              }
+                              if (!context.mounted) return;
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                (route) => false,
+                              );
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),

@@ -211,7 +211,6 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                   final c = filtered[index];
                                   final name = c['nama_lengkap'] ?? '';
                                   final phone = c['no_telp'] ?? '-';
-                                  final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 12),

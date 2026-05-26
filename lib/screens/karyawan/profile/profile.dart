@@ -84,7 +84,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                       style: GoogleFonts.poppins(
                         color: navyColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                        fontSize: 20,
                       ),
                     ),
                   ),

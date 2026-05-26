@@ -15,7 +15,6 @@ import 'package:mobile/screens/pelanggan/create_order/create_order_screen.dart';
 import 'package:mobile/services/order_service.dart';
 import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
-import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/home/detail_promo.dart';
 
@@ -46,8 +45,6 @@ class PelangganHomeScreen extends StatefulWidget {
 }
 
 class PelangganHomeScreenState extends State<PelangganHomeScreen> {
-  final Color _cyan = const Color(0xFF42C6D4);
-
   int _currentPromoIndex = 0;
   int _currentActiveOrderIndex = 0;
   bool _isLocationMenuOpen = false;
@@ -59,7 +56,6 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   String _fotoPelanggan = '';
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
-  bool _isLoadingProfile = true;
   List<dynamic> _services = [];
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;
@@ -167,14 +163,12 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 ? 'Alamat belum diatur' 
                 : alamat.toString();
             _tipeAlamat = data['tipe_alamat'] ?? 'Rumah';
-            _isLoadingProfile = false;
           });
         }
       } else {
         if (mounted) {
           setState(() {
             _alamatLengkap = 'Gagal memuat alamat';
-            _isLoadingProfile = false;
           });
         }
       }
@@ -182,7 +176,6 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       if (mounted) {
         setState(() {
           _alamatLengkap = 'Koneksi bermasalah';
-          _isLoadingProfile = false;
         });
       }
     }

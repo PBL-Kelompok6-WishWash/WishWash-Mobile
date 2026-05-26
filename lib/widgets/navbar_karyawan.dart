@@ -286,6 +286,7 @@ void showKaryawanMenu(BuildContext context) {
       return const KaryawanMenuDialogContent();
     },
   ).then((value) {
+    if (!context.mounted) return;
     if (value == 'pesanan') {
       Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateOrderScreen()));
     } else if (value == 'akun') {

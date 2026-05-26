@@ -5,6 +5,7 @@ import 'package:mobile/screens/karyawan/orders/pesanan_diproses.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
+import 'package:mobile/screens/karyawan/home/riwayat_pendapatan.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/utils/constants.dart';
@@ -179,7 +180,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 8),
 
                         // --- HEADER PRIBADI ---
                         _buildHeader(navyColor),
@@ -310,20 +311,29 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       width: 45,
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
+        color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1.5),
         boxShadow: [
+          // 3D Shadow bawah/samping yang berdimensi
           BoxShadow(
-            color: color.withOpacity(0.05),
-            blurRadius: 10,
+            color: const Color(0xFFCAD4DE).withOpacity(0.7),
+            blurRadius: 6,
             offset: const Offset(0, 4),
+          ),
+          // Soft ambient shadow
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: IconButton(
-        onPressed: onTap,
-        icon: Icon(icon, color: color, size: 22),
+      child: Center(
+        child: IconButton(
+          padding: EdgeInsets.zero,
+          onPressed: onTap,
+          icon: Icon(icon, color: color, size: 22),
+        ),
       ),
     );
   }
@@ -331,99 +341,198 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   Widget _buildIncomeCard(Color navyColor, Color cyanColor, Color lightCyan) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: LinearGradient(
-          colors: [navyColor, const Color(0xFF1A5A9E)],
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF0C4B8E), // Deep WishWash navy
+            Color(0xFF0A3D75), // Deep mid-blue
+            Color(0xFF00ACC1), // Vibrant brand cyan/teal accent
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: navyColor.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: const Color(0xFF0C4B8E).withOpacity(0.35),
+            blurRadius: 25,
+            offset: const Offset(0, 12),
+          ),
+          BoxShadow(
+            color: const Color(0xFF42C6D4).withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          // Background blobs for the card to give it a premium texture
-          Positioned(
-            right: -30,
-            top: -30,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -20,
-            bottom: -40,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // Abstract geometric glowing background accents (Premium Glassmorphism Style)
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.18),
+                      Colors.white.withOpacity(0.0),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    TranslationService.translate('total_revenue_today'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "Rp 727.000,00",
-                style: GoogleFonts.poppins(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 10),
-              Row(
+            ),
+            Positioned(
+              left: -40,
+              bottom: -40,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06),
+                ),
+              ),
+            ),
+            // Premium border highlight
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.15),
+                  width: 1.5,
+                ),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.trending_up_rounded, color: lightCyan, size: 16),
-                  const SizedBox(width: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                TranslationService.translate('total_revenue_today').toUpperCase(),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white.withOpacity(0.7),
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "PENDAPATAN HARI INI",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      // Only this arrow button is clickable/triggers navigation
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RiwayatPendapatanScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  // Currency Amount
                   Text(
-                    TranslationService.translate('revenue_trending'),
+                    "Rp 727.000,00",
                     style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: lightCyan,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Trending badge (Glass design chip)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.08),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.trending_up_rounded,
+                          color: Color(0xFFBCEFF2),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          TranslationService.translate('revenue_trending'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: const Color(0xFFBCEFF2),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -548,136 +657,182 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
   Widget _buildRecentActivities(Color navyColor, Color cyanColor) {
     final bool isEn = TranslationService.currentLang == 'en';
+    
+    // High-fidelity mock of the 5 latest orders for this employee
     final List<Map<String, dynamic>> recentOrders = [
       {
-        "id": "TR0245",
-        "name": "Ica Nurhaliza",
-        "action": isEn ? "Pickup Laundry" : "Penjemputan Laundry",
+        "id": "WW-H78F2",
+        "name": "Cecil Clarissa",
+        "service": isEn ? "Wash & Iron" : "Cuci & Setrika",
+        "time": isEn ? "Just now" : "Baru saja",
+        "status": isEn ? "Processing" : "Diproses",
+        "statusColor": const Color(0xFF2196F3),
+        "statusBg": const Color(0xFFE3F2FD),
+      },
+      {
+        "id": "WW-K92B1",
+        "name": "Abilah Budi",
+        "service": isEn ? "Ironing Only" : "Setrika Saja",
         "time": isEn ? "10m ago" : "10m lalu",
-        "status": isEn ? "Completed" : "Selesai",
-        "color": Colors.green,
-        "icon": Icons.local_shipping_rounded,
+        "status": isEn ? "New Order" : "Pesanan Baru",
+        "statusColor": const Color(0xFFFF9800),
+        "statusBg": const Color(0xFFFFF3E0),
       },
       {
-        "id": "TR0242",
-        "name": "Budi Santoso",
-        "action": isEn ? "Ironing Clothes" : "Setrika Pakaian",
+        "id": "WW-T33G4",
+        "name": "Clarissa Ica",
+        "service": isEn ? "Dry Clean & Fold" : "Cuci Kering Lipat",
         "time": isEn ? "1h ago" : "1j lalu",
-        "status": isEn ? "Process" : "Proses",
-        "color": Colors.blue,
-        "icon": Icons.iron_rounded,
+        "status": isEn ? "Delivering" : "Diantar",
+        "statusColor": const Color(0xFF9C27B0),
+        "statusBg": const Color(0xFFF3E5F5),
       },
       {
-        "id": "TR0240",
-        "name": "Siti Aminah",
-        "action": isEn ? "Qris Payment" : "Pembayaran Qris",
+        "id": "WW-P11A9",
+        "name": "Devi Ajeng",
+        "service": isEn ? "Dry Clean & Fold" : "Cuci Kering Lipat",
         "time": isEn ? "3h ago" : "3j lalu",
-        "status": isEn ? "Paid" : "Lunas",
-        "color": Colors.purple,
-        "icon": Icons.qr_code_rounded,
+        "status": isEn ? "Completed" : "Selesai",
+        "statusColor": const Color(0xFF4CAF50),
+        "statusBg": const Color(0xFFE8F5E9),
       },
       {
-        "id": "TR0238",
-        "name": "Andi Wijaya",
-        "action": isEn ? "Ready to Deliver" : "Siap Diantar",
-        "time": isEn ? "5h ago" : "5j lalu",
-        "status": isEn ? "Ready" : "Siap",
-        "color": Colors.amber.shade700,
-        "icon": Icons.delivery_dining_rounded,
+        "id": "WW-L88P3",
+        "name": "Budi Santoso",
+        "service": isEn ? "Wash & Iron" : "Cuci & Setrika",
+        "time": isEn ? "Yesterday" : "Kemarin",
+        "status": isEn ? "Completed" : "Selesai",
+        "statusColor": const Color(0xFF4CAF50),
+        "statusBg": const Color(0xFFE8F5E9),
       },
     ];
 
-    return SizedBox(
-      height: 155,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        itemCount: recentOrders.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 16),
-        itemBuilder: (context, index) {
-          final order = recentOrders[index];
-          return Container(
-            width: 155,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: Colors.grey.shade100),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: (order["color"] as Color).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(order["icon"] as IconData, color: order["color"], size: 16),
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: recentOrders.length,
+      itemBuilder: (context, index) {
+        final order = recentOrders[index];
+        final String initials = _getInitials(order["name"]);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.015),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Circular Initial Avatar
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      cyanColor.withOpacity(0.8),
+                      navyColor.withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: cyanColor.withOpacity(0.12),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
                     ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initials,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Center Info details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          "#${order['id']}",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: cyanColor,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          "•  ${order['time']}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.grey.shade400,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
                     Text(
-                      order["time"],
+                      order["name"],
                       style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade400,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      order["service"],
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  order["id"],
+              ),
+              const SizedBox(width: 8),
+              // Right Status Pill Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: order["statusBg"],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  order["status"],
                   style: GoogleFonts.poppins(
                     fontSize: 10,
-                    color: cyanColor,
                     fontWeight: FontWeight.bold,
+                    color: order["statusColor"],
                   ),
                 ),
-                Text(
-                  order["name"],
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: navyColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (order["color"] as Color).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    order["action"],
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: order["color"],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
