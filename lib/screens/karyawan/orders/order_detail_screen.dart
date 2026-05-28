@@ -26,6 +26,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   final Color cyanColor = const Color(0xFF42C6D4);
   final Color bgGrey = const Color(0xFFF8FBFC);
   final Color softTeal = const Color(0xFFBCEFF2);
+  bool _isDeliveryStarted = false;
 
   @override
   void initState() {
@@ -1967,7 +1968,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       (element) => (element['nama_status'] ?? '').toString().toLowerCase().trim() == status
     );
 
-    if (currentStatusIdx != -1 && currentStatusIdx < refStatuses.length - 1) {
+    final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
+    final bool isDropOff = logistikType == 'Drop-off';
+
+    if (status == 'siap diantar' && !isDropOff) {
+      if (!_isDeliveryStarted) {
+        actionBtnText = TranslationService.currentLang == 'en' ? 'Deliver Now' : 'Antar Sekarang';
+        customAction = () {
+          setState(() {
+            _isDeliveryStarted = true;
+          });
+        };
+      } else {
+        actionBtnText = '';
+      }
+    } else if (currentStatusIdx != -1 && currentStatusIdx < refStatuses.length - 1) {
       final nextRef = refStatuses[currentStatusIdx + 1];
       final rawNextName = (nextRef['nama_status'] ?? '').toString();
       final lowerNext = rawNextName.toLowerCase().trim();
@@ -2071,7 +2086,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
               ),
             ),
-          if (status == 'penjemputan' || status == 'siap diantar') ...[
+          if (status == 'penjemputan' || (status == 'siap diantar' && _isDeliveryStarted)) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
