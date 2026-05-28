@@ -1937,6 +1937,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final status = _getOrderStatus(_currentOrder).toLowerCase();
     final statusPembayaran = _getPaymentStatus(_currentOrder);
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
+    final double kuantitas = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final bool showTandaiLunas = isBelumLunas && kuantitas > 0.0;
 
     String actionBtnText = '';
     String nextStatus = '';
@@ -1995,7 +1997,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
 
     final bool hasMapButton = status == 'penjemputan' || status == 'siap diantar' || nextStatus == 'penjemputan';
-    if (actionBtnText.isEmpty && !isBelumLunas && !hasMapButton) {
+    if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton) {
       return const SizedBox.shrink();
     }
 
@@ -2092,7 +2094,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ),
           ],
           
-          if (isBelumLunas) ...[
+          if (showTandaiLunas) ...[
             if (actionBtnText.isNotEmpty || (status == 'penjemputan' || status == 'siap diantar')) const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
