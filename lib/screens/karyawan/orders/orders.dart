@@ -375,6 +375,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   bool _isOutletOrder(String status, String logistikType) {
     final s = status.toLowerCase();
+    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
+      return s != 'selesai';
+    }
     if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
       return false;
     }
@@ -387,6 +390,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   bool _isLogistikOrder(String status, String logistikType) {
+    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
+      return false;
+    }
     final s = status.toLowerCase();
     if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
       return true;

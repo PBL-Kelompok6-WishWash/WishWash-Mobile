@@ -2,11 +2,116 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
+import 'package:mobile/services/alamat_service.dart';
+import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
+import 'package:mobile/services/order_service.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
 
   const OrderDetailScreen({super.key, required this.order});
+
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  late Map<String, dynamic> _currentOrder;
+  final Color navyColor = const Color(0xFF0C4B8E);
+  final Color cyanColor = const Color(0xFF42C6D4);
+  final Color bgGrey = const Color(0xFFF8FBFC);
+  final Color softTeal = const Color(0xFFBCEFF2);
+
+  // Interactive Payment & Checkout state
+  String _selectedPaymentMethod = 'QRIS';
+  final TextEditingController _promoController = TextEditingController();
+  double _appliedPromoDiscount = 0.0;
+  bool _isPromoApplied = false;
+  String _promoError = '';
+  String _appliedPromoCode = '';
+
+  List<dynamic> addresses = [];
+  bool isLoadingAddresses = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentOrder = Map<String, dynamic>.from(widget.order);
+    _loadAddresses();
+  }
+
+  Future<void> _loadAddresses() async {
+    try {
+      final pelanggan = _currentOrder['Pelanggan'] ?? {};
+      final int? idPelanggan = pelanggan['id_pelanggan'];
+      if (idPelanggan != null) {
+        final list = await AlamatService.getAlamat(idPelanggan: idPelanggan);
+        setState(() {
+          addresses = list;
+          isLoadingAddresses = false;
+          if (list.isNotEmpty) {
+            final primary = list.firstWhere(
+              (element) => element['is_primary'] == true,
+              orElse: () => list.first,
+            );
+            _currentOrder['AlamatPenyerahan'] = {
+              'alamat_lengkap': primary['alamat_lengkap'],
+              'tipe_alamat': primary['tipe_alamat'],
+              'nama_penerima': primary['nama_penerima'],
+            };
+            // Set logistics type to Courier Delivery immediately to avoid resetting to Store
+            _currentOrder['tipe_logistik'] = 'Courier Delivery';
+            _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary['id_alamat']);
+          }
+        });
+      } else {
+        setState(() {
+          isLoadingAddresses = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        isLoadingAddresses = false;
+      });
+    }
+  }
+
+  Future<void> _chooseAddress() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AlamatScreen()),
+    );
+    _loadAddresses();
+  }
+
+  Future<void> _updateLogisticsBackend(String newType, {int? idAlamatPenyerahan}) async {
+    try {
+      final Map<String, dynamic> body = {'tipe_logistik': newType};
+      if (idAlamatPenyerahan != null) {
+        body['id_alamat_penyerahan'] = idAlamatPenyerahan;
+      }
+      
+      final updatedOrder = await OrderService.updateOrder(
+        _currentOrder['id_order'],
+        body,
+      );
+      setState(() {
+        _currentOrder = Map<String, dynamic>.from(updatedOrder);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            TranslationService.currentLang == 'en' 
+                ? 'Failed to update logistics: $e' 
+                : 'Gagal memperbarui metode pengiriman: $e'
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
     final layanan = order['Layanan'];
@@ -25,7 +130,6 @@ class OrderDetailScreen extends StatelessWidget {
         {'nama_status': 'Selesai', 'urutan_tahap': 8},
       ];
     } else {
-      // Dynamic service statuses from DB alur
       final temp = refList.map((e) => Map<String, dynamic>.from(e)).toList();
       temp.sort((a, b) {
         final int seqA = a['urutan_tahap'] as int? ?? 0;
@@ -33,19 +137,17 @@ class OrderDetailScreen extends StatelessWidget {
         return seqA.compareTo(seqB);
       });
 
-      // Always prepend 'Pesanan Diterima' as the absolute first phase (urutan_tahap: 1)
       sortedList.add({'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1});
       for (int i = 0; i < temp.length; i++) {
         final item = temp[i];
         final name = (item['nama_status'] ?? '').toString();
-        // Skip if they accidentally put 'Pesanan Diterima' or equivalent in DB list to avoid duplicate
         if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
           continue;
         }
         sortedList.add({
           'id_referensi_status_layanan': item['id_referensi_status_layanan'],
           'nama_status': name,
-          'urutan_tahap': i + 2, // offset everything dynamically
+          'urutan_tahap': i + 2,
         });
       }
     }
@@ -86,7 +188,8 @@ class OrderDetailScreen extends StatelessWidget {
       return isEn ? 'Iron' : 'Setrika';
     }
     if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
-      return isEn ? 'Ready' : 'Kirim';
+      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+      return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
     if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done')) {
       return isEn ? 'Done' : 'Selesai';
@@ -98,20 +201,19 @@ class OrderDetailScreen extends StatelessWidget {
     return rawStatus;
   }
 
-  Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
-    final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(order);
-    
+  String _getOrderStatus(Map<String, dynamic> order) {
     final historyList = order['RiwayatStatusDetail'];
     if (historyList == null || historyList is! List || historyList.isEmpty) {
-      final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
-      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
-      return {
-        'nama_status': TranslationService.translateStatus(rawStatus),
-        'raw_status': rawStatus,
-        'active_index': initialActiveIndex,
-        'statuses': refStatuses,
-        'is_selesai': false,
-      };
+      final layanan = order['Layanan'];
+      final refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
+      if (layanan != null && refList != null && refList is List) {
+        if (refList.isNotEmpty) {
+          List<dynamic> sortedRef = List.from(refList);
+          sortedRef.sort((a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(b['urutan_tahap'] as int? ?? 0));
+          return sortedRef.first['nama_status'] ?? 'Pesanan Diterima';
+        }
+      }
+      return 'Pesanan Diterima';
     }
 
     List<dynamic> sortedHistory = List.from(historyList);
@@ -123,60 +225,58 @@ class OrderDetailScreen extends StatelessWidget {
 
     final latestHistory = sortedHistory.last;
     final refStatus = latestHistory['ReferensiStatus'];
-    if (refStatus == null || refStatus is! Map) {
-      final String rawStatus = refStatuses.isNotEmpty ? refStatuses.first['nama_status'] : 'Pesanan Diterima';
-      final int initialActiveIndex = refStatuses.length > 1 ? 1 : 0;
-      return {
-        'nama_status': TranslationService.translateStatus(rawStatus),
-        'raw_status': rawStatus,
-        'active_index': initialActiveIndex,
-        'statuses': refStatuses,
-        'is_selesai': false,
-      };
+    if (refStatus != null && refStatus is Map) {
+      return refStatus['nama_status'] ?? 'Pesanan Diterima';
     }
+    return 'Pesanan Diterima';
+  }
 
-    final String rawStatus = refStatus['nama_status'] ?? 'Pesanan Diterima';
-    final translatedStatus = TranslationService.translateStatus(rawStatus);
+  String _getPaymentStatus(Map<String, dynamic> order) {
+    final pembayaran = order['Pembayaran'];
+    if (pembayaran == null || pembayaran is! Map) {
+      return 'Belum Lunas';
+    }
+    final status = pembayaran['status_pembayaran'] ?? 'Belum Lunas';
+    if (status == 'Paid' || status == 'Lunas') {
+      return 'Lunas';
+    }
+    return 'Belum Lunas';
+  }
+
+  Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
+    final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(order);
+    final String currentStatus = _getOrderStatus(order);
+    final String lowerCurrent = currentStatus.toLowerCase().trim();
     
     int activeIndex = 0;
-    final idRef = refStatus['id_referensi_status_layanan'];
-    if (idRef != null) {
-      for (int i = 0; i < refStatuses.length; i++) {
-        if (refStatuses[i]['id_referensi_status_layanan'] == idRef) {
-          activeIndex = i;
-          break;
-        }
-      }
-    } else {
-      final String lowerRaw = rawStatus.toLowerCase().trim();
-      for (int i = 0; i < refStatuses.length; i++) {
-        final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
-        if (refName == lowerRaw ||
-            (lowerRaw.contains('diterima') && refName.contains('diterima')) ||
-            (lowerRaw.contains('jemput') && refName.contains('jemput')) ||
-            (lowerRaw.contains('timbang') && refName.contains('timbang')) ||
-            (lowerRaw.contains('cuci') && refName.contains('cuci')) ||
-            (lowerRaw.contains('kering') && refName.contains('kering')) ||
-            (lowerRaw.contains('lipat') && refName.contains('lipat')) ||
-            (lowerRaw.contains('setrika') && refName.contains('setrika')) ||
-            (lowerRaw.contains('antar') && refName.contains('antar')) ||
-            (lowerRaw.contains('selesai') && refName.contains('selesai'))) {
-          activeIndex = i;
-          break;
-        }
+    for (int i = 0; i < refStatuses.length; i++) {
+      final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+      
+      if (refName == lowerCurrent || 
+          (lowerCurrent.contains('diterima') && refName.contains('diterima')) ||
+          (lowerCurrent.contains('jemput') && refName.contains('jemput')) ||
+          (lowerCurrent.contains('timbang') && refName.contains('timbang')) ||
+          (lowerCurrent.contains('cuci') && refName.contains('cuci')) ||
+          (lowerCurrent.contains('kering') && refName.contains('kering')) ||
+          (lowerCurrent.contains('lipat') && refName.contains('lipat')) ||
+          (lowerCurrent.contains('setrika') && refName.contains('setrika')) ||
+          (lowerCurrent.contains('antar') && refName.contains('antar')) ||
+          (lowerCurrent.contains('selesai') && refName.contains('selesai'))) {
+        activeIndex = i;
+        break;
       }
     }
 
-    // Shift activeIndex to 1 if it is 0 and we have more states, so 'Pesanan Diterima' shows checked and stage 2 has active dot
+    // If the order has status 'Pesanan Diterima', keep the active dot at index 0 (Diterima)
     if (activeIndex == 0 && refStatuses.length > 1) {
-      activeIndex = 1;
+      activeIndex = 0;
     }
 
-    final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
+    final bool isSelesai = lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
 
     return {
-      'nama_status': translatedStatus,
-      'raw_status': rawStatus,
+      'nama_status': TranslationService.translateStatus(currentStatus),
+      'raw_status': currentStatus,
       'active_index': activeIndex,
       'statuses': refStatuses,
       'is_selesai': isSelesai,
@@ -186,12 +286,17 @@ class OrderDetailScreen extends StatelessWidget {
   String _formatDate(String? isoString) {
     if (isoString == null || isoString.isEmpty) return '-';
     try {
-      final dt = DateTime.parse(isoString);
+      final dt = DateTime.parse(isoString).toLocal();
       final months = [
         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
         'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
       ];
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      final int hour = dt.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
       try {
         return isoString.split('T')[0];
@@ -248,47 +353,71 @@ class OrderDetailScreen extends StatelessWidget {
   Color _getServiceColor(String serviceName) {
     final name = serviceName.toLowerCase();
     if (name.contains('lipat') || name.contains('dry clean')) {
-      return const Color(0xFF00BCD4); // Cyan (#00BCD4)
+      return const Color(0xFF00BCD4);
     } else if (name.contains('kering') && !name.contains('lipat')) {
-      return const Color(0xFF8BC34A); // Green (#8BC34A)
+      return const Color(0xFF8BC34A);
     } else if (name.contains('setrika') && (name.contains('cuci') || name.contains('wash'))) {
-      return const Color(0xFF9C27B0); // Purple (#9C27B0)
+      return const Color(0xFF9C27B0);
     } else if (name.contains('setrika')) {
-      return const Color(0xFFFFC107); // Yellow (#FFC107)
+      return const Color(0xFFFFC107);
     }
-    return const Color(0xFF00BCD4); // fallback Cyan
+    return const Color(0xFF00BCD4);
   }
 
   Color _getDarkenedTextColor(Color color) {
     final hsl = HSLColor.fromColor(color);
     if (hsl.hue >= 160 && hsl.hue <= 210) {
-      return const Color(0xFF0C4B8E); // Memaksa Navy untuk Cyan/Teal agar kontras tinggi
+      return const Color(0xFF0C4B8E);
     }
     if (hsl.lightness > 0.45) {
       double targetLightness = 0.30;
       if (hsl.hue >= 45 && hsl.hue <= 65) {
-        targetLightness = 0.25; // Warm Golden Amber for Yellow
+        targetLightness = 0.25;
       }
       return hsl.withLightness(targetLightness).toColor();
     }
     return color;
   }
 
+  void _applyPromoCode(double subtotalCucian) {
+    final code = _promoController.text.trim().toUpperCase();
+    if (code.isEmpty) return;
+
+    setState(() {
+      if (code == 'WISHWASH50') {
+        _appliedPromoDiscount = subtotalCucian * 0.50;
+        _isPromoApplied = true;
+        _promoError = '';
+        _appliedPromoCode = code;
+      } else if (code == 'HELLOWW') {
+        _appliedPromoDiscount = subtotalCucian > 10000 ? 10000 : subtotalCucian;
+        _isPromoApplied = true;
+        _promoError = '';
+        _appliedPromoCode = code;
+      } else {
+        _appliedPromoDiscount = 0.0;
+        _isPromoApplied = false;
+        _promoError = TranslationService.currentLang == 'en' ? 'Invalid Promo Code!' : 'Kode Promo Tidak Valid!';
+        _appliedPromoCode = '';
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0C4B8E);
-    
+    final order = _currentOrder;
     final String orderId = order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
         ? order['kode_order'].toString()
         : 'WW-${order['id_order']}';
 
     final layanan = order['Layanan'] ?? {};
     final String rawServiceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
+    final String mainService = TranslationService.translateService(rawServiceName);
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyStr = kuantitas == 0.0
         ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
         : ' ($kuantitas kg)';
-    final serviceName = '${TranslationService.translateService(rawServiceName)}$qtyStr';
+    final serviceName = '$mainService$qtyStr';
     final baseColor = _getServiceColor(rawServiceName);
     final orderColor = _getDarkenedTextColor(baseColor);
 
@@ -298,23 +427,26 @@ class OrderDetailScreen extends StatelessWidget {
     final paketLayanan = order['PaketLayanan'] ?? {};
     final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
 
-    final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
-    double promoDiscount = 0.0;
-    if (promoOrders.isNotEmpty) {
-      final promoOrderObj = promoOrders.first;
-      final promo = promoOrderObj['Promo'] ?? {};
-      if (promo.isNotEmpty) {
-        final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
-        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
-        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
-        
-        if (tipePromo.toLowerCase().contains('persen')) {
-          promoDiscount = subtotalCucian * (nominalPotongan / 100);
-          if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
-            promoDiscount = maksimalPotongan;
+    // Diskon Promo
+    double promoDiscount = _isPromoApplied ? _appliedPromoDiscount : 0.0;
+    if (!_isPromoApplied) {
+      final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
+      if (promoOrders.isNotEmpty) {
+        final promoOrderObj = promoOrders.first;
+        final promo = promoOrderObj['Promo'] ?? {};
+        if (promo.isNotEmpty) {
+          final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
+          final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+          final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+          
+          if (tipePromo.toLowerCase().contains('persen')) {
+            promoDiscount = subtotalCucian * (nominalPotongan / 100);
+            if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
+              promoDiscount = maksimalPotongan;
+            }
+          } else {
+            promoDiscount = nominalPotongan;
           }
-        } else {
-          promoDiscount = nominalPotongan;
         }
       }
     }
@@ -343,10 +475,11 @@ class OrderDetailScreen extends StatelessWidget {
 
     final parfum = order['Parfum'] ?? {};
     final String perfumeName = parfum['nama_parfum'] ?? 'Lavender Bliss';
-
     final String packageName = paketLayanan['nama_paket'] ?? 'Reguler';
 
     final bool isEn = TranslationService.currentLang == 'en';
+    final String paymentStatus = _getPaymentStatus(order);
+    final bool isPaid = paymentStatus == 'Lunas' && kuantitas > 0.0;
 
     return Scaffold(
       body: Container(
@@ -370,7 +503,7 @@ class OrderDetailScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         color: navyColor,
                         size: 22,
@@ -395,7 +528,7 @@ class OrderDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Progress Stepper Card
+                      // 1. Progress Stepper Card
                       _buildProgressCard(
                         order: order,
                         orderId: orderId,
@@ -408,30 +541,66 @@ class OrderDetailScreen extends StatelessWidget {
                         currentStatus: currentStatus,
                       ),
                       const SizedBox(height: 16),
-                      // Schedule Details Card
-                      _buildScheduleCard(
-                        pickupDate: estDate,
-                        pickupAddr: pickupAddr,
-                        deliveryAddr: deliveryAddr,
-                        logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
-                        navyColor: navyColor,
-                      ),
-                      const SizedBox(height: 24),
-                      // Receipt/Invoice Details Card
-                      _buildReceiptSection(
-                        order: order,
-                        orderId: orderId,
-                        orderDate: orderDate,
-                        customerName: customerName,
-                        packageName: packageName,
-                        perfumeName: perfumeName,
-                        logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
-                        totalBayar: totalBayar,
-                        price: price,
-                        catatan: order['catatan_order'],
-                        navyColor: navyColor,
-                        currentStatus: currentStatus,
-                      ),
+                      
+                      // 2. Interactive flow logic:
+                      // If NOT paid, we show the INTERACTIVE CHECKOUT & REVIEW ORDER flow
+                      if (!isPaid) ...[
+                        _buildReviewOrderCard(
+                          mainService: mainService,
+                          packageName: packageName,
+                          perfumeName: perfumeName,
+                          pickupAddr: pickupAddr,
+                          deliveryAddr: deliveryAddr,
+                          pickupDate: estDate,
+                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
+                          isEn: isEn,
+                          hargaPerSatuan: hargaPerSatuan,
+                          biayaTambahan: biayaTambahan,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDeliveryLocationSection(isEn),
+                        const SizedBox(height: 16),
+                        _buildPromoCard(subtotalCucian, isEn),
+                        const SizedBox(height: 16),
+                        _buildChoosePaymentMethodCard(isEn),
+                        const SizedBox(height: 16),
+                        _buildPriceSummaryCard(
+                          subtotalCucian: subtotalCucian,
+                          biayaTambahan: biayaTambahan,
+                          promoDiscount: promoDiscount,
+                          totalTagihan: totalTagihan,
+                          kuantitas: kuantitas,
+                          hargaPerSatuan: hargaPerSatuan,
+                          packageName: packageName,
+                          promoCode: _isPromoApplied ? _appliedPromoCode : (order['PromoOrder'] != null && (order['PromoOrder'] as List).isNotEmpty ? ((order['PromoOrder'] as List).first['Promo']?['code']?.toString() ?? '') : ''),
+                          isEn: isEn,
+                        ),
+                      ] else ...[
+                        // If paid, show the static finalized receipt and schedule card
+                        _buildScheduleCard(
+                          pickupDate: estDate,
+                          pickupAddr: pickupAddr,
+                          deliveryAddr: deliveryAddr,
+                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
+                          navyColor: navyColor,
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        _buildReceiptSection(
+                          order: order,
+                          orderId: orderId,
+                          orderDate: orderDate,
+                          customerName: customerName,
+                          packageName: packageName,
+                          perfumeName: perfumeName,
+                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
+                          totalBayar: totalBayar,
+                          price: price,
+                          catatan: order['catatan_order'],
+                          navyColor: navyColor,
+                          currentStatus: currentStatus,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -443,10 +612,1281 @@ class OrderDetailScreen extends StatelessWidget {
       bottomSheet: _buildStickyActionFooter(
         navyColor: navyColor,
         isEn: isEn,
+        isPaid: isPaid,
+        totalTagihan: totalTagihan,
+        promoDiscount: promoDiscount,
       ),
     );
   }
 
+  // --- COUPE SHEET PROMO SELECTOR (Shopee/Tokopedia Style) ---
+  void _showPromoSelectorBottomSheet(double subtotalCucian) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+      ),
+      builder: (BuildContext context) {
+        final bool isEn = TranslationService.currentLang == 'en';
+        final List<Map<String, dynamic>> availablePromos = [
+          {
+            'code': 'WISHWASH50',
+            'title': isEn ? '50% Discount (Save Max Rp 20k)' : 'Diskon 50% (Hemat s/d Rp 20.000)',
+            'desc': isEn ? 'Applicable to weight laundry laundry services' : 'Berlaku untuk semua jenis cuci timbang',
+            'discount': subtotalCucian * 0.50 > 20000.0 ? 20000.0 : subtotalCucian * 0.50,
+          },
+          {
+            'code': 'HELLOWW',
+            'title': isEn ? 'Flat Rp 10k Discount' : 'Potongan Langsung Rp 10.000',
+            'desc': isEn ? 'Welcome discount for new customers!' : 'Diskon selamat datang pelanggan baru!',
+            'discount': subtotalCucian > 10000.0 ? 10000.0 : subtotalCucian,
+          },
+          {
+            'code': 'FREEDELIV',
+            'title': isEn ? 'Free Delivery Surcharge' : 'Bebas Biaya Pengantaran Kurir',
+            'desc': isEn ? 'Deducts Rp 8k for reguler package courier delivery' : 'Potongan langsung Rp 8.000 untuk pengiriman paket reguler',
+            'discount': 8000.0,
+          },
+        ];
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isEn ? 'Select Promo' : 'Pilih Voucher Promo',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: navyColor,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _appliedPromoDiscount = 0.0;
+                        _isPromoApplied = false;
+                        _appliedPromoCode = '';
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      isEn ? 'Reset' : 'Hapus',
+                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: availablePromos.length,
+                  itemBuilder: (context, index) {
+                    final promo = availablePromos[index];
+                    final String code = promo['code'];
+                    final bool isCurrent = _appliedPromoCode == code;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCurrent ? cyanColor : Colors.grey.shade200,
+                          width: isCurrent ? 2 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Banner(
+                          message: isEn ? 'OFFER' : 'PROMO',
+                          location: BannerLocation.topEnd,
+                          color: cyanColor,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _appliedPromoDiscount = promo['discount'];
+                                _isPromoApplied = true;
+                                _appliedPromoCode = code;
+                                _promoError = '';
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: softTeal.withValues(alpha: 0.4),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(Icons.confirmation_num_rounded, color: navyColor, size: 24),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          promo['title'],
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: navyColor,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          promo['desc'],
+                                          style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: bgGrey,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'CODE: $code',
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: navyColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    isCurrent ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                                    color: isCurrent ? cyanColor : Colors.grey.shade300,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- ADDRESS SELECTOR BOTTOM SHEET (Premium Interactive) ---
+  void _showAddressSelectorBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
+        ),
+      ),
+      builder: (BuildContext context) {
+        final bool isEn = TranslationService.currentLang == 'en';
+        final List<Map<String, String>> mockAddresses = [
+          {
+            'tag': isEn ? 'Home (Rumah)' : 'Rumah (Mark Lee)',
+            'address': 'Jalan Kesana Kesini, No. 12, Semarang, Central Java, 123456',
+          },
+          {
+            'tag': isEn ? 'Office (Kantor)' : 'Kantor (WishWash Center)',
+            'address': 'Jalan Raya Laundry No. 99, Tembalang, Semarang, Central Java, 50275',
+          },
+          {
+            'tag': isEn ? 'Green Wish Boarding House (Kos)' : 'Kos (Green Wish, Gang Melati)',
+            'address': 'Gang Melati No. 5, Tembalang, Kota Semarang, Central Java, 50272',
+          },
+        ];
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 50,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isEn ? 'Choose Shipping Address' : 'Pilih Alamat Pengiriman',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: mockAddresses.length,
+                  itemBuilder: (context, index) {
+                    final item = mockAddresses[index];
+                    final String addressText = item['address']!;
+                    final String tagText = item['tag']!;
+                    final bool isCurrent = _currentOrder['AlamatPenyerahan'] != null &&
+                        _currentOrder['AlamatPenyerahan']['alamat_lengkap'] == addressText;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: bgGrey,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isCurrent ? cyanColor : Colors.grey.shade200,
+                          width: isCurrent ? 2 : 1,
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _currentOrder['AlamatPenyerahan'] = {
+                              'alamat_lengkap': addressText,
+                            };
+                          });
+                          Navigator.pop(context);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Icon(Icons.location_on_rounded, color: isCurrent ? cyanColor : navyColor, size: 24),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tagText,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: navyColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      addressText,
+                                      style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade600, height: 1.4),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                isCurrent ? Icons.check_circle_rounded : Icons.circle_outlined,
+                                color: isCurrent ? cyanColor : Colors.grey.shade300,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- REVIEW ORDER CARD ---
+  Widget _buildReviewOrderCard({
+    required String mainService,
+    required String packageName,
+    required String perfumeName,
+    required String pickupAddr,
+    required String deliveryAddr,
+    required String pickupDate,
+    required String logistikType,
+    required bool isEn,
+    required double hargaPerSatuan,
+    required double biayaTambahan,
+  }) {
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final double kuantitasVal = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String qtyText = kuantitasVal == 0.0
+        ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
+        : '$kuantitasVal kg';
+
+    final String catatan = _currentOrder['catatan_order'] != null && _currentOrder['catatan_order'].toString().isNotEmpty
+        ? _currentOrder['catatan_order'].toString()
+        : '';
+
+    final String orderDate = _formatDate(_currentOrder['tgl_pesanan']);
+    final String estDate = _getEstSelesaiDate(_currentOrder);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: navyColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.fact_check_rounded, color: navyColor, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                isEn ? 'Review Order' : 'Tinjau Pesanan',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Main Service Padded Box
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: bgGrey,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade100, width: 1),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: softTeal,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.local_laundry_service_rounded, color: navyColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEn ? 'Laundry Service' : 'Layanan Laundry',
+                        style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        mainService,
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: navyColor),
+                      ),
+                      if (hargaPerSatuan > 0) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_formatRupiah(hargaPerSatuan)} / kg',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: navyColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    qtyText,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Detail Section: Package & Perfume Info
+          Row(
+            children: [
+              // Package
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bgGrey,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade100, width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, color: navyColor, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            isEn ? 'Package' : 'Paket',
+                            style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        packageName,
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+                      ),
+                      if (biayaTambahan > 0) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '+ ${_formatRupiah(biayaTambahan)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Perfume
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: bgGrey,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade100, width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.spa_outlined, color: navyColor, size: 14),
+                          const SizedBox(width: 6),
+                          Text(
+                            isEn ? 'Perfume' : 'Parfum',
+                            style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        perfumeName,
+                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Notes Section (Instruksi Khusus) - Consistent in color and placed above Timeline Details Grid
+          if (catatan.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: bgGrey,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade100, width: 1),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.edit_note_rounded, color: navyColor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEn ? 'Special Instruction' : 'Instruksi Khusus',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          catatan,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: navyColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Timeline Details Grid
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: bgGrey,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade100, width: 1),
+            ),
+            child: Column(
+              children: [
+                _buildDetailRow(isEn ? 'Order Date' : 'Tanggal Pesanan', orderDate, Icons.calendar_month_rounded),
+                const Divider(height: 20),
+                
+                // Pick up date is ALWAYS shown (cucian dijemput kurir)
+                _buildDetailRow(isEn ? 'Pick Up Date' : 'Tanggal Penjemputan', pickupDate, Icons.airport_shuttle_rounded),
+                const Divider(height: 20),
+                
+                // Pickup address is ALWAYS shown (alamat jemput cucian) - directly under Pick Up Date
+                _buildDetailRow(isEn ? 'Pickup Address' : 'Alamat Penjemputan', pickupAddr, Icons.location_on_rounded),
+                const Divider(height: 20),
+                
+                _buildDetailRow(
+                  isEn ? 'Logistics' : 'Tipe Logistik',
+                  isDropOff 
+                      ? (isEn ? 'Store Pickup (Drop-off)' : 'Ambil Sendiri di Toko') 
+                      : (isEn ? 'Courier Delivery' : 'Pengantaran Kurir'),
+                  Icons.local_shipping_rounded,
+                ),
+                const Divider(height: 20),
+                _buildDetailRow(isEn ? 'Estimated Finished' : 'Estimasi Selesai', estDate, Icons.av_timer_rounded),
+                const Divider(height: 20),
+                
+                if (!isDropOff) ...[
+                  _buildDetailRow(
+                    isEn ? 'Delivery Address' : 'Alamat Pengantaran',
+                    addresses.isNotEmpty && addresses.firstWhere((e) => e['is_primary'] == true, orElse: () => addresses.first) != null
+                        ? (() {
+                            final primaryAddr = addresses.firstWhere((e) => e['is_primary'] == true, orElse: () => addresses.first);
+                            return '${primaryAddr['alamat_lengkap']} (${primaryAddr['tipe_alamat']}) - Penerima: ${primaryAddr['nama_penerima']}';
+                          })()
+                        : deliveryAddr,
+                    Icons.location_on_rounded,
+                  ),
+                ] else ...[
+                  _buildDetailRow(
+                    isEn ? 'Store Address' : 'Alamat Toko (Drop-off)',
+                    'WishWash Laundry Utama\nJalan Raya Laundry No. 99, Tembalang, Semarang, Central Java',
+                    Icons.storefront_rounded,
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: navyColor),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- DELIVERY LOCATION SECTION (Consistent with LaundryOrderScreen) ---
+  Widget _buildDeliveryLocationSection(bool isEn) {
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    
+    final address = addresses.isNotEmpty
+        ? addresses.firstWhere(
+            (element) => element['is_primary'] == true,
+            orElse: () => addresses.first,
+          )
+        : null;
+
+    final String finalDeliveryAddr = address != null
+        ? '${address['alamat_lengkap']} (${address['tipe_alamat']}) - Penerima: ${address['nama_penerima']}'
+        : (isEn ? 'Address Not Selected Yet' : 'Alamat Pengiriman Belum Terpilih');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_on_rounded, color: navyColor, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                isEn ? 'Delivery Location' : 'Lokasi Pengiriman',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // --- Dark Navy Map Placeholder (identical to LaundryOrderScreen) ---
+          Container(
+            height: 130,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D253F),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(painter: DeliveryMapPainter()),
+                ),
+                // GPS ACTIVE Badge
+                Positioned(
+                  bottom: 10,
+                  right: 15,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF0C4B8E),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'GPS ACTIVE',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Pulsing Center Locator Pin
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: navyColor.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: navyColor, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: navyColor.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.my_location,
+                      color: navyColor,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          if (!isDropOff) ...[
+            // --- COURIER DELIVERY STATE ---
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: navyColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.location_on_rounded, color: navyColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEn ? 'Delivery Address' : 'Alamat Pengiriman',
+                        style: GoogleFonts.poppins(
+                          color: navyColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isLoadingAddresses
+                            ? (isEn ? 'Loading address...' : 'Memuat alamat...')
+                            : addresses.isNotEmpty
+                                ? finalDeliveryAddr
+                                : (isEn
+                                    ? 'Address not set. Tap button to add.'
+                                    : 'Alamat belum disetel. Ketuk tombol untuk menambahkan.'),
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _chooseAddress,
+                        icon: Icon(
+                          addresses.isNotEmpty ? Icons.edit_location_alt_rounded : Icons.add_location_alt_rounded,
+                          size: 14,
+                        ),
+                        label: Text(
+                          addresses.isNotEmpty
+                              ? (isEn ? 'Change Address' : 'Ubah Alamat')
+                              : (isEn ? 'Add Address' : 'Tambah Alamat'),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: navyColor,
+                          side: BorderSide(color: navyColor.withValues(alpha: 0.5), width: 1.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            // Toggle → Pick Up in Store
+            InkWell(
+              onTap: () {
+                _updateLogisticsBackend('Drop-off');
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFDE7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.storefront_rounded, color: Colors.orange.shade800, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isEn ? 'Pick Up in Store Instead' : 'Ambil Sendiri di Toko',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade800,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            // --- DROP-OFF / PICK UP IN STORE STATE ---
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: navyColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.storefront_rounded, color: navyColor, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEn ? 'Store Pickup Address' : 'Alamat Toko (Drop-off)',
+                        style: GoogleFonts.poppins(
+                          color: navyColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'WishWash Laundry Utama\nJalan Raya Laundry No. 99, Tembalang, Semarang, Central Java',
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28),
+            // Toggle → Use Courier Delivery
+            InkWell(
+              onTap: () {
+                final primary = addresses.isNotEmpty
+                    ? addresses.firstWhere((e) => e['is_primary'] == true, orElse: () => addresses.first)
+                    : null;
+                _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary != null ? primary['id_alamat'] : null);
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFDE7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.delivery_dining_rounded, color: Colors.orange.shade800, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isEn ? 'Use Courier Delivery' : 'Gunakan Pengiriman Kurir',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange.shade800,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- PROMO CODE CARD (Shopee/Tokopedia Style Coupon Picker) ---
+  Widget _buildPromoCard(double subtotalCucian, bool isEn) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isEn ? 'Promo Code / Voucher' : 'Kode Promo / Voucher',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: navyColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => _showPromoSelectorBottomSheet(subtotalCucian),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: bgGrey,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isPromoApplied ? cyanColor : Colors.grey.shade300,
+                  width: _isPromoApplied ? 1.5 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.confirmation_number_outlined,
+                    color: _isPromoApplied ? cyanColor : Colors.grey.shade600,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isPromoApplied 
+                              ? (isEn ? 'Voucher Applied: $_appliedPromoCode' : 'Promo Terpasang: $_appliedPromoCode')
+                              : (isEn ? 'Use promo voucher to save more' : 'Pilih promo untuk hemat lebih banyak!'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: _isPromoApplied ? cyanColor : navyColor,
+                          ),
+                        ),
+                        if (_isPromoApplied) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            isEn 
+                                ? 'Saving: -${_formatRupiah(_appliedPromoDiscount)}'
+                                : 'Hemat: -${_formatRupiah(_appliedPromoDiscount)}',
+                            style: GoogleFonts.poppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.keyboard_arrow_right_rounded, color: Colors.grey.shade600, size: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  // --- PRICE SUMMARY CARD ---
+  Widget _buildPriceSummaryCard({
+    required double subtotalCucian,
+    required double biayaTambahan,
+    required double promoDiscount,
+    required double totalTagihan,
+    required double kuantitas,
+    required double hargaPerSatuan,
+    required String packageName,
+    required String promoCode,
+    required bool isEn,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: navyColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isEn ? 'Payment Summary' : 'Rincian Pembayaran',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildPriceRow(
+            isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
+            _formatRupiah(subtotalCucian),
+            detailText: kuantitas > 0.0
+                ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
+                : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Package Surcharge' : 'Biaya Paket',
+            _formatRupiah(biayaTambahan),
+            detailText: packageName,
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            promoCode.isNotEmpty
+                ? (isEn ? 'Promo Discount ($promoCode)' : 'Diskon Promo ($promoCode)')
+                : (isEn ? 'Promo Discount' : 'Diskon Promo'),
+            promoDiscount > 0.0
+                ? '- ${_formatRupiah(promoDiscount)}'
+                : _formatRupiah(0.0),
+            isBoldLabel: false,
+            textColor: promoDiscount > 0.0 ? Colors.red.shade700 : const Color(0xFF2D3748),
+          ),
+          _buildDashedDivider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEn ? 'TOTAL BILL' : 'TOTAL TAGIHAN',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF2D3748),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                _formatRupiah(totalTagihan),
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF2D3748),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // --- CHOOSE PAYMENT METHOD CARD ---
+  Widget _buildChoosePaymentMethodCard(bool isEn) {
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    
+    // Dynamic Cash payment label based on logistics method (Ambil di Toko / Antar ke Rumah)
+    final String cashLabel = isDropOff
+        ? (isEn ? 'Cash at Store (Pay when picking up)' : 'Bayar Tunai di Toko (Saat Ambil)')
+        : (isEn ? 'Cash on Delivery (Pay to Courier)' : 'Bayar di Tempat (COD ke Kurir)');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isEn ? 'Pilih Cara Pembayaran' : 'Metode Pembayaran',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: navyColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildPaymentMethodTile(
+            methodId: 'QRIS',
+            label: 'QRIS',
+            icon: Icons.qr_code_scanner_rounded,
+          ),
+          const SizedBox(height: 10),
+          _buildPaymentMethodTile(
+            methodId: 'COD',
+            label: cashLabel,
+            icon: Icons.payments_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodTile({
+    required String methodId,
+    required String label,
+    required IconData icon,
+  }) {
+    final bool isSelected = _selectedPaymentMethod == methodId;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = methodId;
+        });
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? softTeal.withValues(alpha: 0.15) : bgGrey,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? cyanColor : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isSelected ? navyColor : Colors.grey.shade500),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: isSelected ? navyColor : Colors.black87,
+                ),
+              ),
+            ),
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? cyanColor : Colors.grey.shade400,
+                  width: 2,
+                ),
+                color: isSelected ? cyanColor : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, color: Colors.white, size: 12)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- STANDARD PROGRESS CARD & SCHEDULE DETAILS ---
   Widget _buildProgressCard({
     required Map<String, dynamic> order,
     required String orderId,
@@ -583,7 +2023,7 @@ class OrderDetailScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
+          // Stepper Tracker
           (() {
             final lang = TranslationService.currentLang;
             final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
@@ -595,11 +2035,8 @@ class OrderDetailScreen extends StatelessWidget {
               final rawName = refStatuses[i]['nama_status'] ?? '';
               final String shortLabel = _getShortStatusLabel(rawName, lang);
               
-              // (1) i == 0 (Pesanan Diterima) is marked DONE immediately once active index > 0.
-              // (2) If current status (i == activeIdx), it's the dot (isCurrent = true, isDone = false) indicating 'in progress'.
-              // (3) Once it moves beyond (i < activeIdx), it gets checked (isDone = true).
+              final bool isDone = i < activeIdx || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
               final bool isCurrent = i == activeIdx && !isSelesai;
-              final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
               final bool isActive = isDone || isCurrent;
 
               steps.add(
@@ -614,7 +2051,6 @@ class OrderDetailScreen extends StatelessWidget {
                 ),
               );
             }
-
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,7 +2343,7 @@ class OrderDetailScreen extends StatelessWidget {
     final String estDateText = _getEstSelesaiDate(order);
 
     final pelanggan = order['Pelanggan'] ?? {};
-    final String customerPhone = pelanggan['no_telp'] ?? '-';
+    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
 
     final alamatPengambilan = order['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
@@ -931,10 +2367,10 @@ class OrderDetailScreen extends StatelessWidget {
     final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
 
     final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
-    double promoDiscount = 0.0;
-    String promoCode = '';
+    double promoDiscount = _isPromoApplied ? _appliedPromoDiscount : 0.0;
+    String promoCode = _isPromoApplied ? _appliedPromoCode : '';
 
-    if (promoOrders.isNotEmpty) {
+    if (promoDiscount == 0.0 && promoOrders.isNotEmpty) {
       final promoOrderObj = promoOrders.first;
       final promo = promoOrderObj['Promo'] ?? {};
       if (promo.isNotEmpty) {
@@ -976,8 +2412,8 @@ class OrderDetailScreen extends StatelessWidget {
         ? pembayaran['referensi_bayar'].toString().trim()
         : '-';
 
-    final Color charBlack = const Color(0xFF2D3748); // Charcoal Black utama struk
-    final Color slateGray = const Color(0xFF718096); // Slate Gray label struk
+    final Color charBlack = const Color(0xFF2D3748);
+    final Color slateGray = const Color(0xFF718096);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1018,7 +2454,6 @@ class OrderDetailScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Bagian Atas Struk (Header Struk Belanja)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 decoration: BoxDecoration(
@@ -1052,7 +2487,7 @@ class OrderDetailScreen extends StatelessWidget {
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0C4B8E), // Kode pesanan tetap berwarna brand WishWash
+                            color: const Color(0xFF0C4B8E),
                           ),
                         ),
                       ],
@@ -1082,7 +2517,6 @@ class OrderDetailScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Bagian Isi Struk Belanja
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                 child: Column(
@@ -1120,7 +2554,6 @@ class OrderDetailScreen extends StatelessWidget {
                     
                     _buildDashedDivider(),
 
-                    // Perhitungan Harga
                     _buildPriceRow(
                       isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
                       _formatRupiah(subtotalCucian),
@@ -1149,7 +2582,6 @@ class OrderDetailScreen extends StatelessWidget {
                     ),
                     _buildDashedDivider(),
                     
-                    // Grand Total Bayar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1175,51 +2607,27 @@ class OrderDetailScreen extends StatelessWidget {
 
                     const SizedBox(height: 24),
                     Center(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade100, width: 1),
-                        ),
-                        child: Column(
-                          children: [
-                            BarcodeWidget(
-                              barcode: Barcode.code128(),
-                              data: 'Order#$orderId',
-                              drawText: false,
-                              height: 75,
-                              width: double.infinity,
+                      child: Column(
+                        children: [
+                          BarcodeWidget(
+                            barcode: Barcode.code128(),
+                            data: 'Order#$orderId',
+                            drawText: false,
+                            height: 75,
+                            width: double.infinity,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isEn ? '*Show this receipt when picking up your order' : '*Tunjukkan kuitansi ini saat pengambilan cucian Anda',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              color: slateGray,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              fontStyle: FontStyle.italic,
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              isEn ? '*Show this receipt when picking up your order' : '*Tunjukkan kuitansi ini saat pengambilan cucian Anda',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                color: slateGray,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w600,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Divider(color: Colors.grey.shade200, thickness: 1),
-                            const SizedBox(height: 6),
-                            Text(
-                              isEn
-                                  ? 'TERMS & CONDITIONS:\n1. Claims for complaints must be submitted within 24h after receiving clothes and accompanied by this receipt.\n2. Clothes not picked up within 30 days are beyond the responsibility of management.'
-                                  : 'SYARAT & KETENTUAN:\n1. Klaim keluhan wajib diajukan maks. 24 jam setelah pakaian diterima dengan menyertakan resi ini.\n2. Pakaian yang tidak diambil dalam 30 hari di luar tanggung jawab manajemen.',
-                              textAlign: TextAlign.left,
-                              style: GoogleFonts.poppins(
-                                color: slateGray.withValues(alpha: 0.8),
-                                fontSize: 8,
-                                height: 1.4,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1242,7 +2650,7 @@ class OrderDetailScreen extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.poppins(
-              color: const Color(0xFF718096), // Slate Gray
+              color: const Color(0xFF718096),
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -1254,7 +2662,7 @@ class OrderDetailScreen extends StatelessWidget {
               textAlign: TextAlign.right,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
-                color: isStatus ? (statusColor ?? const Color(0xFF2D3748)) : const Color(0xFF2D3748), // Charcoal Black
+                color: isStatus ? (statusColor ?? const Color(0xFF2D3748)) : const Color(0xFF2D3748),
                 fontSize: 12,
               ),
             ),
@@ -1279,7 +2687,6 @@ class OrderDetailScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -1320,7 +2727,69 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStickyActionFooter({required Color navyColor, required bool isEn}) {
+  Widget _buildStickyActionFooter({
+    required Color navyColor,
+    required bool isEn,
+    required bool isPaid,
+    required double totalTagihan,
+    required double promoDiscount,
+  }) {
+    // If PAID, show the standard finalized "Download Receipt" footer
+    if (isPaid) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: navyColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 4,
+                ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isEn ? 'Downloading Receipt PDF...' : 'Mengunduh Kuitansi PDF...'),
+                      backgroundColor: navyColor,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.file_download_outlined),
+                label: Text(
+                  isEn ? 'Download Receipt' : 'Unduh Kuitansi',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // If NOT PAID, show interactive Pay Now (QRIS) or Confirm COD button
+    final bool isQRIS = _selectedPaymentMethod == 'QRIS';
+    final double kuantitasVal = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final bool isNotWeighed = kuantitasVal == 0.0;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       decoration: BoxDecoration(
@@ -1340,41 +2809,211 @@ class OrderDetailScreen extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: navyColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 4,
-                shadowColor: navyColor.withValues(alpha: 0.4),
+          if (isNotWeighed) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
               ),
-              onPressed: () {
-                // Future trigger for downloading receipt
-              },
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.file_download_outlined,
-                    size: 20,
-                  ),
+                  Icon(Icons.info_outline_rounded, color: Colors.amber.shade900, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    isEn ? 'Download Receipt' : 'Unduh Kuitansi',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'Awaiting clothes weighing by store/courier to determine final bill.'
+                          : 'Belum bisa membayar. Menunggu pakaian ditimbang untuk menentukan total harga.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEn ? 'Total Bill' : 'Total Tagihan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isNotWeighed
+                          ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
+                          : _formatRupiah(totalTagihan),
+                      style: GoogleFonts.poppins(
+                        fontSize: isNotWeighed ? 14 : 16,
+                        fontWeight: FontWeight.w900,
+                        color: isNotWeighed ? Colors.grey.shade600 : navyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 170,
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isNotWeighed
+                        ? Colors.grey.shade300
+                        : (isQRIS ? navyColor : Colors.green.shade700),
+                    foregroundColor: isNotWeighed ? Colors.grey.shade500 : Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: isNotWeighed ? 0 : 4,
+                    shadowColor: isNotWeighed
+                        ? Colors.transparent
+                        : (isQRIS ? navyColor : Colors.green.shade700).withValues(alpha: 0.4),
+                  ),
+                  onPressed: isNotWeighed
+                      ? null
+                      : () {
+                          if (isQRIS) {
+                            // Navigate to our premium dynamic QRIS Payment Screen!
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PaymentScreen(
+                                  order: _currentOrder,
+                                  promoDiscount: promoDiscount,
+                                  totalTagihan: totalTagihan,
+                                  paymentMethod: 'QRIS',
+                                ),
+                              ),
+                            );
+                          } else {
+                            // Confirm Cash on Delivery
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: Text(
+                                  isEn ? 'Confirm Cash on Delivery' : 'Konfirmasi COD',
+                                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor),
+                                ),
+                                content: Text(
+                                  isEn
+                                      ? 'You choose to pay cash upon delivery. The total bill of ${_formatRupiah(totalTagihan)} is payable directly to our courier.'
+                                      : 'Anda memilih pembayaran Cash on Delivery. Total tagihan ${_formatRupiah(totalTagihan)} akan dibayarkan langsung secara tunai ke kurir kami.',
+                                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text(isEn ? 'Cancel' : 'Batal', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.red)),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            isEn
+                                                ? 'COD Payment selected successfully!'
+                                                : 'Metode Pembayaran COD berhasil dikonfirmasi!',
+                                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                          ),
+                                          backgroundColor: Colors.green.shade700,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(isEn ? 'Confirm' : 'Konfirmasi', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                        },
+                  icon: Icon(
+                    isQRIS ? Icons.qr_code_scanner_rounded : Icons.payments_rounded,
+                    size: 16,
+                    color: isNotWeighed ? Colors.grey.shade500 : Colors.white,
+                  ),
+                  label: Text(
+                    isQRIS
+                        ? (isEn ? 'Pay Now' : 'Bayar')
+                        : (isEn ? 'Confirm' : 'Konfirmasi'),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: isNotWeighed ? Colors.grey.shade500 : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+class DeliveryMapPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paintGrid = Paint()
+      ..color = Colors.white.withValues(alpha: 0.12)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    final paintRoad = Paint()
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..strokeWidth = 6.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final paintAccentRoad = Paint()
+      ..color = const Color(0xFF42C6D4).withValues(alpha: 0.4)
+      ..strokeWidth = 4.0
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    for (double i = 0; i < size.width; i += 20) {
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paintGrid);
+    }
+    for (double j = 0; j < size.height; j += 20) {
+      canvas.drawLine(Offset(0, j), Offset(size.width, j), paintGrid);
+    }
+
+    final path = Path()
+      ..moveTo(0, size.height * 0.3)
+      ..lineTo(size.width * 0.4, size.height * 0.3)
+      ..quadraticBezierTo(size.width * 0.5, size.height * 0.3, size.width * 0.5, size.height * 0.6)
+      ..lineTo(size.width * 0.5, size.height)
+      ..moveTo(size.width * 0.2, 0)
+      ..lineTo(size.width * 0.2, size.height)
+      ..moveTo(0, size.height * 0.7)
+      ..lineTo(size.width, size.height * 0.7);
+
+    canvas.drawPath(path, paintRoad);
+
+    final routePath = Path()
+      ..moveTo(size.width * 0.5, size.height * 0.5)
+      ..lineTo(size.width * 0.7, size.height * 0.5)
+      ..quadraticBezierTo(size.width * 0.8, size.height * 0.5, size.width * 0.8, size.height * 0.8)
+      ..lineTo(size.width, size.height * 0.8);
+    canvas.drawPath(routePath, paintAccentRoad);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

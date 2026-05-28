@@ -27,6 +27,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   final Color bgGrey = const Color(0xFFF8FBFC);
   final Color softTeal = const Color(0xFFBCEFF2);
   bool _isDeliveryStarted = false;
+  bool _isPickupStarted = false;
 
   @override
   void initState() {
@@ -114,7 +115,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       return isEn ? 'Iron' : 'Setrika';
     }
     if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
-      return isEn ? 'Ready' : 'Kirim';
+      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+      return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
     if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done')) {
       return isEn ? 'Done' : 'Selesai';
@@ -193,9 +195,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       }
     }
 
-    // Immediately check 'Pesanan Diterima' (index 0) and place the active dot at index 1 right after order creation
+    // If the order has status 'Pesanan Diterima', keep the active dot at index 0 (Diterima)
     if (activeIndex == 0 && refStatuses.length > 1) {
-      activeIndex = 1;
+      activeIndex = 0;
     }
 
     final bool isSelesai = lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
@@ -579,6 +581,158 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         );
       }
     }
+  }
+
+  void _showTolakPesananDialog() {
+    final reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: navyColor.withValues(alpha: 0.15),
+                  blurRadius: 30,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFEBEE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.cancel_rounded,
+                    color: Color(0xFFFF3B30),
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Tolak Pesanan?',
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Masukkan alasan mengapa pesanan ini ditolak',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Tulis alasan penolakan di sini...',
+                    hintStyle: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade400),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: navyColor, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: navyColor.withValues(alpha: 0.04),
+                  ),
+                  style: GoogleFonts.poppins(fontSize: 13, color: navyColor),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF3B30),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () async {
+                      final reason = reasonController.text.trim();
+                      if (reason.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Harap masukkan alasan penolakan!')),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context);
+                      
+                      try {
+                        final updatedOrder = await OrderService.updateOrder(
+                          _currentOrder['id_order'],
+                          {
+                            'status': 'Dibatalkan',
+                            'catatan_order': 'Ditolak: $reason',
+                          },
+                        );
+                        if (mounted) {
+                          setState(() {
+                            _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                          });
+                          widget.onOrderUpdated(_currentOrder);
+                          _showSuccessDialog(
+                            title: 'Pesanan Ditolak',
+                            content: 'Pesanan telah berhasil ditolak dengan alasan: "$reason"',
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menolak pesanan: $e'), backgroundColor: Colors.red),
+                        );
+                      }
+                    },
+                    child: Text(
+                      'Ya, Tolak Pesanan',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
+                      foregroundColor: Colors.grey.shade700,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showWeighingDialog() {
@@ -1975,9 +2129,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       if (!_isDeliveryStarted) {
         actionBtnText = TranslationService.currentLang == 'en' ? 'Deliver Now' : 'Antar Sekarang';
         customAction = () {
-          setState(() {
-            _isDeliveryStarted = true;
-          });
+          _showConfirmationDialog(
+            title: 'Mulai Pengantaran?',
+            content: 'Apakah Anda yakin ingin mulai mengantarkan pesanan ini sekarang?',
+            onConfirm: () {
+              setState(() {
+                _isDeliveryStarted = true;
+              });
+            },
+          );
         };
       } else {
         actionBtnText = '';
@@ -1996,8 +2156,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         actionBtnText = 'Mulai Timbang Cucian';
         customAction = _showWeighingDialog;
       } else if (status.contains('jemput') || status.contains('pickup') || status.contains('penjemputan')) {
-        // HIDE update button because "Selesaikan Penjemputan" (Konfirmasi Sampai di Lokasi) is inside the map page!
-        actionBtnText = ''; 
+        if (!_isPickupStarted) {
+          actionBtnText = TranslationService.currentLang == 'en' ? 'Pick Up Now' : 'Jemput Sekarang';
+          customAction = () {
+            _showConfirmationDialog(
+              title: 'Mulai Penjemputan?',
+              content: 'Apakah Anda yakin ingin mulai menjemput pesanan ini sekarang?',
+              onConfirm: () {
+                setState(() {
+                  _isPickupStarted = true;
+                });
+              },
+            );
+          };
+        } else {
+          actionBtnText = '';
+        }
       } else if (lowerNext.contains('jemput') || lowerNext.contains('pickup') || lowerNext.contains('penjemputan')) {
         actionBtnText = 'Pesanan Diterima ➔ Siap Jemput';
       } else {
@@ -2047,7 +2221,57 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (actionBtnText.isNotEmpty)
+          if (status == 'pesanan diterima') ...[
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF3B30),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 4,
+                        shadowColor: const Color(0xFFFF3B30).withValues(alpha: 0.4),
+                      ),
+                      onPressed: _showTolakPesananDialog,
+                      icon: const Icon(Icons.cancel_rounded, size: 18),
+                      label: Text(
+                        TranslationService.currentLang == 'en' ? 'Reject Order' : 'Tolak Pesanan',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: navyColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 4,
+                        shadowColor: navyColor.withValues(alpha: 0.4),
+                      ),
+                      onPressed: () {
+                        if (nextStatus.isNotEmpty) {
+                          _updateStatus(nextStatus);
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: Text(
+                        TranslationService.currentLang == 'en' ? 'Accept Order' : 'Terima Pesanan',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (actionBtnText.isNotEmpty) ...[
             SizedBox(
               width: double.infinity,
               height: 52,
@@ -2086,7 +2310,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
               ),
             ),
-          if (status == 'penjemputan' || (status == 'siap diantar' && _isDeliveryStarted)) ...[
+          ],
+          if ((status == 'penjemputan' && _isPickupStarted) || (status == 'siap diantar' && _isDeliveryStarted)) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,

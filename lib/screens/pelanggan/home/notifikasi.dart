@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/pelanggan/orders/payment.dart';
+import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -53,7 +53,7 @@ class NotificationScreen extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 15,
                     offset: const Offset(0, -5),
                   ),
@@ -70,9 +70,41 @@ class NotificationScreen extends StatelessWidget {
                     iconBg: const Color(0xFFFFF3E0),
                     iconColor: const Color(0xFFFF9800),
                     onTap: () {
+                      final mockOrder = {
+                        'id_order': 1234,
+                        'kode_order': 'WW-1234',
+                        'kuantitas': 4.0,
+                        'tgl_pesanan': DateTime.now().toIso8601String(),
+                        'tipe_logistik': 'Courier Delivery',
+                        'Pelanggan': {
+                          'nama_lengkap': 'Mark Lee',
+                          'no_telp': '08123456789',
+                        },
+                        'Layanan': {
+                          'nama_layanan': 'Wash Only (By Weight)',
+                          'harga_per_satuan': 8000.0,
+                        },
+                        'PaketLayanan': {
+                          'nama_paket': 'Daily Wear',
+                          'biaya_tambahan': 8000.0,
+                        },
+                        'Parfum': {
+                          'nama_parfum': 'Lavender Bliss',
+                        },
+                        'AlamatPenyerahan': {
+                          'alamat_lengkap': 'Jalan Kesana Kesini, No. 12, Semarang, Central Java',
+                        },
+                      };
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const PaymentScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => PaymentScreen(
+                            order: mockOrder,
+                            promoDiscount: 0.0,
+                            totalTagihan: 40000.0,
+                            paymentMethod: 'QRIS',
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -136,7 +168,7 @@ class NotificationScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -188,7 +220,7 @@ class NotificationScreen extends StatelessWidget {
                   description,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
-                    color: const Color(0xFF0C4B8E).withOpacity(0.6),
+                    color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
                     height: 1.4,
                   ),
                 ),
