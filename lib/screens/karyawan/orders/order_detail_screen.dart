@@ -557,15 +557,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         });
         widget.onOrderUpdated(_currentOrder);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Cucian berhasil ditimbang ($weight kg) dan status diperbarui ke: ${TranslationService.translateStatus(status)}',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: _getDarkenedTextColor(_getServiceColor((_currentOrder['Layanan']?['nama_layanan'] ?? ''))),
-            duration: const Duration(seconds: 2),
-          ),
+        final isEn = TranslationService.currentLang == 'en';
+        _showSuccessDialog(
+          title: isEn ? 'Weighing Successful' : 'Timbangan Berhasil',
+          content: isEn 
+              ? 'Laundry successfully weighed ($weight kg) and status updated to "${TranslationService.translateStatus(status)}".'
+              : 'Cucian berhasil ditimbang ($weight kg) dan status diperbarui ke "${TranslationService.translateStatus(status)}".',
         );
       }
     } catch (e) {
@@ -1485,7 +1482,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final String estDateText = _getEstSelesaiDate(order);
 
     final pelanggan = order['Pelanggan'] ?? {};
-    final String customerPhone = pelanggan['no_hp'] ?? '-';
+    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
 
     final alamatPengambilan = order['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
