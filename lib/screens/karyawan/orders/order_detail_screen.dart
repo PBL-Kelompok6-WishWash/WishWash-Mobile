@@ -1998,12 +1998,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           }
         } else if (lowerNext.contains('antar') || lowerNext.contains('delivery') || lowerNext.contains('siap diantar')) {
           actionBtnText = isEn
-              ? '$currentLabel Completed ➔ Ready to Deliver'
-              : '$currentLabel Selesai ➔ Siap Diantar';
+              ? 'Process $currentLabel Completed ➔ Ready to Deliver'
+              : 'Proses $currentLabel Selesai ➔ Siap Diantar';
         } else {
           actionBtnText = isEn
-              ? '$currentLabel Completed ➔ Start $nextLabel'
-              : '$currentLabel Selesai ➔ Mulai $nextLabel';
+              ? 'Process $currentLabel Completed ➔ Start $nextLabel'
+              : 'Proses $currentLabel Selesai ➔ Mulai $nextLabel';
         }
       }
     }
