@@ -751,14 +751,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           Navigator.pop(context);
                           final double computedTotal = (weight * hargaPerKg) + biayaTambahan;
                           
-                          final String currentStatus = _getOrderStatus(_currentOrder);
                           final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(_currentOrder);
-                          final int currentIdx = refStatuses.indexWhere(
-                            (element) => (element['nama_status'] ?? '').toString().toLowerCase().trim() == currentStatus.toLowerCase().trim()
+                          final int timbangIdx = refStatuses.indexWhere(
+                            (element) => (element['nama_status'] ?? '').toString().toLowerCase().contains('timbang') ||
+                                         (element['nama_status'] ?? '').toString().toLowerCase().contains('weigh')
                           );
                           String targetNextStatus = 'proses cuci'; // fallback
-                          if (currentIdx != -1 && currentIdx < refStatuses.length - 1) {
-                            targetNextStatus = (refStatuses[currentIdx + 1]['nama_status'] ?? '').toString();
+                          if (timbangIdx != -1 && timbangIdx < refStatuses.length - 1) {
+                            targetNextStatus = (refStatuses[timbangIdx + 1]['nama_status'] ?? '').toString();
                           }
                           _submitWeightAndStatus(weight, computedTotal, targetNextStatus);
                         },
