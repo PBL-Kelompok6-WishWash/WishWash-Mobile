@@ -85,7 +85,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   String _getShortStatusLabel(String rawStatus, String lang) {
-    final status = rawStatus.toLowerCase().trim();
+    String status = rawStatus.toLowerCase().trim();
+    if (status.startsWith('proses ')) {
+      status = status.replaceFirst('proses ', '').trim();
+    }
     final isEn = lang == 'en';
     
     if (status.contains('diterima') || status.contains('received')) {
@@ -116,8 +119,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       return isEn ? 'Done' : 'Selesai';
     }
     
-    if (rawStatus.length > 7) {
-      return rawStatus.substring(0, 7);
+    if (status.isNotEmpty) {
+      return status[0].toUpperCase() + status.substring(1);
     }
     return rawStatus;
   }
@@ -1983,34 +1986,24 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       } else if (lowerNext.contains('jemput') || lowerNext.contains('pickup') || lowerNext.contains('penjemputan')) {
         actionBtnText = 'Pesanan Diterima ➔ Siap Jemput';
       } else {
+        final isEn = TranslationService.currentLang == 'en';
+        final String currentLabel = _getShortStatusLabel(status, TranslationService.currentLang);
+        final String nextLabel = _getShortStatusLabel(rawNextName, TranslationService.currentLang);
+
         if (lowerNext.contains('selesai') || lowerNext.contains('completed') || lowerNext.contains('success')) {
           if (!isBelumLunas) {
-            actionBtnText = 'Tandai Pesanan Selesai';
+            actionBtnText = isEn ? 'Mark Order as Completed' : 'Tandai Pesanan Selesai';
           } else {
             actionBtnText = '';
           }
-        } else if (lowerNext.contains('cuci') || lowerNext.contains('wash')) {
-          actionBtnText = 'Timbang Selesai ➔ Mulai Cuci';
-        } else if (lowerNext.contains('kering') || lowerNext.contains('dry')) {
-          actionBtnText = 'Pencucian Selesai ➔ Mulai Keringkan';
-        } else if (lowerNext.contains('lipat') || lowerNext.contains('fold')) {
-          actionBtnText = 'Pengeringan Selesai ➔ Mulai Lipat';
-        } else if (lowerNext.contains('setrika') || lowerNext.contains('iron')) {
-          actionBtnText = 'Pelipatan Selesai ➔ Mulai Setrika';
         } else if (lowerNext.contains('antar') || lowerNext.contains('delivery') || lowerNext.contains('siap diantar')) {
-          if (status.contains('kering') || status.contains('dry')) {
-            actionBtnText = 'Pengeringan Selesai ➔ Siap Diantar';
-          } else if (status.contains('lipat') || status.contains('fold')) {
-            actionBtnText = 'Pelipatan Selesai ➔ Siap Diantar';
-          } else if (status.contains('setrika') || status.contains('iron')) {
-            actionBtnText = 'Penyetrikaan Selesai ➔ Siap Diantar';
-          } else if (status.contains('cuci') || status.contains('wash')) {
-            actionBtnText = 'Pencucian Selesai ➔ Siap Diantar';
-          } else {
-            actionBtnText = 'Proses Selesai ➔ Siap Diantar';
-          }
+          actionBtnText = isEn
+              ? '$currentLabel Completed ➔ Ready to Deliver'
+              : '$currentLabel Selesai ➔ Siap Diantar';
         } else {
-          actionBtnText = 'Proses Selesai ➔ Siap Diantar';
+          actionBtnText = isEn
+              ? '$currentLabel Completed ➔ Start $nextLabel'
+              : '$currentLabel Selesai ➔ Mulai $nextLabel';
         }
       }
     }
