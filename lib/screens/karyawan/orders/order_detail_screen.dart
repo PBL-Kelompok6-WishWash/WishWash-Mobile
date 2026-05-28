@@ -238,7 +238,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       return '-';
     }
     try {
-      final baseDate = DateTime.parse(baseDateStr);
+      final baseDate = DateTime.parse(baseDateStr).toLocal();
       final paket = order['PaketLayanan'];
       final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
       
@@ -1847,7 +1847,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                     if (patokanLokasi != '-')
                       _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
-                    _buildReceiptRow(isEn ? 'Logistics Method' : 'Metode Logistik', logistikType),
+                    _buildReceiptRow(
+                      isEn ? 'Order Type' : 'Tipe Pemesanan',
+                      logistikType.toLowerCase().contains('drop')
+                          ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                          : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Logistics Method' : 'Metode Logistik', 
+                      logistikType.toLowerCase().contains('drop')
+                          ? 'Drop-off'
+                          : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
+                    ),
                     _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),
                     _buildReceiptRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
                     _buildReceiptRow(
@@ -2125,10 +2136,66 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
     final bool isDropOff = logistikType == 'Drop-off';
 
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String paymentMethod = pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : '';
+    final String paymentStatus = _getPaymentStatus(_currentOrder);
+
+    final bool isPaymentConfirmed = pembayaran != null && paymentMethod.isNotEmpty;
+    final bool canDeliver = isPaymentConfirmed && 
+        (paymentMethod == 'CASH' || paymentMethod == 'COD' || (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
+
     if (status == 'siap diantar' && !isDropOff) {
       if (!_isDeliveryStarted) {
         actionBtnText = TranslationService.currentLang == 'en' ? 'Deliver Now' : 'Antar Sekarang';
         customAction = () {
+          if (!canDeliver) {
+            String warningMsg = '';
+            if (!isPaymentConfirmed) {
+              warningMsg = TranslationService.currentLang == 'en'
+                  ? 'The customer has not selected a payment method (Cash/QRIS) yet in their app.'
+                  : 'Pelanggan belum memilih metode pembayaran (Cash/QRIS) di aplikasi mereka.';
+            } else if (paymentMethod == 'QRIS' && paymentStatus != 'Lunas') {
+              warningMsg = TranslationService.currentLang == 'en'
+                  ? 'The customer selected QRIS payment, but the payment status is not LUNAS yet.'
+                  : 'Pelanggan memilih metode pembayaran QRIS, tetapi status pembayaran belum LUNAS.';
+            }
+
+            showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                      const SizedBox(width: 10),
+                      Text(
+                        TranslationService.currentLang == 'en' ? 'Payment Unconfirmed' : 'Pembayaran Belum Siap',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16, color: navyColor),
+                      ),
+                    ],
+                  ),
+                  content: Text(
+                    warningMsg,
+                    style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade700, height: 1.4),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'OK',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+            return;
+          }
+
           _showConfirmationDialog(
             title: 'Mulai Pengantaran?',
             content: 'Apakah Anda yakin ingin mulai mengantarkan pesanan ini sekarang?',
@@ -2221,6 +2288,39 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (status == 'siap diantar' && !isDropOff && !canDeliver) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      !isPaymentConfirmed
+                          ? (TranslationService.currentLang == 'en'
+                              ? 'Waiting for customer to choose payment method (Cash/QRIS) in the app.'
+                              : 'Menunggu pelanggan memilih metode pembayaran (Cash/QRIS) di aplikasi.')
+                          : (TranslationService.currentLang == 'en'
+                              ? 'Customer selected QRIS, waiting for payment confirmation.'
+                              : 'Pelanggan menggunakan QRIS. Menunggu pembayaran lunas sebelum diantar.'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (status == 'pesanan diterima') ...[
             Row(
               children: [

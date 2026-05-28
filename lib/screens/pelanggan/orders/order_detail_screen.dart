@@ -60,9 +60,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               'tipe_alamat': primary['tipe_alamat'],
               'nama_penerima': primary['nama_penerima'],
             };
-            // Set logistics type to Courier Delivery immediately to avoid resetting to Store
-            _currentOrder['tipe_logistik'] = 'Courier Delivery';
-            _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary['id_alamat']);
+            // Set logistics type to Courier Delivery immediately only if it is not already Drop-off
+            if (_currentOrder['tipe_logistik'] != 'Drop-off') {
+              _currentOrder['tipe_logistik'] = 'Courier Delivery';
+              _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary['id_alamat']);
+            }
           }
         });
       } else {
@@ -315,7 +317,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       return '-';
     }
     try {
-      final baseDate = DateTime.parse(baseDateStr);
+      final baseDate = DateTime.parse(baseDateStr).toLocal();
       final paket = order['PaketLayanan'];
       final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
       
@@ -551,7 +553,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           perfumeName: perfumeName,
                           pickupAddr: pickupAddr,
                           deliveryAddr: deliveryAddr,
-                          pickupDate: estDate,
+                          pickupDate: _formatDate(order['jadwal_pickup']),
                           logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
                           isEn: isEn,
                           hargaPerSatuan: hargaPerSatuan,
@@ -624,6 +626,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(28),
@@ -631,180 +634,268 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
       builder: (BuildContext context) {
-        final bool isEn = TranslationService.currentLang == 'en';
-        final List<Map<String, dynamic>> availablePromos = [
-          {
-            'code': 'WISHWASH50',
-            'title': isEn ? '50% Discount (Save Max Rp 20k)' : 'Diskon 50% (Hemat s/d Rp 20.000)',
-            'desc': isEn ? 'Applicable to weight laundry laundry services' : 'Berlaku untuk semua jenis cuci timbang',
-            'discount': subtotalCucian * 0.50 > 20000.0 ? 20000.0 : subtotalCucian * 0.50,
-          },
-          {
-            'code': 'HELLOWW',
-            'title': isEn ? 'Flat Rp 10k Discount' : 'Potongan Langsung Rp 10.000',
-            'desc': isEn ? 'Welcome discount for new customers!' : 'Diskon selamat datang pelanggan baru!',
-            'discount': subtotalCucian > 10000.0 ? 10000.0 : subtotalCucian,
-          },
-          {
-            'code': 'FREEDELIV',
-            'title': isEn ? 'Free Delivery Surcharge' : 'Bebas Biaya Pengantaran Kurir',
-            'desc': isEn ? 'Deducts Rp 8k for reguler package courier delivery' : 'Potongan langsung Rp 8.000 untuk pengiriman paket reguler',
-            'discount': 8000.0,
-          },
-        ];
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            final bool isEn = TranslationService.currentLang == 'en';
+            final List<Map<String, dynamic>> availablePromos = [
+              {
+                'code': 'WISHWASH50',
+                'title': isEn ? '50% Discount (Save Max Rp 20k)' : 'Diskon 50% (Hemat s/d Rp 20.000)',
+                'desc': isEn ? 'Applicable to weight laundry laundry services' : 'Berlaku untuk semua jenis cuci timbang',
+                'discount': subtotalCucian * 0.50 > 20000.0 ? 20000.0 : subtotalCucian * 0.50,
+              },
+              {
+                'code': 'HELLOWW',
+                'title': isEn ? 'Flat Rp 10k Discount' : 'Potongan Langsung Rp 10.000',
+                'desc': isEn ? 'Welcome discount for new customers!' : 'Diskon selamat datang pelanggan baru!',
+                'discount': subtotalCucian > 10000.0 ? 10000.0 : subtotalCucian,
+              },
+              {
+                'code': 'FREEDELIV',
+                'title': isEn ? 'Free Delivery Surcharge' : 'Bebas Biaya Pengantaran Kurir',
+                'desc': isEn ? 'Deducts Rp 8k for reguler package courier delivery' : 'Potongan langsung Rp 8.000 untuk pengiriman paket reguler',
+                'discount': 8000.0,
+              },
+            ];
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 50,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    isEn ? 'Select Promo' : 'Pilih Voucher Promo',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: navyColor,
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _appliedPromoDiscount = 0.0;
-                        _isPromoApplied = false;
-                        _appliedPromoCode = '';
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      isEn ? 'Reset' : 'Hapus',
-                      style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEn ? 'Select Promo' : 'Pilih Voucher Promo',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _appliedPromoDiscount = 0.0;
+                            _isPromoApplied = false;
+                            _appliedPromoCode = '';
+                            _promoController.clear();
+                            _promoError = '';
+                          });
+                          setModalState(() {});
+                          Navigator.pop(context);
+                        },
+                        child: Text(
+                          isEn ? 'Reset' : 'Hapus',
+                          style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Manual Promo Input Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: bgGrey,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _promoError.isNotEmpty ? Colors.red.shade400 : Colors.grey.shade300,
+                              width: _promoError.isNotEmpty ? 1.5 : 1,
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _promoController,
+                            textCapitalization: TextCapitalization.characters,
+                            decoration: InputDecoration(
+                              hintText: isEn ? 'Enter promo code...' : 'Masukkan kode promo...',
+                              hintStyle: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade400),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              border: InputBorder.none,
+                            ),
+                            style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: navyColor),
+                            onChanged: (_) {
+                              if (_promoError.isNotEmpty) {
+                                setModalState(() {
+                                  _promoError = '';
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        height: 46,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: navyColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                          ),
+                          onPressed: () {
+                            _applyPromoCode(subtotalCucian);
+                            if (_isPromoApplied) {
+                              Navigator.pop(context);
+                            } else {
+                              setModalState(() {});
+                            }
+                          },
+                          child: Text(
+                            isEn ? 'Apply' : 'Gunakan',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_promoError.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4),
+                      child: Text(
+                        _promoError,
+                        style: GoogleFonts.poppins(fontSize: 10, color: Colors.red, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: availablePromos.length,
+                      itemBuilder: (context, index) {
+                        final promo = availablePromos[index];
+                        final String code = promo['code'];
+                        final bool isCurrent = _appliedPromoCode == code;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isCurrent ? cyanColor : Colors.grey.shade200,
+                              width: isCurrent ? 2 : 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Banner(
+                              message: isEn ? 'OFFER' : 'PROMO',
+                              location: BannerLocation.topEnd,
+                              color: cyanColor,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _appliedPromoDiscount = promo['discount'];
+                                    _isPromoApplied = true;
+                                    _appliedPromoCode = code;
+                                    _promoController.text = code;
+                                    _promoError = '';
+                                  });
+                                  setModalState(() {});
+                                  Navigator.pop(context);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: softTeal.withValues(alpha: 0.4),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(Icons.confirmation_num_rounded, color: navyColor, size: 24),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              promo['title'],
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: navyColor,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              promo['desc'],
+                                              style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: bgGrey,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                'CODE: $code',
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: navyColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        isCurrent ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                                        color: isCurrent ? cyanColor : Colors.grey.shade300,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: availablePromos.length,
-                  itemBuilder: (context, index) {
-                    final promo = availablePromos[index];
-                    final String code = promo['code'];
-                    final bool isCurrent = _appliedPromoCode == code;
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isCurrent ? cyanColor : Colors.grey.shade200,
-                          width: isCurrent ? 2 : 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Banner(
-                          message: isEn ? 'OFFER' : 'PROMO',
-                          location: BannerLocation.topEnd,
-                          color: cyanColor,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _appliedPromoDiscount = promo['discount'];
-                                _isPromoApplied = true;
-                                _appliedPromoCode = code;
-                                _promoError = '';
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: softTeal.withValues(alpha: 0.4),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(Icons.confirmation_num_rounded, color: navyColor, size: 24),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          promo['title'],
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: navyColor,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          promo['desc'],
-                                          style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: bgGrey,
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            'CODE: $code',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: navyColor,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    isCurrent ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                                    color: isCurrent ? cyanColor : Colors.grey.shade300,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -1208,16 +1299,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
             child: Column(
               children: [
+                _buildDetailRow(
+                  isEn ? 'Order Type' : 'Tipe Pemesanan',
+                  !isDropOff
+                      ? (isEn ? 'Online (App)' : 'Online (Aplikasi)')
+                      : (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)'),
+                  Icons.devices_rounded,
+                ),
+                const Divider(height: 20),
                 _buildDetailRow(isEn ? 'Order Date' : 'Tanggal Pesanan', orderDate, Icons.calendar_month_rounded),
                 const Divider(height: 20),
                 
-                // Pick up date is ALWAYS shown (cucian dijemput kurir)
-                _buildDetailRow(isEn ? 'Pick Up Date' : 'Tanggal Penjemputan', pickupDate, Icons.airport_shuttle_rounded),
-                const Divider(height: 20),
-                
-                // Pickup address is ALWAYS shown (alamat jemput cucian) - directly under Pick Up Date
-                _buildDetailRow(isEn ? 'Pickup Address' : 'Alamat Penjemputan', pickupAddr, Icons.location_on_rounded),
-                const Divider(height: 20),
+                if (!isDropOff) ...[
+                  // Pick up date is shown if not walk-in
+                  _buildDetailRow(isEn ? 'Pick Up Date' : 'Tanggal Penjemputan', pickupDate, Icons.airport_shuttle_rounded),
+                  const Divider(height: 20),
+                  
+                  // Pickup address is shown if not walk-in
+                  _buildDetailRow(isEn ? 'Pickup Address' : 'Alamat Penjemputan', pickupAddr, Icons.location_on_rounded),
+                  const Divider(height: 20),
+                ],
                 
                 _buildDetailRow(
                   isEn ? 'Logistics' : 'Tipe Logistik',
@@ -2533,6 +2634,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                     if (patokanLokasi != '-')
                       _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
+                    _buildReceiptRow(
+                      isEn ? 'Order Type' : 'Tipe Pemesanan',
+                      logistikType.toLowerCase().contains('drop')
+                          ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                          : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                    ),
                     _buildReceiptRow(
                       isEn ? 'Logistics Method' : 'Metode Logistik', 
                       logistikType.toLowerCase().contains('drop')
