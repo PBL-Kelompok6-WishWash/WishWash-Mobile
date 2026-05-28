@@ -1254,7 +1254,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Informasi Pelanggan',
+            TranslationService.currentLang == 'en' ? 'Customer Information' : 'Informasi Pelanggan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -1307,7 +1307,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       Icon(Icons.chat_bubble_rounded, color: navyColor, size: 14),
                       const SizedBox(width: 6),
                       Text(
-                        'Pesan',
+                        TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1333,6 +1333,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required Color navyColor,
   }) {
     final bool isDropOff = logistikType == 'Drop-off';
+    final isEn = TranslationService.currentLang == 'en';
+    final String translatedLogistik = isDropOff
+        ? (isEn ? 'Drop-off' : 'Drop-off (Mandiri)')
+        : (isEn ? 'Courier Delivery' : 'Pengantaran Kurir');
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1357,7 +1362,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pick Up',
+                        isEn ? 'Pick Up' : 'Penjemputan',
                         style: GoogleFonts.poppins(
                           color: Colors.grey,
                           fontSize: 11,
@@ -1380,7 +1385,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Pick Up Address',
+                        isEn ? 'Pick Up Address' : 'Alamat Jemput',
                         style: GoogleFonts.poppins(
                           color: Colors.grey,
                           fontSize: 11,
@@ -1412,7 +1417,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Logistics',
+                      isEn ? 'Logistics' : 'Logistik / Pengiriman',
                       style: GoogleFonts.poppins(
                         color: Colors.grey,
                         fontSize: 11,
@@ -1420,7 +1425,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      logistikType,
+                      translatedLogistik,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -1435,7 +1440,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Delivery Address',
+                      isEn ? 'Delivery Address' : 'Alamat Antar',
                       style: GoogleFonts.poppins(
                         color: Colors.grey,
                         fontSize: 11,
