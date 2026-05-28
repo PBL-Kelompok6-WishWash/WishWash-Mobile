@@ -1974,7 +1974,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         actionBtnText = 'Pesanan Diterima ➔ Siap Jemput';
       } else {
         if (lowerNext.contains('selesai') || lowerNext.contains('completed') || lowerNext.contains('success')) {
-          actionBtnText = 'Tandai Pesanan Selesai';
+          if (!isBelumLunas) {
+            actionBtnText = 'Tandai Pesanan Selesai';
+          } else {
+            actionBtnText = '';
+          }
         } else if (lowerNext.contains('cuci') || lowerNext.contains('wash')) {
           actionBtnText = 'Timbang Selesai ➔ Mulai Cuci';
         } else if (lowerNext.contains('kering') || lowerNext.contains('dry')) {
