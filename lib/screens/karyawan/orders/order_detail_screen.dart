@@ -5,6 +5,8 @@ import 'package:mobile/services/translation_service.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/karyawan/orders/karyawan_tracking_screen.dart';
+import 'package:mobile/utils/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -1472,6 +1474,45 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Card Informasi Pelanggan (Ingat: Pelanggan tidak bisa ditelepon, melainkan dikirimi pesan/chat)
   Widget _buildCustomerCard(String customerName, String customerPhone) {
+    final pelanggan = _currentOrder['Pelanggan'] ?? {};
+    final String rawFoto = (pelanggan['foto_pelanggan'] ?? '').toString();
+    final String email = (pelanggan['User'] != null ? pelanggan['User']['email'] : '').toString();
+
+    final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+    String fotoUrl = '';
+    if (rawFoto.isNotEmpty) {
+      if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://')) {
+        fotoUrl = rawFoto;
+      } else if (rawFoto.startsWith('/')) {
+        fotoUrl = '$staticHost$rawFoto';
+      } else {
+        fotoUrl = '$staticHost/$rawFoto';
+      }
+    }
+    final bool hasFoto = fotoUrl.isNotEmpty;
+
+    // Determine initials
+    final List<String> nameParts = customerName.trim().split(' ');
+    final String initials = nameParts.length >= 2
+        ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
+        : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
+            ? nameParts[0][0].toUpperCase()
+            : '?');
+
+    final bool hasPhone = customerPhone.isNotEmpty && customerPhone != '-';
+
+    Future<void> openWhatsApp() async {
+      if (!hasPhone) return;
+      String cleaned = customerPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      if (cleaned.startsWith('0')) cleaned = '62${cleaned.substring(1)}';
+      final uri = Uri.parse('https://wa.me/$cleaned');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
+
+    final bool isEn = TranslationService.currentLang == 'en';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1489,7 +1530,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            TranslationService.currentLang == 'en' ? 'Customer Information' : 'Informasi Pelanggan',
+            isEn ? 'Customer Information' : 'Informasi Pelanggan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -1499,12 +1540,68 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           const SizedBox(height: 10),
           Row(
             children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: softTeal,
-                child: Icon(Icons.person_rounded, color: navyColor, size: 24),
+              // Avatar
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.shapeCircle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0C4B8E).withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: hasFoto
+                    ? ClipOval(
+                        child: Image.network(
+                          fotoUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, progress) {
+                            if (progress == null) return child;
+                            return Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (ctx, err, stack) => Center(
+                            child: Text(
+                              initials,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
               ),
               const SizedBox(width: 14),
+              // Name, Phone, and Email
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1517,42 +1614,56 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         color: navyColor,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       customerPhone,
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.grey.shade500,
+                        color: const Color(0xFF718096),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              // Tombol pesan / chat eksklusif, bukan telepon
-              GestureDetector(
-                onTap: () => _openCustomerChat(customerName),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: cyanColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.chat_bubble_rounded, color: navyColor, size: 14),
-                      const SizedBox(width: 6),
+                    if (email.isNotEmpty && email != '-') ...[
+                      const SizedBox(height: 1),
                       Text(
-                        TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
+                        email,
                         style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
+                          fontSize: 10,
+                          color: const Color(0xFF9E9E9E),
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
               ),
+              // WhatsApp Chat Button
+              if (hasPhone)
+                GestureDetector(
+                  onTap: openWhatsApp,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.chat_bubble_rounded, color: Color(0xFF128C7E), size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          isEn ? 'Chat' : 'Chat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF128C7E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
