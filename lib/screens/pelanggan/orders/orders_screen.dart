@@ -67,6 +67,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
+  String _formatDateTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      final int hour = dt.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hourStr:$minuteStr $amPm';
+    } catch (_) {
+      try {
+        return isoString.split('T')[0];
+      } catch (_) {
+        return isoString;
+      }
+    }
+  }
+
   String _getEstSelesaiDate(Map<String, dynamic> order) {
     final String? pickupStr = order['jadwal_pickup']?.toString();
     final String? tglPesananStr = order['tgl_pesanan']?.toString();
@@ -793,7 +816,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
         final layanan = order['Layanan'] ?? {};
         final serviceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
         
-        final endDate = _formatDate(order['tgl_pesanan']);
+        String endDateTimeStr = order['tgl_pesanan'] ?? '';
+        final historyList = order['RiwayatStatusDetail'];
+        if (historyList != null && historyList is List && historyList.isNotEmpty) {
+          List<dynamic> sortedHistory = List.from(historyList);
+          sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+          final rawTime = sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'];
+          if (rawTime != null) {
+            endDateTimeStr = rawTime.toString();
+          }
+        }
+        final endDate = _formatDateTime(endDateTimeStr);
         final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
         final price = _formatRupiah(totalBayar);
         
@@ -1077,7 +1110,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 decoration: BoxDecoration(
                   color: isCancelled
                       ? const Color(0xFFFF3B30)
-                      : Colors.green.withValues(alpha: 0.12),
+                      : const Color(0xFF4CAF50), // Soft / Light Green
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -1086,7 +1119,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
-                    color: isCancelled ? Colors.white : Colors.green,
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1154,35 +1187,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ],
-          if (isCancelled) ...[
-            const SizedBox(height: 16),
-            (() {
-              final lang = TranslationService.currentLang;
-              final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
-              List<Widget> steps = [];
-              for (int i = 0; i < refStatuses.length; i++) {
-                final rawName = refStatuses[i]['nama_status'] ?? '';
-                final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: true);
-                steps.add(
-                  _buildStepItem(
-                    label: shortLabel,
-                    isActive: true,
-                    isDone: true,
-                    isCurrent: false,
-                    themeColor: Colors.red,
-                    index: i,
-                    totalSteps: refStatuses.length,
-                    isCancelled: true,
-                  ),
-                );
-              }
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: steps,
+          const SizedBox(height: 16),
+          (() {
+            final lang = TranslationService.currentLang;
+            final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+            List<Widget> steps = [];
+            for (int i = 0; i < refStatuses.length; i++) {
+              final rawName = refStatuses[i]['nama_status'] ?? '';
+              final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: isCancelled);
+              steps.add(
+                _buildStepItem(
+                  label: shortLabel,
+                  isActive: true,
+                  isDone: true,
+                  isCurrent: false,
+                  themeColor: isCancelled ? Colors.red : orderColor,
+                  index: i,
+                  totalSteps: refStatuses.length,
+                  isCancelled: isCancelled,
+                ),
               );
-            })(),
-          ],
+            }
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: steps,
+            );
+          })(),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1201,7 +1232,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         ),
                       ),
                       child: Text(
-                        'Beri Ulasan',
+                        TranslationService.currentLang == 'en' ? 'Write Review' : 'Beri Ulasan',
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -1231,7 +1262,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ),
                     ),
                     child: Text(
-                      'Pesan Lagi',
+                      TranslationService.currentLang == 'en' ? 'Order Again' : 'Pesan Lagi',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,

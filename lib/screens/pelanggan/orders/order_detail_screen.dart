@@ -2787,15 +2787,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [navyColor, const Color(0xFF105CAE)],
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: navyColor.withValues(alpha: 0.25),
+                          color: const Color(0xFF0C4B8E).withValues(alpha: 0.25),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
