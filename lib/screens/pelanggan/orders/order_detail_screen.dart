@@ -2625,38 +2625,90 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF42C6D4).withValues(alpha: 0.25),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: navyColor.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            isEn ? 'Employee Information' : 'Informasi Karyawan',
-            style: GoogleFonts.poppins(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade500,
-            ),
-          ),
-          const SizedBox(height: 10),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF42C6D4).withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.delivery_dining_rounded,
+                      color: Color(0xFF0C4B8E),
+                      size: 14,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isEn ? 'COURIER PARTNER' : 'MITRA KARYAWAN',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: const Color(0xFF0C4B8E),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: const Color(0xFF81C784).withValues(alpha: 0.3), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      '4.9 (42)',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2E7D32),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Avatar circle with actual photo
               Container(
-                width: 44,
-                height: 44,
+                width: 54,
+                height: 54,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -2679,8 +2731,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             if (progress == null) return child;
                             return Center(
                               child: SizedBox(
-                                width: 18,
-                                height: 18,
+                                width: 20,
+                                height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white.withValues(alpha: 0.7),
@@ -2694,7 +2746,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 18,
                               ),
                             ),
                           ),
@@ -2706,7 +2758,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 18,
                           ),
                         ),
                       ),
@@ -2721,28 +2773,43 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       name,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: navyColor,
+                        fontSize: 16,
+                        color: const Color(0xFF0C4B8E),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     if (hasVehicle || hasPlate)
-                      Text(
-                        [if (hasVehicle) vehicle, if (hasPlate) plate].join(' \u2022 '),
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: const Color(0xFF718096),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    else if (hasPhone)
-                      Text(
-                        phone,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: const Color(0xFF718096),
-                          fontWeight: FontWeight.w500,
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.two_wheeler_rounded, size: 13, color: Color(0xFF718096)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              [if (hasVehicle) vehicle, if (hasPlate) plate].join(' \u2022 '),
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: const Color(0xFF4A5568),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 2),
+                    if (hasPhone)
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF718096)),
+                          const SizedBox(width: 5),
+                          Text(
+                            phone,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: const Color(0xFF718096),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                   ],
                 ),
@@ -2752,22 +2819,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 GestureDetector(
                   onTap: openWhatsApp,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF25D366).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF25D366), Color(0xFF128C7E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF25D366).withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.chat_bubble_rounded, color: Color(0xFF128C7E), size: 14),
+                        const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 13),
                         const SizedBox(width: 6),
                         Text(
                           isEn ? 'Chat' : 'Chat',
                           style: GoogleFonts.poppins(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF128C7E),
+                            color: Colors.white,
                           ),
                         ),
                       ],
