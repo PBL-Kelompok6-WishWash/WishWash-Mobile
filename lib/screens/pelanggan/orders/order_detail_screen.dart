@@ -2653,7 +2653,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.delivery_dining_rounded,
+                  Icons.badge_rounded,
                   color: Color(0xFF0C4B8E),
                   size: 14,
                 ),
