@@ -1073,7 +1073,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: isCancelled
-                      ? Colors.red.withValues(alpha: 0.12)
+                      ? const Color(0xFFFF3B30)
                       : Colors.green.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1083,7 +1083,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
-                    color: isCancelled ? Colors.red.shade700 : Colors.green,
+                    color: isCancelled ? Colors.white : Colors.green,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
