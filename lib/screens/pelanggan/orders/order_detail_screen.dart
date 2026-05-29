@@ -2586,11 +2586,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final String vehicle = (karyawan['jenis_kendaraan'] ?? '').toString();
     final String plate = (karyawan['plat_nomor'] ?? '').toString();
     final String rawFoto = (karyawan['foto_karyawan'] ?? '').toString();
-    final String status = (karyawan['status_ketersediaan'] ?? '').toString();
 
     // Build full photo URL same as other screens
     final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
-    final String fotoUrl = rawFoto.isNotEmpty ? '$staticHost/$rawFoto' : '';
+    String fotoUrl = '';
+    if (rawFoto.isNotEmpty) {
+      if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://')) {
+        fotoUrl = rawFoto;
+      } else if (rawFoto.startsWith('/')) {
+        fotoUrl = '$staticHost$rawFoto';
+      } else {
+        fotoUrl = '$staticHost/$rawFoto';
+      }
+    }
     final bool hasFoto = fotoUrl.isNotEmpty;
 
     // Determine avatar initials from name
@@ -2604,14 +2612,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final bool hasVehicle = vehicle.isNotEmpty;
     final bool hasPlate = plate.isNotEmpty;
     final bool hasPhone = phone.isNotEmpty && phone != '-';
-
-    final Color statusBg = status.toLowerCase().contains('tersedia') || status.toLowerCase().contains('available')
-        ? const Color(0xFFE8F5E9)
-        : const Color(0xFFFFF8E1);
-    final Color statusFg = status.toLowerCase().contains('tersedia') || status.toLowerCase().contains('available')
-        ? const Color(0xFF2E7D32)
-        : const Color(0xFFE65100);
-    final String statusLabel = status.isNotEmpty ? status : (isEn ? 'On Duty' : 'Bertugas');
 
     Future<void> openWhatsApp() async {
       if (!hasPhone) return;
@@ -2628,92 +2628,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF42C6D4).withValues(alpha: 0.35), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF42C6D4).withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row: label + chat button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: navyColor.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.person_pin_circle_rounded, color: navyColor, size: 16),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isEn ? 'Employee' : 'Karyawan',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: navyColor,
-                    ),
-                  ),
-                ],
-              ),
-              // Chat button (WhatsApp)
-              if (hasPhone)
-                GestureDetector(
-                  onTap: openWhatsApp,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF25D366), Color(0xFF128C7E)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF25D366).withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.chat_rounded, color: Colors.white, size: 14),
-                        const SizedBox(width: 5),
-                        Text(
-                          isEn ? 'Chat' : 'Chat',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          Text(
+            isEn ? 'Employee Information' : 'Informasi Karyawan',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade500,
+            ),
           ),
-          const SizedBox(height: 14),
-          // Profile row
+          const SizedBox(height: 10),
           Row(
             children: [
               // Avatar circle with actual photo
               Container(
-                width: 60,
-                height: 60,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(
@@ -2738,8 +2679,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             if (progress == null) return child;
                             return Center(
                               child: SizedBox(
-                                width: 22,
-                                height: 22,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   color: Colors.white.withValues(alpha: 0.7),
@@ -2753,7 +2694,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               style: GoogleFonts.poppins(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 22,
+                                fontSize: 16,
                               ),
                             ),
                           ),
@@ -2765,12 +2706,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           style: GoogleFonts.poppins(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 22,
+                            fontSize: 16,
                           ),
                         ),
                       ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               // Name & info
               Expanded(
                 child: Column(
@@ -2779,63 +2720,60 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     Text(
                       name,
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2D3748),
+                        fontSize: 14,
+                        color: navyColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    if (hasPhone)
-                      Row(
-                        children: [
-                          const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF718096)),
-                          const SizedBox(width: 4),
-                          Text(
-                            phone,
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: const Color(0xFF718096),
-                            ),
-                          ),
-                        ],
-                      ),
-                    if (hasVehicle || hasPlate) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.two_wheeler_rounded, size: 13, color: Color(0xFF718096)),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              [if (hasVehicle) vehicle, if (hasPlate) plate].join(' \u2022 '),
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: const Color(0xFF718096),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(
-                        statusLabel,
+                    const SizedBox(height: 2),
+                    if (hasVehicle || hasPlate)
+                      Text(
+                        [if (hasVehicle) vehicle, if (hasPlate) plate].join(' \u2022 '),
                         style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusFg,
+                          fontSize: 11,
+                          color: const Color(0xFF718096),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    else if (hasPhone)
+                      Text(
+                        phone,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: const Color(0xFF718096),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
+              // WhatsApp Chat button
+              if (hasPhone)
+                GestureDetector(
+                  onTap: openWhatsApp,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.chat_bubble_rounded, color: Color(0xFF128C7E), size: 14),
+                        const SizedBox(width: 6),
+                        Text(
+                          isEn ? 'Chat' : 'Chat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF128C7E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
