@@ -2645,55 +2645,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF42C6D4).withValues(alpha: 0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.delivery_dining_rounded,
-                      color: Color(0xFF0C4B8E),
-                      size: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isEn ? 'COURIER PARTNER' : 'MITRA KARYAWAN',
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: const Color(0xFF0C4B8E),
-                    ),
-                  ),
-                ],
-              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFF81C784).withValues(alpha: 0.3), width: 1),
+                  color: const Color(0xFF42C6D4).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 12),
-                    const SizedBox(width: 4),
-                    Text(
-                      '4.9 (42)',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF2E7D32),
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.delivery_dining_rounded,
+                  color: Color(0xFF0C4B8E),
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isEn ? 'ASSIGNED EMPLOYEE' : 'KARYAWAN BERTUGAS',
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: const Color(0xFF0C4B8E),
                 ),
               ),
             ],
