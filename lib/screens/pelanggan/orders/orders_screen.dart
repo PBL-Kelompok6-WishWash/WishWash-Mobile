@@ -1039,15 +1039,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: isCancelled
-            ? Colors.red.shade50.withValues(alpha: 0.15)
-            : Color.alphaBlend(baseColor.withValues(alpha: 0.10), Colors.white),
+        color: Color.alphaBlend(baseColor.withValues(alpha: 0.10), Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCancelled
-              ? Colors.red.shade300.withValues(alpha: 0.5)
+              ? Colors.red.shade400.withValues(alpha: 0.7)
               : orderColor.withValues(alpha: 0.25),
-          width: 1.2,
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
