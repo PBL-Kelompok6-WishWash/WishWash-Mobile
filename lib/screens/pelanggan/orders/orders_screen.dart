@@ -679,7 +679,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
       activeIndex = 1;
     }
 
-    final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
+    final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || 
+                           rawStatus.toLowerCase().contains('completed') || 
+                           rawStatus.toLowerCase().contains('success') || 
+                           rawStatus.toLowerCase().contains('batal') || 
+                           rawStatus.toLowerCase().contains('tolak') || 
+                           rawStatus.toLowerCase().contains('reject');
 
     return {
       'nama_status': translatedStatus,
@@ -693,8 +698,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget _buildActiveOrders(Color navyColor) {
     final activeOrders = _allOrders.where((order) {
       final statusInfo = _getCurrentStatusInfo(order);
-      final rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
-      return !rawStatus.contains('selesai') && !rawStatus.contains('completed') && !rawStatus.contains('success');
+      return statusInfo['is_selesai'] == false;
     }).toList();
 
     if (activeOrders.isEmpty) {
@@ -758,8 +762,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget _buildCompletedOrders(Color navyColor) {
     final completedOrders = _allOrders.where((order) {
       final statusInfo = _getCurrentStatusInfo(order);
-      final rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
-      return rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success');
+      return statusInfo['is_selesai'] == true;
     }).toList();
 
     if (completedOrders.isEmpty) {
@@ -804,6 +807,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           child: Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildCompletedOrderCard(
+              order: order,
               orderId: orderId,
               serviceName: serviceName,
               endDate: endDate,
@@ -1018,6 +1022,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   Widget _buildCompletedOrderCard({
+    required Map<String, dynamic> order,
     required String orderId,
     required String serviceName,
     required String endDate,
@@ -1027,12 +1032,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final baseColor = _getServiceColor(serviceName);
     final orderColor = _getDarkenedTextColor(baseColor);
 
+    final statusInfo = _getCurrentStatusInfo(order);
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('tolak') || rawStatus.contains('reject');
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(baseColor.withValues(alpha: 0.10), Colors.white),
+        color: isCancelled
+            ? Colors.red.shade50.withValues(alpha: 0.15)
+            : Color.alphaBlend(baseColor.withValues(alpha: 0.10), Colors.white),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: orderColor.withValues(alpha: 0.25), width: 1),
+        border: Border.all(
+          color: isCancelled
+              ? Colors.red.shade300.withValues(alpha: 0.5)
+              : orderColor.withValues(alpha: 0.25),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -1051,21 +1067,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 'Order #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color: orderColor.withValues(alpha: 0.5),
+                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.12),
+                  color: isCancelled
+                      ? Colors.red.withValues(alpha: 0.12)
+                      : Colors.green.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  'Selesai',
+                  isCancelled
+                      ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
+                      : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
-                    color: Colors.green,
+                    color: isCancelled ? Colors.red.shade700 : Colors.green,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1093,15 +1113,44 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               ),
               Text(
-                'Selesai: $endDate',
+                isCancelled
+                    ? (TranslationService.currentLang == 'en' ? 'Cancelled: $endDate' : 'Dibatalkan: $endDate')
+                    : 'Selesai: $endDate',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
-                  color: orderColor.withValues(alpha: 0.5),
+                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
+          if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade100, width: 0.8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, color: Colors.red.shade700, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      order['catatan_order'],
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [

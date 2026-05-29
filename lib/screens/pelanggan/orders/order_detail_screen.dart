@@ -274,7 +274,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       activeIndex = 0;
     }
 
-    final bool isSelesai = lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
+    final bool isSelesai = lowerCurrent.contains('selesai') || 
+                           lowerCurrent.contains('completed') || 
+                           lowerCurrent.contains('batal') || 
+                           lowerCurrent.contains('tolak') || 
+                           lowerCurrent.contains('reject');
 
     return {
       'nama_status': TranslationService.translateStatus(currentStatus),
@@ -405,6 +409,92 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
   }
 
+  Widget _buildCancelledBanner(BuildContext context, Color orderColor, bool isEn, String? reason) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.red.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.shade200.withValues(alpha: 0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEBEE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.cancel_rounded,
+                  color: Color(0xFFFF3B30),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEn ? 'Order Cancelled' : 'Pesanan Dibatalkan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isEn ? 'This order has been rejected or cancelled.' : 'Pesanan ini telah ditolak atau dibatalkan.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFFFCDD2), height: 1),
+            const SizedBox(height: 14),
+            Text(
+              isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade800,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              reason,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.red.shade900,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final order = _currentOrder;
@@ -483,6 +573,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final String paymentStatus = _getPaymentStatus(order);
     final bool isPaid = paymentStatus == 'Lunas' && kuantitas > 0.0;
 
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('tolak') || rawStatus.contains('reject');
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -530,23 +623,41 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Progress Stepper Card
-                      _buildProgressCard(
-                        order: order,
-                        orderId: orderId,
-                        serviceName: serviceName,
-                        price: price,
-                        estDate: estDate,
-                        statusInfo: statusInfo,
-                        baseColor: baseColor,
-                        orderColor: orderColor,
-                        currentStatus: currentStatus,
-                      ),
+                      // 1. Progress Stepper Card or Cancelled Banner
+                      if (isCancelled)
+                        _buildCancelledBanner(context, orderColor, isEn, order['catatan_order'])
+                      else
+                        _buildProgressCard(
+                          order: order,
+                          orderId: orderId,
+                          serviceName: serviceName,
+                          price: price,
+                          estDate: estDate,
+                          statusInfo: statusInfo,
+                          baseColor: baseColor,
+                          orderColor: orderColor,
+                          currentStatus: currentStatus,
+                        ),
                       const SizedBox(height: 16),
                       
                       // 2. Interactive flow logic:
-                      // If NOT paid, we show the INTERACTIVE CHECKOUT & REVIEW ORDER flow
-                      if (!isPaid) ...[
+                      // If cancelled, show final finalized receipt details directly without review steps
+                      if (isCancelled) ...[
+                        _buildReceiptSection(
+                          order: order,
+                          orderId: orderId,
+                          orderDate: orderDate,
+                          customerName: customerName,
+                          packageName: packageName,
+                          perfumeName: perfumeName,
+                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
+                          totalBayar: totalBayar,
+                          price: price,
+                          catatan: order['catatan_order'],
+                          navyColor: navyColor,
+                          currentStatus: currentStatus,
+                        ),
+                      ] else if (!isPaid) ...[
                         _buildReviewOrderCard(
                           mainService: mainService,
                           packageName: packageName,
@@ -615,6 +726,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         navyColor: navyColor,
         isEn: isEn,
         isPaid: isPaid,
+        isCancelled: isCancelled,
         totalTagihan: totalTagihan,
         promoDiscount: promoDiscount,
       ),
@@ -2838,9 +2950,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required Color navyColor,
     required bool isEn,
     required bool isPaid,
+    required bool isCancelled,
     required double totalTagihan,
     required double promoDiscount,
   }) {
+    if (isCancelled) {
+      return const SizedBox.shrink();
+    }
     // If PAID, show the standard finalized "Download Receipt" footer
     if (isPaid) {
       return Container(
