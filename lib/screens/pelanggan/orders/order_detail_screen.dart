@@ -2753,7 +2753,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     if (hasVehicle || hasPlate)
                       Row(
                         children: [
-                          const Icon(Icons.directions_motorcycle_rounded, size: 13, color: Color(0xFF718096)),
+                          const Icon(Icons.motorcycle_rounded, size: 13, color: Color(0xFF718096)),
                           const SizedBox(width: 5),
                           Expanded(
                             child: Text(
