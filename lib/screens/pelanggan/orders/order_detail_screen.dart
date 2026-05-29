@@ -647,7 +647,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       // 2. Interactive flow logic:
                       // If cancelled, show final finalized receipt details directly without review steps
                       if (isCancelled) ...[
-                        if (order['Karyawan'] != null && order['Karyawan']['id_karyawan'] != null) ...[
+                        if (order['Karyawan'] != null &&
+                            (order['Karyawan']['id_karyawan'] as int? ?? 0) > 0) ...[
                           _buildEmployeeCard(order: order, isEn: isEn),
                           const SizedBox(height: 16),
                         ],
@@ -706,7 +707,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           navyColor: navyColor,
                         ),
                         const SizedBox(height: 16),
-                        if (order['Karyawan'] != null && order['Karyawan']['id_karyawan'] != null) ...[
+                        if (order['Karyawan'] != null &&
+                            (order['Karyawan']['id_karyawan'] as int? ?? 0) > 0) ...[
                           _buildEmployeeCard(order: order, isEn: isEn),
                           const SizedBox(height: 16),
                         ],
