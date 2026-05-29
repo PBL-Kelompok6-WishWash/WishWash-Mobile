@@ -1197,7 +1197,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     onPressed: () {},
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: navyColor,
+                      foregroundColor: orderColor,
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -1225,7 +1225,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: navyColor,
+                      backgroundColor: orderColor,
                       foregroundColor: Colors.white,
                       elevation: 1,
                       shape: RoundedRectangleBorder(

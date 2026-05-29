@@ -410,17 +410,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildCancelledBanner(BuildContext context, Color orderColor, bool isEn, String? reason) {
+    String cleanReason = reason ?? '';
+    if (cleanReason.toLowerCase().startsWith('ditolak:')) {
+      cleanReason = cleanReason.substring(8).trim();
+    } else if (cleanReason.toLowerCase().startsWith('ditolak')) {
+      cleanReason = cleanReason.substring(7).trim();
+    }
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: Colors.red.shade50.withValues(alpha: 0.9),
+        color: Color.alphaBlend(Colors.red.shade50.withValues(alpha: 0.35), Colors.white),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.shade200, width: 1.5),
+        border: Border.all(color: Colors.red.shade300.withValues(alpha: 0.6), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.red.shade200.withValues(alpha: 0.2),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -431,14 +438,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFFFEBEE),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.red.shade100, width: 1),
                 ),
                 child: const Icon(
                   Icons.cancel_rounded,
                   color: Color(0xFFFF3B30),
-                  size: 28,
+                  size: 26,
                 ),
               ),
               const SizedBox(width: 14),
@@ -449,17 +457,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     Text(
                       isEn ? 'Order Cancelled' : 'Pesanan Dibatalkan',
                       style: GoogleFonts.poppins(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                         color: Colors.red.shade900,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isEn ? 'This order has been rejected or cancelled.' : 'Pesanan ini telah ditolak atau dibatalkan.',
+                      isEn ? 'This order has been rejected by the shop.' : 'Pesanan ini telah ditolak oleh pihak toko.',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.red.shade700,
+                        color: Colors.red.shade700.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -467,10 +475,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ],
           ),
-          if (reason != null && reason.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(color: Color(0xFFFFCDD2), height: 1),
+          if (cleanReason.isNotEmpty) ...[
             const SizedBox(height: 14),
+            const Divider(color: Color(0xFFFFEBEE), height: 1, thickness: 1),
+            const SizedBox(height: 12),
             Text(
               isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
               style: GoogleFonts.poppins(
@@ -480,12 +488,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
-              reason,
+              cleanReason,
               style: GoogleFonts.poppins(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.bold,
                 color: Colors.red.shade900,
               ),
             ),
