@@ -410,24 +410,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildCancelledBanner(BuildContext context, Color orderColor, bool isEn, String? reason) {
-    String cleanReason = reason ?? '';
-    if (cleanReason.toLowerCase().startsWith('ditolak:')) {
-      cleanReason = cleanReason.substring(8).trim();
-    } else if (cleanReason.toLowerCase().startsWith('ditolak')) {
-      cleanReason = cleanReason.substring(7).trim();
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(Colors.red.shade50.withValues(alpha: 0.35), Colors.white),
+        color: Colors.red.shade50.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.shade300.withValues(alpha: 0.6), width: 1.2),
+        border: Border.all(color: Colors.red.shade200, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: Colors.red.shade200.withValues(alpha: 0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -438,15 +431,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEBEE),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.red.shade100, width: 1),
                 ),
                 child: const Icon(
                   Icons.cancel_rounded,
                   color: Color(0xFFFF3B30),
-                  size: 26,
+                  size: 28,
                 ),
               ),
               const SizedBox(width: 14),
@@ -457,17 +449,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     Text(
                       isEn ? 'Order Cancelled' : 'Pesanan Dibatalkan',
                       style: GoogleFonts.poppins(
-                        fontSize: 15,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.red.shade900,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isEn ? 'This order has been rejected by the shop.' : 'Pesanan ini telah ditolak oleh pihak toko.',
+                      isEn ? 'This order has been rejected or cancelled.' : 'Pesanan ini telah ditolak atau dibatalkan.',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.red.shade700.withValues(alpha: 0.8),
+                        color: Colors.red.shade700,
                       ),
                     ),
                   ],
@@ -475,10 +467,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ],
           ),
-          if (cleanReason.isNotEmpty) ...[
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFFFFCDD2), height: 1),
             const SizedBox(height: 14),
-            const Divider(color: Color(0xFFFFEBEE), height: 1, thickness: 1),
-            const SizedBox(height: 12),
             Text(
               isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
               style: GoogleFonts.poppins(
@@ -488,12 +480,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 letterSpacing: 0.8,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              cleanReason,
+              reason,
               style: GoogleFonts.poppins(
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: Colors.red.shade900,
               ),
             ),
@@ -631,13 +623,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Cancelled Banner (if cancelled)
-                      if (isCancelled) ...[
-                        _buildCancelledBanner(context, orderColor, isEn, order['catatan_order']),
-                        const SizedBox(height: 16),
-                      ],
-                      
-                      // 2. Progress Stepper Card (always shown, with all red cross icons if cancelled)
+                      // 1. Progress Stepper Card (always shown, styled beautifully for cancelled orders)
                       _buildProgressCard(
                         order: order,
                         orderId: orderId,
@@ -2127,11 +2113,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(baseColor.withValues(alpha: 0.18), Colors.white),
+        color: isCancelled
+            ? Color.alphaBlend(Colors.red.shade50.withValues(alpha: 0.20), Colors.white)
+            : Color.alphaBlend(baseColor.withValues(alpha: 0.18), Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCancelled
-              ? Colors.red.shade300.withValues(alpha: 0.7)
+              ? Colors.red.shade400.withValues(alpha: 0.7)
               : orderColor.withValues(alpha: 0.4),
           width: 1.2,
         ),
@@ -2153,23 +2141,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 TranslationService.currentLang == 'en' ? 'Order #$orderId' : 'Pesanan #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color: orderColor,
+                  color: isCancelled ? Colors.red.shade900 : orderColor,
                   fontSize: 12,
                 ),
               ),
               Row(
                 children: [
-                  const Icon(
-                    Icons.access_time_rounded,
+                  Icon(
+                    isCancelled ? Icons.cancel_outlined : Icons.access_time_rounded,
                     size: 14,
-                    color: Colors.redAccent,
+                    color: isCancelled ? Colors.red.shade700 : Colors.redAccent,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    TranslationService.currentLang == 'en' ? 'Est: $estDate' : 'Estimasi: $estDate',
+                    isCancelled
+                        ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
+                        : (TranslationService.currentLang == 'en' ? 'Est: $estDate' : 'Estimasi: $estDate'),
                     style: GoogleFonts.poppins(
                       fontSize: 10,
-                      color: Colors.redAccent,
+                      color: isCancelled ? Colors.red.shade700 : Colors.redAccent,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -2179,11 +2169,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            serviceName,
+            isCancelled ? '$mainService (Dibatalkan)' : serviceName,
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: orderColor,
+              color: isCancelled ? Colors.red.shade900 : orderColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -2194,7 +2184,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 price,
                 style: GoogleFonts.poppins(
                   fontSize: 13,
-                  color: orderColor.withValues(alpha: 0.8),
+                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -2250,6 +2240,41 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               })(),
             ],
           ),
+          if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade100, width: 0.8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    TranslationService.currentLang == 'en' ? 'CANCELLATION REASON:' : 'ALASAN PENOLAKAN:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order['catatan_order'].toString().replaceAll(RegExp(r'^Ditolak:\s*'), ''),
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           // Stepper Tracker
           (() {
