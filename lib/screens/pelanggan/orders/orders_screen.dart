@@ -918,7 +918,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     decoration: BoxDecoration(
                       color: capBg,
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: capText.withOpacity(0.2), width: 1),
+                      border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -1217,8 +1217,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStepItem({
     required String label,
