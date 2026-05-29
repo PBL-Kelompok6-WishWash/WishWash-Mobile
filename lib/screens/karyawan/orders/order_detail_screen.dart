@@ -706,9 +706,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           );
                         }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gagal menolak pesanan: $e'), backgroundColor: Colors.red),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Gagal menolak pesanan: $e'), backgroundColor: Colors.red),
+                          );
+                        }
                       }
                     },
                     child: Text(
@@ -1545,7 +1547,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  shape: BoxShape.shapeCircle,
+                  shape: BoxShape.circle,
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
