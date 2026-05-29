@@ -2660,7 +2660,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                isEn ? 'ASSIGNED EMPLOYEE' : 'KARYAWAN BERTUGAS',
+                isEn ? 'WISHWASH EMPLOYEE' : 'KARYAWAN WISHWASH',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
