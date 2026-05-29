@@ -647,6 +647,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       // 2. Interactive flow logic:
                       // If cancelled, show final finalized receipt details directly without review steps
                       if (isCancelled) ...[
+                        if (order['Karyawan'] != null && order['Karyawan']['id_karyawan'] != null) ...[
+                          _buildEmployeeCard(order: order, isEn: isEn),
+                          const SizedBox(height: 16),
+                        ],
                         _buildReceiptSection(
                           order: order,
                           orderId: orderId,
@@ -701,7 +705,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
                           navyColor: navyColor,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
+                        if (order['Karyawan'] != null && order['Karyawan']['id_karyawan'] != null) ...[
+                          _buildEmployeeCard(order: order, isEn: isEn),
+                          const SizedBox(height: 16),
+                        ],
                         
                         _buildReceiptSection(
                           order: order,
@@ -2555,6 +2563,197 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                         color: navyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- EMPLOYEE PROFILE CARD ---
+  Widget _buildEmployeeCard({
+    required Map<String, dynamic> order,
+    required bool isEn,
+  }) {
+    final karyawan = order['Karyawan'] as Map<String, dynamic>;
+    final String name = (karyawan['nama_karyawan'] ?? '-').toString();
+    final String phone = (karyawan['no_telp'] ?? '-').toString();
+    final String vehicle = (karyawan['jenis_kendaraan'] ?? '').toString();
+    final String plate = (karyawan['plat_nomor'] ?? '').toString();
+    final String fotoUrl = (karyawan['foto_karyawan'] ?? '').toString();
+    final String status = (karyawan['status_ketersediaan'] ?? '').toString();
+
+    // Determine avatar initials from name
+    final List<String> nameParts = name.trim().split(' ');
+    final String initials = nameParts.length >= 2
+        ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
+        : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
+            ? nameParts[0][0].toUpperCase()
+            : '?');
+
+    final bool hasFoto = fotoUrl.isNotEmpty && fotoUrl != '-';
+    final bool hasVehicle = vehicle.isNotEmpty;
+    final bool hasPlate = plate.isNotEmpty;
+
+    final Color statusBg = status.toLowerCase().contains('tersedia') || status.toLowerCase().contains('available')
+        ? const Color(0xFFE8F5E9)
+        : const Color(0xFFFFF8E1);
+    final Color statusFg = status.toLowerCase().contains('tersedia') || status.toLowerCase().contains('available')
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFFE65100);
+    final String statusLabel = status.isNotEmpty ? status : (isEn ? 'On Duty' : 'Bertugas');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF42C6D4).withValues(alpha: 0.35), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF42C6D4).withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: navyColor.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.person_pin_circle_rounded, color: navyColor, size: 16),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isEn ? 'Assigned Worker' : 'Petugas yang Bertugas',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              // Avatar circle
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0C4B8E).withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: hasFoto
+                    ? ClipOval(
+                        child: Image.network(
+                          fotoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Center(
+                            child: Text(
+                              initials,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 22,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              // Name & info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF2D3748),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF718096)),
+                        const SizedBox(width: 4),
+                        Text(
+                          phone,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: const Color(0xFF718096),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (hasVehicle || hasPlate) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.two_wheeler_rounded, size: 13, color: Color(0xFF718096)),
+                          const SizedBox(width: 4),
+                          Text(
+                            [if (hasVehicle) vehicle, if (hasPlate) plate].join(' • '),
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: const Color(0xFF718096),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        statusLabel,
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusFg,
+                        ),
                       ),
                     ),
                   ],
