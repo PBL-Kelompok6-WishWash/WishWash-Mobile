@@ -410,6 +410,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildCancelledBanner(BuildContext context, Color orderColor, bool isEn, String? reason) {
+    final bool isRejected = reason != null && reason.toLowerCase().contains('ditolak');
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -447,7 +448,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isEn ? 'Order Cancelled' : 'Pesanan Dibatalkan',
+                      isRejected
+                          ? (isEn ? 'Order Rejected' : 'Pesanan Ditolak')
+                          : (isEn ? 'Order Cancelled' : 'Pesanan Dibatalkan'),
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -456,7 +459,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isEn ? 'This order has been rejected or cancelled.' : 'Pesanan ini telah ditolak atau dibatalkan.',
+                      isRejected
+                          ? (isEn ? 'This order has been rejected by the outlet.' : 'Pesanan ini telah ditolak oleh pihak outlet.')
+                          : (isEn ? 'This order has been cancelled.' : 'Pesanan ini telah dibatalkan.'),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.red.shade700,

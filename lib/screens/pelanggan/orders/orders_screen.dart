@@ -1079,7 +1079,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
                 child: Text(
                   isCancelled
-                      ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
+                      ? (rawStatus.contains('tolak') || rawStatus.contains('reject')
+                          ? (TranslationService.currentLang == 'en' ? 'Rejected' : 'Ditolak')
+                          : (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan'))
                       : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
