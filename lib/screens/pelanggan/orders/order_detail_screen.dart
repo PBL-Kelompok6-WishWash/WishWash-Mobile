@@ -2744,7 +2744,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         color: const Color(0xFF0C4B8E),
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    if (hasPhone)
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF718096)),
+                          const SizedBox(width: 5),
+                          Text(
+                            phone,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: const Color(0xFF718096),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    const SizedBox(height: 2),
                     if (hasVehicle || hasPlate)
                       Row(
                         children: [
@@ -2758,22 +2773,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 color: const Color(0xFF4A5568),
                                 fontWeight: FontWeight.w600,
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    const SizedBox(height: 2),
-                    if (hasPhone)
-                      Row(
-                        children: [
-                          const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF718096)),
-                          const SizedBox(width: 5),
-                          Text(
-                            phone,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: const Color(0xFF718096),
-                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
