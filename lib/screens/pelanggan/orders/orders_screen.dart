@@ -1079,9 +1079,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
                 child: Text(
                   isCancelled
-                      ? (rawStatus.contains('tolak') || rawStatus.contains('reject')
-                          ? (TranslationService.currentLang == 'en' ? 'Rejected' : 'Ditolak')
-                          : (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan'))
+                      ? (TranslationService.currentLang == 'en' ? 'Rejected' : 'Ditolak')
                       : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
@@ -1127,23 +1125,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
           if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade100, width: 0.8),
+                color: const Color(0xFFFF3B30),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded, color: Colors.red.shade700, size: 16),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.info_outline_rounded, color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       order['catatan_order'],
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
