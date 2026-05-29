@@ -2647,25 +2647,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(5),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF42C6D4).withValues(alpha: 0.12),
+                  color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.badge_rounded,
-                  color: Color(0xFF0C4B8E),
-                  size: 14,
-                ),
+                child: Icon(Icons.badge_rounded, color: navyColor, size: 20),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
-                isEn ? 'WISHWASH EMPLOYEE' : 'KARYAWAN WISHWASH',
+                isEn ? 'WishWash Employee' : 'Karyawan WishWash',
                 style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  color: const Color(0xFF0C4B8E),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
                 ),
               ),
             ],
