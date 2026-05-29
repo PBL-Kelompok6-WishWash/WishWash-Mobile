@@ -1101,7 +1101,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 'Order #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.5),
+                  color: isCancelled ? Colors.red.shade700 : orderColor,
                   fontSize: 12,
                 ),
               ),
@@ -1144,7 +1144,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   price,
                   style: GoogleFonts.poppins(
                     fontSize: 13,
-                    color: orderColor.withValues(alpha: 0.7),
+                    color: orderColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1154,7 +1154,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     : 'Selesai: $endDate',
                 style: GoogleFonts.poppins(
                   fontSize: 10,
-                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.5),
+                  color: isCancelled ? Colors.red.shade700 : orderColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
