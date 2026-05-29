@@ -1202,18 +1202,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.fact_check_rounded, color: navyColor, size: 20),
+                child: Icon(Icons.fact_check_rounded, color: navyColor, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
                 isEn ? 'Review Order' : 'Tinjau Pesanan',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: navyColor,
                 ),
@@ -2647,18 +2647,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.badge_rounded, color: navyColor, size: 20),
+                child: Icon(Icons.badge_rounded, color: navyColor, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
                 isEn ? 'WishWash Employee' : 'Karyawan WishWash',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: navyColor,
                 ),

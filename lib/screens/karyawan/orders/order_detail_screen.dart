@@ -1523,18 +1523,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.person_pin_rounded, color: navyColor, size: 20),
+                child: Icon(Icons.person_pin_rounded, color: navyColor, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
                 TranslationService.currentLang == 'en' ? 'Customer Information' : 'Informasi Pelanggan',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: navyColor,
                 ),
