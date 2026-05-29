@@ -1158,6 +1158,35 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ),
           ],
+          if (isCancelled) ...[
+            const SizedBox(height: 16),
+            (() {
+              final lang = TranslationService.currentLang;
+              final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+              List<Widget> steps = [];
+              for (int i = 0; i < refStatuses.length; i++) {
+                final rawName = refStatuses[i]['nama_status'] ?? '';
+                final String shortLabel = _getShortStatusLabel(rawName, lang);
+                steps.add(
+                  _buildStepItem(
+                    label: shortLabel,
+                    isActive: true,
+                    isDone: true,
+                    isCurrent: false,
+                    themeColor: Colors.red,
+                    index: i,
+                    totalSteps: refStatuses.length,
+                    isCancelled: true,
+                  ),
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: steps,
+              );
+            })(),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -1229,11 +1258,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required Color themeColor,
     required int index,
     required int totalSteps,
+    bool isCancelled = false,
   }) {
     final bool showLeftLine = index > 0;
     final bool showRightLine = index < totalSteps - 1;
-    final Color leftLineColor = isDone || isCurrent ? themeColor : Colors.grey.shade300;
-    final Color rightLineColor = isDone ? themeColor : Colors.grey.shade300;
+    final Color leftLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone || isCurrent ? themeColor : Colors.grey.shade300);
+    final Color rightLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone ? themeColor : Colors.grey.shade300);
 
     return Expanded(
       child: Column(
@@ -1265,14 +1299,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isDone ? themeColor : Colors.white,
+                      color: isCancelled
+                          ? const Color(0xFFFF3B30)
+                          : (isDone ? themeColor : Colors.white),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isActive ? themeColor : Colors.grey.shade300,
+                        color: isCancelled
+                            ? const Color(0xFFFF3B30)
+                            : (isActive ? themeColor : Colors.grey.shade300),
                         width: 1.5,
                       ),
                       boxShadow: [
-                        if (isCurrent)
+                        if (isCurrent && !isCancelled)
                           BoxShadow(
                             color: themeColor.withValues(alpha: 0.3),
                             blurRadius: 4,
@@ -1281,9 +1319,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       ],
                     ),
                     child: Center(
-                      child: isCurrent
-                          ? Icon(Icons.circle, size: 8, color: themeColor)
-                          : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
+                      child: isCancelled
+                          ? const Icon(Icons.close_rounded, size: 10, color: Colors.white)
+                          : (isCurrent
+                              ? Icon(Icons.circle, size: 8, color: themeColor)
+                              : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink())),
                     ),
                   ),
                 ),
@@ -1301,8 +1341,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: 8,
-                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? themeColor : Colors.grey.shade600,
+                fontWeight: isCancelled || isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
+                color: isCancelled
+                    ? Colors.red.shade700
+                    : (isActive ? themeColor : Colors.grey.shade600),
               ),
             ),
           ),

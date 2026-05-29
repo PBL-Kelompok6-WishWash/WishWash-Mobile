@@ -623,21 +623,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Progress Stepper Card or Cancelled Banner
-                      if (isCancelled)
-                        _buildCancelledBanner(context, orderColor, isEn, order['catatan_order'])
-                      else
-                        _buildProgressCard(
-                          order: order,
-                          orderId: orderId,
-                          serviceName: serviceName,
-                          price: price,
-                          estDate: estDate,
-                          statusInfo: statusInfo,
-                          baseColor: baseColor,
-                          orderColor: orderColor,
-                          currentStatus: currentStatus,
-                        ),
+                      // 1. Cancelled Banner (if cancelled)
+                      if (isCancelled) ...[
+                        _buildCancelledBanner(context, orderColor, isEn, order['catatan_order']),
+                        const SizedBox(height: 16),
+                      ],
+                      
+                      // 2. Progress Stepper Card (always shown, with all red cross icons if cancelled)
+                      _buildProgressCard(
+                        order: order,
+                        orderId: orderId,
+                        serviceName: serviceName,
+                        price: price,
+                        estDate: estDate,
+                        statusInfo: statusInfo,
+                        baseColor: baseColor,
+                        orderColor: orderColor,
+                        currentStatus: currentStatus,
+                        isCancelled: isCancelled,
+                      ),
                       const SizedBox(height: 16),
                       
                       // 2. Interactive flow logic:
@@ -2110,6 +2114,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required Color baseColor,
     required Color orderColor,
     required String currentStatus,
+    bool isCancelled = false,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -2117,7 +2122,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         color: Color.alphaBlend(baseColor.withValues(alpha: 0.18), Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: orderColor.withValues(alpha: 0.4),
+          color: isCancelled
+              ? Colors.red.shade300.withValues(alpha: 0.7)
+              : orderColor.withValues(alpha: 0.4),
           width: 1.2,
         ),
         boxShadow: [
@@ -2255,12 +2262,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               steps.add(
                 _buildTimelineStep(
                   label: shortLabel,
-                  isActive: isActive,
-                  isDone: isDone,
-                  isCurrent: isCurrent,
-                  themeColor: orderColor,
+                  isActive: isCancelled ? true : isActive,
+                  isDone: isCancelled ? true : isDone,
+                  isCurrent: isCancelled ? false : isCurrent,
+                  themeColor: isCancelled ? Colors.red : orderColor,
                   index: i,
                   totalSteps: refStatuses.length,
+                  isCancelled: isCancelled,
                 ),
               );
             }
@@ -2283,11 +2291,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required Color themeColor,
     required int index,
     required int totalSteps,
+    bool isCancelled = false,
   }) {
     final bool showLeftLine = index > 0;
     final bool showRightLine = index < totalSteps - 1;
-    final Color leftLineColor = isDone || isCurrent ? themeColor : Colors.grey.shade300;
-    final Color rightLineColor = isDone ? themeColor : Colors.grey.shade300;
+    final Color leftLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone || isCurrent ? themeColor : Colors.grey.shade300);
+    final Color rightLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone ? themeColor : Colors.grey.shade300);
 
     return Expanded(
       child: Column(
@@ -2319,14 +2332,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isDone ? themeColor : Colors.white,
+                      color: isCancelled
+                          ? const Color(0xFFFF3B30)
+                          : (isDone ? themeColor : Colors.white),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isActive ? themeColor : Colors.grey.shade300,
+                        color: isCancelled
+                            ? const Color(0xFFFF3B30)
+                            : (isActive ? themeColor : Colors.grey.shade300),
                         width: 1.5,
                       ),
                       boxShadow: [
-                        if (isCurrent)
+                        if (isCurrent && !isCancelled)
                           BoxShadow(
                             color: themeColor.withValues(alpha: 0.3),
                             blurRadius: 4,
@@ -2335,9 +2352,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ],
                     ),
                     child: Center(
-                      child: isCurrent
-                          ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
-                          : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
+                      child: isCancelled
+                          ? const Icon(Icons.close_rounded, size: 10, color: Colors.white)
+                          : (isCurrent
+                              ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
+                              : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink())),
                     ),
                   ),
                 ),
