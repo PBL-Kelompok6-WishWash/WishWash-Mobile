@@ -1713,6 +1713,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         ],
       ),
     );
+  }
 
   Widget _buildScheduleCard({
     required String pickupDate,
