@@ -1547,7 +1547,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               Text(
                 isEn ? 'Delivery Location' : 'Lokasi Pengiriman',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: navyColor,
                 ),
@@ -1833,7 +1833,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Text(
             isEn ? 'Promo Code / Voucher' : 'Kode Promo / Voucher',
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: navyColor,
             ),
@@ -1939,13 +1939,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 16),
+                child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Text(
                 isEn ? 'Payment Summary' : 'Rincian Pembayaran',
                 style: GoogleFonts.poppins(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: navyColor,
                 ),
@@ -2030,7 +2030,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Text(
             isEn ? 'Pilih Cara Pembayaran' : 'Metode Pembayaran',
             style: GoogleFonts.poppins(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: navyColor,
             ),
