@@ -6,7 +6,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/karyawan/orders/karyawan_tracking_screen.dart';
 import 'package:mobile/utils/constants.dart';
-import 'package:url_launcher/url_launcher.dart';
+
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -706,11 +706,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           );
                         }
                       } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal menolak pesanan: $e'), backgroundColor: Colors.red),
-                          );
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menolak pesanan: $e'), backgroundColor: Colors.red),
+                        );
                       }
                     },
                     child: Text(
@@ -1109,7 +1107,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       const SizedBox(height: 16),
 
                       // 2. Customer Information Card (Eksklusif Karyawan - Menggunakan tombol pesan/chat, BUKAN telp)
-                      _buildCustomerCard(customerName, customerPhone),
+                      _buildCustomerCard(pelanggan),
                       const SizedBox(height: 16),
 
                       // 3. Schedule Details Card (Sama Persis Punya Pelanggan)
@@ -1475,11 +1473,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   // Card Informasi Pelanggan (Ingat: Pelanggan tidak bisa ditelepon, melainkan dikirimi pesan/chat)
-  Widget _buildCustomerCard(String customerName, String customerPhone) {
-    final pelanggan = _currentOrder['Pelanggan'] ?? {};
+  Widget _buildCustomerCard(Map<String, dynamic> pelanggan) {
+    final String customerName = (pelanggan['nama_lengkap'] ?? 'Pelanggan').toString();
+    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? pelanggan['NoTelp'] ?? pelanggan['NoHp'] ?? pelanggan['noTelp'] ?? '-').toString();
     final String rawFoto = (pelanggan['foto_pelanggan'] ?? '').toString();
-    final String email = (pelanggan['User'] != null ? pelanggan['User']['email'] : '').toString();
 
+    // Build full photo URL same as other screens
     final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
     String fotoUrl = '';
     if (rawFoto.isNotEmpty) {
@@ -1493,27 +1492,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
     final bool hasFoto = fotoUrl.isNotEmpty;
 
-    // Determine initials
+    // Determine avatar initials from name
     final List<String> nameParts = customerName.trim().split(' ');
     final String initials = nameParts.length >= 2
         ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
         : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
             ? nameParts[0][0].toUpperCase()
             : '?');
-
-    final bool hasPhone = customerPhone.isNotEmpty && customerPhone != '-';
-
-    Future<void> openWhatsApp() async {
-      if (!hasPhone) return;
-      String cleaned = customerPhone.replaceAll(RegExp(r'[^0-9]'), '');
-      if (cleaned.startsWith('0')) cleaned = '62${cleaned.substring(1)}';
-      final uri = Uri.parse('https://wa.me/$cleaned');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    }
-
-    final bool isEn = TranslationService.currentLang == 'en';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1532,7 +1517,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEn ? 'Customer Information' : 'Informasi Pelanggan',
+            TranslationService.currentLang == 'en' ? 'Customer Information' : 'Informasi Pelanggan',
             style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -1542,7 +1527,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           const SizedBox(height: 10),
           Row(
             children: [
-              // Avatar
+              // Avatar circle with actual photo or initials
               Container(
                 width: 44,
                 height: 44,
@@ -1603,7 +1588,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       ),
               ),
               const SizedBox(width: 14),
-              // Name, Phone, and Email
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1625,47 +1609,34 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    if (email.isNotEmpty && email != '-') ...[
-                      const SizedBox(height: 1),
-                      Text(
-                        email,
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: const Color(0xFF9E9E9E),
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
-              // WhatsApp Chat Button
-              if (hasPhone)
-                GestureDetector(
-                  onTap: openWhatsApp,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF25D366).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.chat_bubble_rounded, color: Color(0xFF128C7E), size: 14),
-                        const SizedBox(width: 6),
-                        Text(
-                          isEn ? 'Chat' : 'Chat',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF128C7E),
-                          ),
+              // Tombol pesan / chat eksklusif, bukan telepon
+              GestureDetector(
+                onTap: () => _openCustomerChat(customerName),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: cyanColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.chat_bubble_rounded, color: navyColor, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ],
