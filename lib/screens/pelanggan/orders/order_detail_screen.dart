@@ -1891,7 +1891,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     // Dynamic Cash payment label based on logistics method (Ambil di Toko / Antar ke Rumah)
     final String cashLabel = isDropOff
         ? (isEn ? 'Cash at Store (Pay when picking up)' : 'Bayar Tunai di Toko (Saat Ambil)')
-        : (isEn ? 'Cash on Delivery (Pay to Courier)' : 'Bayar di Tempat (COD ke Kurir)');
+        : (isEn ? 'Cash (Pay to Courier)' : 'Bayar Tunai ke Kurir (Cash)');
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -3007,44 +3007,185 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ),
                             );
                           } else {
-                            // Confirm Cash on Delivery
+                            // Confirm Cash Payment with beautiful modern custom Dialog
                             showDialog(
                               context: context,
-                              builder: (context) => AlertDialog(
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                title: Text(
-                                  isEn ? 'Confirm Cash on Delivery' : 'Konfirmasi COD',
-                                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor),
-                                ),
-                                content: Text(
-                                  isEn
-                                      ? 'You choose to pay cash upon delivery. The total bill of ${_formatRupiah(totalTagihan)} is payable directly to our courier.'
-                                      : 'Anda memilih pembayaran Cash on Delivery. Total tagihan ${_formatRupiah(totalTagihan)} akan dibayarkan langsung secara tunai ke kurir kami.',
-                                  style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(isEn ? 'Cancel' : 'Batal', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.red)),
+                              builder: (context) => Dialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                elevation: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(24),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            isEn
-                                                ? 'COD Payment selected successfully!'
-                                                : 'Metode Pembayaran COD berhasil dikonfirmasi!',
-                                            style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-                                          ),
-                                          backgroundColor: Colors.green.shade700,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Premium Top Icon with soft green gradient circular base
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50.withValues(alpha: 0.8),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.green.shade100, width: 2),
                                         ),
-                                      );
-                                    },
-                                    child: Text(isEn ? 'Confirm' : 'Konfirmasi', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor)),
+                                        child: Icon(
+                                          Icons.payments_rounded,
+                                          color: Colors.green.shade700,
+                                          size: 40,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      
+                                      // Bold Premium Title
+                                      Text(
+                                        isEn ? 'Confirm Cash Payment' : 'Konfirmasi Bayar Cash',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: navyColor,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      
+                                      // Informative content
+                                      Text(
+                                        isEn
+                                            ? 'You choose to pay cash. The total bill is payable directly to our courier / outlet staff.'
+                                            : 'Anda memilih pembayaran secara Tunai (Cash). Total tagihan dapat dibayarkan langsung secara tunai.',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      
+                                      // Total Tagihan Card
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                        decoration: BoxDecoration(
+                                          color: bgGrey,
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: Colors.grey.shade100),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Text(
+                                              isEn ? 'TOTAL BILL' : 'TOTAL TAGIHAN',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.grey.shade500,
+                                                letterSpacing: 1.0,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _formatRupiah(totalTagihan),
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.green.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                      
+                                      // Buttons Row
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                                side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                              onPressed: () => Navigator.pop(context),
+                                              child: Text(
+                                                isEn ? 'Cancel' : 'Batal',
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.grey.shade700,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green.shade700,
+                                                foregroundColor: Colors.white,
+                                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                                elevation: 0,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              ),
+                                              onPressed: () async {
+                                                Navigator.pop(context);
+                                                try {
+                                                  // Actually update the backend with CASH payment method!
+                                                  final updatedOrder = await OrderService.updateOrder(
+                                                    _currentOrder['id_order'],
+                                                    {
+                                                      'status_pembayaran': 'Belum Lunas',
+                                                      'metode_bayar': 'CASH',
+                                                    },
+                                                  );
+                                                  setState(() {
+                                                    _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                                                  });
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          isEn
+                                                              ? 'Cash payment method confirmed successfully!'
+                                                              : 'Metode Pembayaran Cash berhasil dikonfirmasi!',
+                                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                                        ),
+                                                        backgroundColor: Colors.green.shade700,
+                                                      ),
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          isEn
+                                                              ? 'Failed to confirm payment method: $e'
+                                                              : 'Gagal mengonfirmasi metode pembayaran: $e',
+                                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                                        ),
+                                                        backgroundColor: Colors.red,
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              },
+                                              child: Text(
+                                                isEn ? 'Confirm' : 'Konfirmasi',
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             );
                           }
