@@ -65,13 +65,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       for (int i = 0; i < temp.length; i++) {
         final item = temp[i];
         final name = (item['nama_status'] ?? '').toString();
-        if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
+        final nameLower = name.toLowerCase();
+        if (nameLower.contains('diterima') || nameLower.contains('received') ||
+            nameLower.contains('batal') || nameLower.contains('cancel') ||
+            nameLower.contains('tolak') || nameLower.contains('reject')) {
           continue;
         }
         sortedList.add({
           'id_referensi_status_layanan': item['id_referensi_status_layanan'],
           'nama_status': name,
-          'urutan_tahap': i + 2,
+          'urutan_tahap': sortedList.length + 1,
         });
       }
     }
@@ -86,7 +89,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     return sortedList;
   }
 
-  String _getShortStatusLabel(String rawStatus, String lang) {
+  String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false}) {
     String status = rawStatus.toLowerCase().trim();
     if (status.startsWith('proses ')) {
       status = status.replaceFirst('proses ', '').trim();
@@ -118,7 +121,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
       return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
-    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done')) {
+    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done') || status.contains('batal') || status.contains('cancel') || status.contains('tolak') || status.contains('reject')) {
+      if (isCancelled) {
+        return isEn ? 'Cancelled' : 'Dibatalkan';
+      }
       return isEn ? 'Done' : 'Selesai';
     }
     
@@ -1081,17 +1087,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. Progress Card (Desain & Horizontal Stepper Persis Punya Pelanggan)
-                      _buildProgressCard(
-                        order: _currentOrder,
-                        orderId: orderId,
-                        serviceName: serviceName,
-                        price: priceStr,
-                        estDate: estDate,
-                        statusInfo: statusInfo,
-                        baseColor: baseColor,
-                        orderColor: orderColor,
-                        currentStatus: currentStatus,
-                      ),
+                      (() {
+                        final bool isCancelled = currentStatus.toLowerCase().contains('batal') || currentStatus.toLowerCase().contains('tolak') || currentStatus.toLowerCase().contains('reject');
+                        return _buildProgressCard(
+                          order: _currentOrder,
+                          orderId: orderId,
+                          serviceName: serviceName,
+                          price: priceStr,
+                          estDate: estDate,
+                          statusInfo: statusInfo,
+                          baseColor: baseColor,
+                          orderColor: orderColor,
+                          currentStatus: currentStatus,
+                          isCancelled: isCancelled,
+                        );
+                      })(),
                       const SizedBox(height: 16),
 
                       // 2. Customer Information Card (Eksklusif Karyawan - Menggunakan tombol pesan/chat, BUKAN telp)
@@ -1148,14 +1158,30 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required Color baseColor,
     required Color orderColor,
     required String currentStatus,
+    bool isCancelled = false,
   }) {
+    final bool isEn = TranslationService.currentLang == 'en';
+    
+    // Retrieve cancellation time if cancelled
+    String cancelTime = '-';
+    if (isCancelled) {
+      final historyList = order['RiwayatStatusDetail'];
+      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+        List<dynamic> sortedHistory = List.from(historyList);
+        sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+        cancelTime = _formatDate(sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate']);
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Color.alphaBlend(baseColor.withValues(alpha: 0.18), Colors.white),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: orderColor.withValues(alpha: 0.4),
+          color: isCancelled
+              ? Colors.red.shade300.withValues(alpha: 0.7)
+              : orderColor.withValues(alpha: 0.4),
           width: 1.2,
         ),
         boxShadow: [
@@ -1173,10 +1199,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Order #$orderId',
+                TranslationService.currentLang == 'en' ? 'Order #$orderId' : 'Pesanan #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
-                  color: orderColor,
+                  color: isCancelled ? Colors.red.shade800 : orderColor,
                   fontSize: 12,
                 ),
               ),
@@ -1189,7 +1215,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Est: $estDate',
+                    isCancelled
+                        ? (isEn ? 'Cancelled: $cancelTime' : 'Dibatalkan: $cancelTime')
+                        : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
                     style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: Colors.redAccent,
@@ -1202,75 +1230,100 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           ),
           const SizedBox(height: 12),
           Text(
-            serviceName,
+            isCancelled
+                ? (isEn ? '${serviceName.split('(')[0].trim()} (Cancelled)' : '${serviceName.split('(')[0].trim()} (Dibatalkan)')
+                : serviceName,
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: orderColor,
+              color: isCancelled ? Colors.red.shade900 : orderColor,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                price,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: orderColor.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w600,
+          if (!isCancelled) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  price,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: orderColor.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                (() {
+                  final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                  if (kuantitas > 0.0) {
+                    final String paymentStatus = _getPaymentStatus(order);
+                    final bool isLunas = paymentStatus == 'Lunas';
+                    final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+                    final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                    final String capLabel = isLunas ? 'Lunas' : 'Belum Lunas';
+                    
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: capBg,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
+                          ),
+                          child: Text(
+                            capLabel,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: capText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                })(),
+              ],
+            ),
+          ],
+          if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200, width: 1),
               ),
-              (() {
-                final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-                if (kuantitas > 0.0) {
-                  final String paymentStatus = _getPaymentStatus(order);
-                  final bool isLunas = paymentStatus == 'Lunas';
-                  final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
-                  final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
-                  final String capLabel = isLunas ? 'Lunas' : 'Belum Lunas';
-                  
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: capBg,
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: capText,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              capLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: capText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                }
-                return const SizedBox.shrink();
-              })(),
-            ],
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order['catatan_order'],
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           
           // Stepper Tracker Horizontal Persis Punya Pelanggan
@@ -1279,11 +1332,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
             final int activeIdx = statusInfo['active_index'];
             final bool isSelesai = statusInfo['is_selesai'] == true;
+            final String rawStatus = statusInfo['raw_status'] ?? 'Pesanan Diterima';
+            final bool isCancelled = rawStatus.toLowerCase().contains('batal') || rawStatus.toLowerCase().contains('tolak') || rawStatus.toLowerCase().contains('reject');
 
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final String shortLabel = _getShortStatusLabel(rawName, lang);
+              final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: isCancelled);
               
               final bool isCurrent = i == activeIdx && !isSelesai;
               final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
@@ -1292,12 +1347,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               steps.add(
                 _buildTimelineStep(
                   label: shortLabel,
-                  isActive: isActive,
-                  isDone: isDone,
-                  isCurrent: isCurrent,
-                  themeColor: orderColor,
+                  isActive: isCancelled ? true : isActive,
+                  isDone: isCancelled ? true : isDone,
+                  isCurrent: isCancelled ? false : isCurrent,
+                  themeColor: isCancelled ? Colors.red : orderColor,
                   index: i,
                   totalSteps: refStatuses.length,
+                  isCancelled: isCancelled,
                 ),
               );
             }
@@ -1321,11 +1377,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required Color themeColor,
     required int index,
     required int totalSteps,
+    bool isCancelled = false,
   }) {
     final bool showLeftLine = index > 0;
     final bool showRightLine = index < totalSteps - 1;
-    final Color leftLineColor = isDone || isCurrent ? themeColor : Colors.grey.shade300;
-    final Color rightLineColor = isDone ? themeColor : Colors.grey.shade300;
+    final Color leftLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone || isCurrent ? themeColor : Colors.grey.shade300);
+    final Color rightLineColor = isCancelled
+        ? Colors.red.shade400
+        : (isDone ? themeColor : Colors.grey.shade300);
 
     return Expanded(
       child: Column(
@@ -1357,14 +1418,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
-                      color: isDone ? themeColor : Colors.white,
+                      color: isCancelled
+                          ? const Color(0xFFFF3B30)
+                          : (isDone ? themeColor : Colors.white),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isActive ? themeColor : Colors.grey.shade300,
+                        color: isCancelled
+                            ? const Color(0xFFFF3B30)
+                            : (isActive ? themeColor : Colors.grey.shade300),
                         width: 1.5,
                       ),
                       boxShadow: [
-                        if (isCurrent)
+                        if (isCurrent && !isCancelled)
                           BoxShadow(
                             color: themeColor.withValues(alpha: 0.3),
                             blurRadius: 4,
@@ -1373,9 +1438,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       ],
                     ),
                     child: Center(
-                      child: isCurrent
-                          ? Icon(Icons.circle, size: 8, color: themeColor)
-                          : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink()),
+                      child: isCancelled
+                          ? const Icon(Icons.close_rounded, size: 10, color: Colors.white)
+                          : (isCurrent
+                              ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
+                              : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink())),
                     ),
                   ),
                 ),

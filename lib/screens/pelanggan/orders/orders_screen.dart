@@ -546,13 +546,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
       for (int i = 0; i < temp.length; i++) {
         final item = temp[i];
         final name = (item['nama_status'] ?? '').toString();
-        if (name.toLowerCase().contains('diterima') || name.toLowerCase().contains('received')) {
+        final nameLower = name.toLowerCase();
+        if (nameLower.contains('diterima') || nameLower.contains('received') ||
+            nameLower.contains('batal') || nameLower.contains('cancel') ||
+            nameLower.contains('tolak') || nameLower.contains('reject')) {
           continue;
         }
         sortedList.add({
           'id_referensi_status_layanan': item['id_referensi_status_layanan'],
           'nama_status': name,
-          'urutan_tahap': i + 2,
+          'urutan_tahap': sortedList.length + 1,
         });
       }
     }
@@ -567,7 +570,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return sortedList;
   }
 
-  String _getShortStatusLabel(String rawStatus, String lang) {
+  String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false}) {
     final status = rawStatus.toLowerCase().trim();
     final isEn = lang == 'en';
     
@@ -595,7 +598,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
       return isEn ? 'Ready' : 'Kirim';
     }
-    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done')) {
+    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done') || status.contains('batal') || status.contains('cancel') || status.contains('tolak') || status.contains('reject')) {
+      if (isCancelled) {
+        return isEn ? 'Cancelled' : 'Dibatalkan';
+      }
       return isEn ? 'Done' : 'Selesai';
     }
     
@@ -920,27 +926,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: capText,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          capLabel,
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: capText,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      capLabel,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: capText,
+                      ),
                     ),
                   );
                 })(),
@@ -955,11 +947,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
             final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
             final int activeIdx = statusInfo['active_index'];
             final bool isSelesai = statusInfo['is_selesai'] == true;
+            final String rawStatus = statusInfo['raw_status'] ?? 'Pesanan Diterima';
+            final bool isCancelled = rawStatus.toLowerCase().contains('batal') || rawStatus.toLowerCase().contains('tolak') || rawStatus.toLowerCase().contains('reject');
 
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final String shortLabel = _getShortStatusLabel(rawName, lang);
+              final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: isCancelled);
               
               final bool isCurrent = i == activeIdx && !isSelesai;
               final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
@@ -1105,20 +1099,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: orderColor,
+              color: isCancelled ? Colors.red.shade900 : orderColor,
             ),
           ),
+          SizedBox(height: isCancelled ? 8 : 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                price,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: orderColor.withValues(alpha: 0.7),
-                  fontWeight: FontWeight.w600,
+              if (!isCancelled)
+                Text(
+                  price,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: orderColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
               Text(
                 isCancelled
                     ? (TranslationService.currentLang == 'en' ? 'Cancelled: $endDate' : 'Dibatalkan: $endDate')
@@ -1166,7 +1162,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               List<Widget> steps = [];
               for (int i = 0; i < refStatuses.length; i++) {
                 final rawName = refStatuses[i]['nama_status'] ?? '';
-                final String shortLabel = _getShortStatusLabel(rawName, lang);
+                final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: true);
                 steps.add(
                   _buildStepItem(
                     label: shortLabel,
@@ -1190,30 +1186,32 @@ class _OrdersScreenState extends State<OrdersScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: orderColor,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+              if (!isCancelled) ...[
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: orderColor,
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'Beri Ulasan',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                      child: Text(
+                        'Beri Ulasan',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: SizedBox(
                   height: 40,

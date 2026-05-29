@@ -375,6 +375,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   bool _isOutletOrder(String status, String logistikType) {
     final s = status.toLowerCase();
+    if (s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject')) {
+      return false;
+    }
     if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
       return s != 'selesai';
     }
@@ -390,10 +393,13 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   bool _isLogistikOrder(String status, String logistikType) {
+    final s = status.toLowerCase();
+    if (s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject')) {
+      return false;
+    }
     if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
       return false;
     }
-    final s = status.toLowerCase();
     if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
       return true;
     }
@@ -401,7 +407,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   bool _isSelesaiOrder(String status) {
-    return status.toLowerCase() == 'selesai';
+    final s = status.toLowerCase();
+    return s == 'selesai' || s.contains('completed') || s.contains('success') || s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject');
   }
 
   List<Map<String, dynamic>> get _filteredOrders {
@@ -1205,27 +1212,13 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                             borderRadius: BorderRadius.circular(30),
                             border: Border.all(color: paymentText.withOpacity(0.15), width: 1),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: paymentText,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                paymentLabel,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: paymentText,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            paymentLabel,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: paymentText,
+                            ),
                           ),
                         ),
                       ],
