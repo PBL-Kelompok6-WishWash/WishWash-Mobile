@@ -6,6 +6,8 @@ import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
 import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/order_service.dart';
+import 'package:mobile/utils/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -2583,8 +2585,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final String phone = (karyawan['no_telp'] ?? '-').toString();
     final String vehicle = (karyawan['jenis_kendaraan'] ?? '').toString();
     final String plate = (karyawan['plat_nomor'] ?? '').toString();
-    final String fotoUrl = (karyawan['foto_karyawan'] ?? '').toString();
+    final String rawFoto = (karyawan['foto_karyawan'] ?? '').toString();
     final String status = (karyawan['status_ketersediaan'] ?? '').toString();
+
+    // Build full photo URL same as other screens
+    final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+    final String fotoUrl = rawFoto.isNotEmpty ? '$staticHost/$rawFoto' : '';
+    final bool hasFoto = fotoUrl.isNotEmpty;
 
     // Determine avatar initials from name
     final List<String> nameParts = name.trim().split(' ');
@@ -2594,9 +2601,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ? nameParts[0][0].toUpperCase()
             : '?');
 
-    final bool hasFoto = fotoUrl.isNotEmpty && fotoUrl != '-';
     final bool hasVehicle = vehicle.isNotEmpty;
     final bool hasPlate = plate.isNotEmpty;
+    final bool hasPhone = phone.isNotEmpty && phone != '-';
 
     final Color statusBg = status.toLowerCase().contains('tersedia') || status.toLowerCase().contains('available')
         ? const Color(0xFFE8F5E9)
@@ -2605,6 +2612,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ? const Color(0xFF2E7D32)
         : const Color(0xFFE65100);
     final String statusLabel = status.isNotEmpty ? status : (isEn ? 'On Duty' : 'Bertugas');
+
+    Future<void> openWhatsApp() async {
+      if (!hasPhone) return;
+      // Strip non-digit chars, add 62 prefix
+      String cleaned = phone.replaceAll(RegExp(r'[^0-9]'), '');
+      if (cleaned.startsWith('0')) cleaned = '62${cleaned.substring(1)}';
+      final uri = Uri.parse('https://wa.me/$cleaned');
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2623,31 +2641,76 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header row: label + chat button
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: navyColor.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.person_pin_circle_rounded, color: navyColor, size: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: navyColor.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.person_pin_circle_rounded, color: navyColor, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    isEn ? 'Employee' : 'Karyawan',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: navyColor,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                isEn ? 'Assigned Worker' : 'Petugas yang Bertugas',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: navyColor,
+              // Chat button (WhatsApp)
+              if (hasPhone)
+                GestureDetector(
+                  onTap: openWhatsApp,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF25D366), Color(0xFF128C7E)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF25D366).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.chat_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 5),
+                        Text(
+                          isEn ? 'Chat' : 'Chat',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 14),
+          // Profile row
           Row(
             children: [
-              // Avatar circle
+              // Avatar circle with actual photo
               Container(
                 width: 60,
                 height: 60,
@@ -2671,6 +2734,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         child: Image.network(
                           fotoUrl,
                           fit: BoxFit.cover,
+                          loadingBuilder: (ctx, child, progress) {
+                            if (progress == null) return child;
+                            return Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            );
+                          },
                           errorBuilder: (ctx, err, stack) => Center(
                             child: Text(
                               initials,
@@ -2709,30 +2785,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF718096)),
-                        const SizedBox(width: 4),
-                        Text(
-                          phone,
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: const Color(0xFF718096),
+                    if (hasPhone)
+                      Row(
+                        children: [
+                          const Icon(Icons.phone_rounded, size: 13, color: Color(0xFF718096)),
+                          const SizedBox(width: 4),
+                          Text(
+                            phone,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: const Color(0xFF718096),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     if (hasVehicle || hasPlate) ...[
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           const Icon(Icons.two_wheeler_rounded, size: 13, color: Color(0xFF718096)),
                           const SizedBox(width: 4),
-                          Text(
-                            [if (hasVehicle) vehicle, if (hasPlate) plate].join(' • '),
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: const Color(0xFF718096),
+                          Expanded(
+                            child: Text(
+                              [if (hasVehicle) vehicle, if (hasPlate) plate].join(' \u2022 '),
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: const Color(0xFF718096),
+                              ),
                             ),
                           ),
                         ],
@@ -3013,7 +3092,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           ? 'Drop-off'
                           : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                     ),
-                    _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),
+                    _buildReceiptRow(isEn ? 'Employee / Courier' : 'Karyawan', employeeName),
                     _buildReceiptRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
                     _buildReceiptRow(
                       isEn ? 'Payment Status' : 'Status Pembayaran', 
