@@ -1036,8 +1036,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
     final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('tolak') || rawStatus.contains('reject');
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailScreen(order: order),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Color.alphaBlend(baseColor.withValues(alpha: 0.10), Colors.white),
         borderRadius: BorderRadius.circular(16),
@@ -1079,7 +1088,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
                 child: Text(
                   isCancelled
-                      ? (TranslationService.currentLang == 'en' ? 'Rejected' : 'Ditolak')
+                      ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
                       : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
@@ -1125,29 +1134,23 @@ class _OrdersScreenState extends State<OrdersScreen> {
           if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFFF3B30),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF3B30).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                color: Colors.red.shade50.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade100, width: 0.8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: Colors.white, size: 18),
-                  const SizedBox(width: 10),
+                  Icon(Icons.info_outline_rounded, color: Colors.red.shade700, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       order['catatan_order'],
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
