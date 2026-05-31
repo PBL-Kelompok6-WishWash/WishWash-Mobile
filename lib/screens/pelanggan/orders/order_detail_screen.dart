@@ -702,28 +702,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn: isEn,
                         ),
                       ] else ...[
-                        // If paid, show the static finalized receipt and schedule card
-                        _buildScheduleCard(
-                          pickupDate: estDate,
-                          pickupAddr: pickupAddr,
-                          deliveryAddr: deliveryAddr,
-                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
-                          navyColor: navyColor,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildReceiptSection(
-                          order: order,
-                          orderId: orderId,
-                          orderDate: orderDate,
-                          customerName: customerName,
+                        // Show Review Order card just like unpaid state as requested
+                        _buildReviewOrderCard(
+                          mainService: mainService,
                           packageName: packageName,
                           perfumeName: perfumeName,
+                          pickupAddr: pickupAddr,
+                          deliveryAddr: deliveryAddr,
+                          pickupDate: _formatDate(order['jadwal_pickup']),
                           logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
-                          totalBayar: totalBayar,
-                          price: price,
-                          catatan: order['catatan_order'],
-                          navyColor: navyColor,
-                          currentStatus: currentStatus,
+                          isEn: isEn,
+                          hargaPerSatuan: hargaPerSatuan,
+                          biayaTambahan: biayaTambahan,
+                        ),
+                        const SizedBox(height: 16),
+                        // Show official invoice card with "Lihat Nota" button
+                        _buildInvoiceCard(
+                          context,
+                          order,
+                          orderId,
+                          orderDate,
+                          customerName,
+                          packageName,
+                          perfumeName,
+                          price,
+                          totalBayar,
+                          isEn,
                         ),
                       ],
                     ],
@@ -1149,6 +1153,233 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInvoiceCard(BuildContext context, Map<String, dynamic> order, String orderId, String orderDate, String customerName, String packageName, String perfumeName, String price, double totalBayar, bool isEn) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.receipt_long_rounded, color: Colors.green.shade700, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEn ? 'Official Invoice' : 'Nota Resmi Pembayaran',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isEn 
+                          ? 'This order has been fully paid.' 
+                          : 'Pesanan ini telah lunas dibayarkan.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () => _showInvoiceModal(context, order, orderId, orderDate, customerName, packageName, perfumeName, price, totalBayar, isEn),
+              icon: const Icon(Icons.visibility_rounded, size: 18),
+              label: Text(
+                isEn ? 'View Invoice' : 'Lihat Nota',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInvoiceModal(BuildContext context, Map<String, dynamic> order, String orderId, String orderDate, String customerName, String packageName, String perfumeName, String price, double totalBayar, bool isEn) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top handle
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEn ? 'Payment Invoice' : 'Nota Pembayaran',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(height: 10),
+                const SizedBox(height: 10),
+                
+                // Content Scrollable
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildReceiptSection(
+                          order: order,
+                          orderId: orderId,
+                          orderDate: orderDate,
+                          customerName: customerName,
+                          packageName: packageName,
+                          perfumeName: perfumeName,
+                          logistikType: order['tipe_logistik'] ?? 'Courier Delivery',
+                          totalBayar: totalBayar,
+                          price: price,
+                          catatan: order['catatan_order'],
+                          navyColor: navyColor,
+                          currentStatus: _getCurrentStatusInfo(order)['nama_status'],
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Note
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.amber.shade200, width: 1),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isEn 
+                                      ? 'Note: This digital invoice is a valid proof of payment officially issued by WishWash Laundry.' 
+                                      : 'Catatan: Nota digital ini adalah bukti pembayaran sah yang diterbitkan resmi oleh WishWash Laundry.',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: Colors.amber.shade900,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+                
+                // Download Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isEn ? 'Downloading invoice WW-$orderId.pdf...' : 'Mengunduh nota WW-$orderId.pdf...',
+                            style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                          ),
+                          backgroundColor: navyColor,
+                        ),
+                      );
+                      Future.delayed(const Duration(seconds: 2), () {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                isEn ? 'Invoice downloaded successfully!' : 'Nota berhasil diunduh!',
+                                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                            ),
+                          );
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: Text(
+                      isEn ? 'Download Invoice (PDF)' : 'Unduh Nota (PDF)',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
