@@ -57,13 +57,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               (element) => element['is_primary'] == true,
               orElse: () => list.first,
             );
-            _currentOrder['AlamatPenyerahan'] = {
-              'alamat_lengkap': primary['alamat_lengkap'],
-              'tipe_alamat': primary['tipe_alamat'],
-              'nama_penerima': primary['nama_penerima'],
-            };
-            // Set logistics type to Courier Delivery immediately only if it is not already Drop-off
-            if (_currentOrder['tipe_logistik'] != 'Drop-off') {
+            
+            // Only set AlamatPenyerahan if it's currently null or uninitialized to avoid overwriting existing data
+            if (_currentOrder['AlamatPenyerahan'] == null || _currentOrder['AlamatPenyerahan']['alamat_lengkap'] == null) {
+              _currentOrder['AlamatPenyerahan'] = {
+                'alamat_lengkap': primary['alamat_lengkap'],
+                'tipe_alamat': primary['tipe_alamat'],
+                'nama_penerima': primary['nama_penerima'],
+              };
+            }
+            
+            // Only initialize to Courier Delivery if the logistics type is completely null or empty
+            if (_currentOrder['tipe_logistik'] == null || _currentOrder['tipe_logistik'].toString().isEmpty) {
               _currentOrder['tipe_logistik'] = 'Courier Delivery';
               _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary['id_alamat']);
             }
@@ -716,6 +721,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           biayaTambahan: biayaTambahan,
                         ),
                         const SizedBox(height: 16),
+                        _buildDeliveryLocationSection(isEn),
+                        const SizedBox(height: 16),
                         // Show official invoice card with "Lihat Nota" button
                         _buildInvoiceCard(
                           context,
@@ -1230,7 +1237,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 elevation: 0,
               ),
               onPressed: () => _showInvoiceModal(context, order, orderId, orderDate, customerName, packageName, perfumeName, price, totalBayar, isEn),
-              icon: const Icon(Icons.visibility_rounded, size: 18),
+              icon: const Icon(Icons.receipt_long_rounded, size: 18),
               label: Text(
                 isEn ? 'View Invoice' : 'Lihat Nota',
                 style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
@@ -1295,6 +1302,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           catatan: order['catatan_order'],
                           navyColor: navyColor,
                           currentStatus: _getCurrentStatusInfo(order)['nama_status'],
+                          showTitle: false,
                         ),
                         const SizedBox(height: 20),
                         
@@ -1411,6 +1419,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     final String orderDate = _formatDate(_currentOrder['tgl_pesanan']);
     final String estDate = _getEstSelesaiDate(_currentOrder);
+
+    final String rawStatus = _getOrderStatus(_currentOrder).toLowerCase();
+    final bool isFinished = rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success');
+    String finishedTime = '-';
+    if (isFinished) {
+      final historyList = _currentOrder['RiwayatStatusDetail'];
+      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+        List<dynamic> sortedHistory = List.from(historyList);
+        sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+        final rawTime = sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'];
+        if (rawTime != null) {
+          finishedTime = _formatDate(rawTime.toString());
+        }
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1684,6 +1707,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
                 const Divider(height: 20),
                 _buildDetailRow(isEn ? 'Estimated Finished' : 'Estimasi Selesai', estDate, Icons.av_timer_rounded),
+                if (isFinished) ...[
+                  const Divider(height: 20),
+                  _buildDetailRow(isEn ? 'Finished Date & Time' : 'Tanggal & Waktu Selesai', finishedTime, Icons.task_alt_rounded),
+                ],
                 const Divider(height: 20),
                 
                 if (!isDropOff) ...[
@@ -1742,6 +1769,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // --- DELIVERY LOCATION SECTION (Consistent with LaundryOrderScreen) ---
   Widget _buildDeliveryLocationSection(bool isEn) {
     final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    
+    final String paymentStatus = _getPaymentStatus(_currentOrder);
+    final double kuantitasVal = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final bool isPaid = paymentStatus == 'Lunas' && kuantitasVal > 0.0;
     
     final address = addresses.isNotEmpty
         ? addresses.firstWhere(
@@ -1894,79 +1925,83 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             : addresses.isNotEmpty
                                 ? finalDeliveryAddr
                                 : (isEn
-                                    ? 'Address not set. Tap button to add.'
-                                    : 'Alamat belum disetel. Ketuk tombol untuk menambahkan.'),
+                                    ? 'Address not set.'
+                                    : 'Alamat belum disetel.'),
                         style: GoogleFonts.poppins(
                           color: Colors.grey.shade600,
                           fontSize: 11,
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _chooseAddress,
-                        icon: Icon(
-                          addresses.isNotEmpty ? Icons.edit_location_alt_rounded : Icons.add_location_alt_rounded,
-                          size: 14,
-                        ),
-                        label: Text(
-                          addresses.isNotEmpty
-                              ? (isEn ? 'Change Address' : 'Ubah Alamat')
-                              : (isEn ? 'Add Address' : 'Tambah Alamat'),
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11,
+                      if (!isPaid) ...[
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _chooseAddress,
+                          icon: Icon(
+                            addresses.isNotEmpty ? Icons.edit_location_alt_rounded : Icons.add_location_alt_rounded,
+                            size: 14,
+                          ),
+                          label: Text(
+                            addresses.isNotEmpty
+                                ? (isEn ? 'Change Address' : 'Ubah Alamat')
+                                : (isEn ? 'Add Address' : 'Tambah Alamat'),
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: navyColor,
+                            side: BorderSide(color: navyColor.withValues(alpha: 0.5), width: 1.2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: navyColor,
-                          side: BorderSide(color: navyColor.withValues(alpha: 0.5), width: 1.2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
-            const Divider(height: 28),
-            // Toggle → Pick Up in Store
-            InkWell(
-              onTap: () {
-                _updateLogisticsBackend('Drop-off');
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFDE7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.shade400, width: 1.2),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.storefront_rounded, color: Colors.orange.shade800, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        isEn ? 'Pick Up in Store Instead' : 'Ambil Sendiri di Toko',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange.shade800,
+            if (!isPaid) ...[
+              const Divider(height: 28),
+              // Toggle → Pick Up in Store
+              InkWell(
+                onTap: () {
+                  _updateLogisticsBackend('Drop-off');
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFDE7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.storefront_rounded, color: Colors.orange.shade800, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isEn ? 'Pick Up in Store Instead' : 'Ambil Sendiri di Toko',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade800,
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
-                  ],
+                      Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ] else ...[
             // --- DROP-OFF / PICK UP IN STORE STATE ---
             Row(
@@ -2007,42 +2042,44 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ],
             ),
-            const Divider(height: 28),
-            // Toggle → Use Courier Delivery
-            InkWell(
-              onTap: () {
-                final primary = addresses.isNotEmpty
-                    ? addresses.firstWhere((e) => e['is_primary'] == true, orElse: () => addresses.first)
-                    : null;
-                _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary != null ? primary['id_alamat'] : null);
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFDE7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.shade400, width: 1.2),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.delivery_dining_rounded, color: Colors.orange.shade800, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        isEn ? 'Use Courier Delivery' : 'Gunakan Pengiriman Kurir',
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange.shade800,
+            if (!isPaid) ...[
+              const Divider(height: 28),
+              // Toggle → Use Courier Delivery
+              InkWell(
+                onTap: () {
+                  final primary = addresses.isNotEmpty
+                      ? addresses.firstWhere((e) => e['is_primary'] == true, orElse: () => addresses.first)
+                      : null;
+                  _updateLogisticsBackend('Courier Delivery', idAlamatPenyerahan: primary != null ? primary['id_alamat'] : null);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFDE7),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade400, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.delivery_dining_rounded, color: Colors.orange.shade800, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isEn ? 'Use Courier Delivery' : 'Gunakan Pengiriman Kurir',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange.shade800,
+                          ),
                         ),
                       ),
-                    ),
-                    Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
-                  ],
+                      Icon(Icons.keyboard_arrow_right_rounded, color: Colors.orange.shade800, size: 22),
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ],
       ),
@@ -2259,7 +2296,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEn ? 'Pilih Cara Pembayaran' : 'Metode Pembayaran',
+            isEn ? 'Choose Payment Method' : 'Pilih Cara Pembayaran',
             style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -3096,11 +3133,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required String? catatan,
     required Color navyColor,
     required String currentStatus,
+    bool showTitle = true,
   }) {
     final lang = TranslationService.currentLang;
     final isEn = lang == 'en';
 
     final String estDateText = _getEstSelesaiDate(order);
+
+    final String rawStatus = _getOrderStatus(order).toLowerCase();
+    final bool isFinished = rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success');
+    String finishedTimeText = '-';
+    if (isFinished) {
+      final historyList = order['RiwayatStatusDetail'];
+      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+        List<dynamic> sortedHistory = List.from(historyList);
+        sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+        final rawTime = sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'];
+        if (rawTime != null) {
+          finishedTimeText = _formatDate(rawTime.toString());
+        }
+      }
+    }
 
     final pelanggan = order['Pelanggan'] ?? {};
     final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
@@ -3178,27 +3231,29 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text(
-              isEn ? 'Transaction Receipt' : 'Resi Transaksi',
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: navyColor,
-                letterSpacing: 0.5,
+        if (showTitle) ...[
+          Row(
+            children: [
+              Text(
+                isEn ? 'Transaction Receipt' : 'Resi Transaksi',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: navyColor,
+                  letterSpacing: 0.5,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                height: 1.5,
-                color: navyColor.withValues(alpha: 0.3),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 1.5,
+                  color: navyColor.withValues(alpha: 0.3),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -3286,6 +3341,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     _buildReceiptRow(isEn ? 'Phone Number' : 'No. Telepon', customerPhone),
                     _buildReceiptRow(isEn ? 'Service Type' : 'Jenis Layanan', mainService),
                     _buildReceiptRow(isEn ? 'Estimated Finish' : 'Estimasi Selesai', estDateText),
+                    if (isFinished)
+                      _buildReceiptRow(isEn ? 'Finished Date & Time' : 'Tanggal & Waktu Selesai', finishedTimeText),
                     _buildReceiptRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
                     _buildReceiptRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
                     if (logistikType != 'Drop-off')
@@ -3391,6 +3448,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                               fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Divider(color: Colors.grey.shade200, thickness: 1),
+                          const SizedBox(height: 6),
+                          Text(
+                            isEn
+                                ? 'TERMS & CONDITIONS:\n1. Claims for complaints must be submitted within 24h after receiving clothes and accompanied by this receipt.\n2. Clothes not picked up within 30 days are beyond the responsibility of management.'
+                                : 'SYARAT & KETENTUAN:\n1. Klaim keluhan wajib diajukan maks. 24 jam setelah pakaian diterima dengan menyertakan resi ini.\n2. Pakaian yang tidak diambil dalam 30 hari di luar tanggung jawab manajemen.',
+                            textAlign: TextAlign.left,
+                            style: GoogleFonts.poppins(
+                              color: slateGray.withValues(alpha: 0.8),
+                              fontSize: 8,
+                              height: 1.4,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -3504,55 +3576,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (isCancelled) {
       return const SizedBox.shrink();
     }
-    // If PAID, show the standard finalized "Download Receipt" footer
+    // If PAID, we do not need the redundant sticky footer since we already have the download invoice modal button on the screen
     if (isPaid) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 15,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: navyColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 4,
-                ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isEn ? 'Downloading Receipt PDF...' : 'Mengunduh Kuitansi PDF...'),
-                      backgroundColor: navyColor,
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.file_download_outlined),
-                label: Text(
-                  isEn ? 'Download Receipt' : 'Unduh Kuitansi',
-                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     // If NOT PAID, show interactive Pay Now (QRIS) or Confirm COD button
@@ -3807,15 +3833,78 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                                     _currentOrder = Map<String, dynamic>.from(updatedOrder);
                                                   });
                                                   if (context.mounted) {
-                                                    ScaffoldMessenger.of(context).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          isEn
-                                                              ? 'Cash payment method confirmed successfully!'
-                                                              : 'Metode Pembayaran Cash berhasil dikonfirmasi!',
-                                                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                                    showDialog(
+                                                      context: context,
+                                                      builder: (context) => Dialog(
+                                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                                                        elevation: 8,
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.white,
+                                                            borderRadius: BorderRadius.circular(28),
+                                                          ),
+                                                          child: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Container(
+                                                                padding: const EdgeInsets.all(20),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.green.shade50,
+                                                                  shape: BoxShape.circle,
+                                                                  border: Border.all(color: Colors.green.shade100, width: 3),
+                                                                ),
+                                                                child: const Icon(
+                                                                  Icons.check_circle_rounded,
+                                                                  color: Colors.green,
+                                                                  size: 54,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 24),
+                                                              Text(
+                                                                isEn ? 'Success!' : 'Berhasil!',
+                                                                style: GoogleFonts.poppins(
+                                                                  fontSize: 22,
+                                                                  fontWeight: FontWeight.bold,
+                                                                  color: navyColor,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 12),
+                                                              Text(
+                                                                isEn
+                                                                    ? 'Cash payment method confirmed. Please pay directly to our courier or store outlet.'
+                                                                    : 'Metode pembayaran Cash berhasil dikonfirmasi. Silakan lakukan pembayaran langsung ke kurir atau outlet toko.',
+                                                                textAlign: TextAlign.center,
+                                                                style: GoogleFonts.poppins(
+                                                                  fontSize: 13,
+                                                                  color: Colors.grey.shade600,
+                                                                  height: 1.5,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 28),
+                                                              SizedBox(
+                                                                width: double.infinity,
+                                                                height: 48,
+                                                                child: ElevatedButton(
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: navyColor,
+                                                                    foregroundColor: Colors.white,
+                                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                                    elevation: 2,
+                                                                  ),
+                                                                  onPressed: () => Navigator.pop(context),
+                                                                  child: Text(
+                                                                    isEn ? 'Okay, Great' : 'Oke, Siap',
+                                                                    style: GoogleFonts.poppins(
+                                                                      fontWeight: FontWeight.bold,
+                                                                      fontSize: 14,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
-                                                        backgroundColor: Colors.green.shade700,
                                                       ),
                                                     );
                                                   }

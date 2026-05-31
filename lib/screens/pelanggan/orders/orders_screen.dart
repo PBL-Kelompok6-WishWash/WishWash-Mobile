@@ -1017,13 +1017,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
             width: double.infinity,
             height: 40,
             child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => OrderDetailScreen(order: order),
                   ),
                 );
+                _fetchOrders();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -1064,13 +1065,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('tolak') || rawStatus.contains('reject');
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => OrderDetailScreen(order: order),
           ),
         );
+        _fetchOrders();
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
