@@ -3,8 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'screens/splash_screen.dart';
 import 'services/translation_service.dart';
 
+import 'utils/constants.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Constants.initBaseUrl();
   await TranslationService.init();
   runApp(const MyApp());
 }

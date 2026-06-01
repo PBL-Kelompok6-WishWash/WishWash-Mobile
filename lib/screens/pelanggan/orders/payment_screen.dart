@@ -40,10 +40,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Timer? _countdownTimer;
   int _secondsRemaining = 900; // 15-minute countdown
 
+  // Static map to persist payment expiration time across screen instances (prevents timer reset on back)
+  static final Map<int, DateTime> _paymentExpirations = {};
+
   @override
   void initState() {
     super.initState();
     if (widget.paymentMethod == 'QRIS') {
+      final int orderId = widget.order['id_order'] ?? 0;
+      if (orderId != 0) {
+        if (!_paymentExpirations.containsKey(orderId)) {
+          _paymentExpirations[orderId] = DateTime.now().add(const Duration(minutes: 15));
+        }
+        final DateTime expiryTime = _paymentExpirations[orderId]!;
+        final Duration remaining = expiryTime.difference(DateTime.now());
+        _secondsRemaining = remaining.inSeconds;
+        if (_secondsRemaining < 0) {
+          _secondsRemaining = 0;
+        }
+      }
       _fetchMidtransQRIS();
       _startTimer();
     }
@@ -1370,9 +1385,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           
                           // 3. Enlarged QR Code Area (Glow border & large scale!)
                           Container(
-                            width: 235,
-                            height: 235,
-                            padding: const EdgeInsets.all(14),
+                            width: 280,
+                            height: 280,
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),

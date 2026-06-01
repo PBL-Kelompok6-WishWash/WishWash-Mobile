@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 
 class OrderService {
-  static const String baseUrl = '${Constants.baseUrl}/order';
+  static String get baseUrl => '${Constants.baseUrl}/order';
 
   static Future<List<dynamic>> getOrders() async {
     final prefs = await SharedPreferences.getInstance();

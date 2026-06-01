@@ -8,6 +8,8 @@ import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 import 'package:mobile/screens/karyawan/main_karyawan.dart';
 import 'package:mobile/utils/constants.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 
 class LaundryOrderScreen extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -917,83 +919,114 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
   Widget _buildLocationCard(Color themeColor) {
     final address = selectedPickupAddress;
+    
+    // Parse coordinates if available
+    double lat = -6.1753924; // Monas fallback
+    double lon = 106.8271528;
+    bool hasCoords = false;
+
+    if (address != null && address['latitude'] != null && address['longitude'] != null) {
+      final double? parsedLat = double.tryParse(address['latitude'].toString());
+      final double? parsedLon = double.tryParse(address['longitude'].toString());
+      if (parsedLat != null && parsedLon != null) {
+        lat = parsedLat;
+        lon = parsedLon;
+        hasCoords = true;
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Map Placeholder
-        Container(
-          height: 130,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0D253F),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: CustomPaint(painter: MapLinesPainter()),
-              ),
-              Positioned(
-                bottom: 10,
-                right: 15,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(8),
+        // Live OSM Pick Up Location Map preview frame
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            height: 140,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                FlutterMap(
+                  // Dynamic key to force map rebuild/re-center when coordinates change
+                  key: ValueKey('${lat}_${lon}'),
+                  options: MapOptions(
+                    initialCenter: LatLng(lat, lon),
+                    initialZoom: 15.0,
+                    interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF42C6D4),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'GPS ACTIVE',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Pulsing Center Locator Pin
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: activeSelectionColor.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF42C6D4), width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF42C6D4).withOpacity(0.3),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.my_location,
-                        color: Color(0xFF42C6D4),
-                        size: 22,
-                      ),
+                    TileLayer(
+                      urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                      subdomains: const ['a', 'b', 'c', 'd'],
                     ),
                   ],
                 ),
-              ),
-            ],
+                // Floating status chip
+                Positioned(
+                  bottom: 10,
+                  right: 15,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: hasCoords ? const Color(0xFF42C6D4) : Colors.amber,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          hasCoords ? 'GPS ACTIVE' : 'NO LOCATION PIN',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Center Marker Pin sitting geographically centered
+                Align(
+                  alignment: Alignment.center,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.location_on,
+                        color: hasCoords ? activeSelectionColor : Colors.grey.shade400,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                // Clicking gesture detector to choose address
+                Positioned.fill(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _chooseAddress(false),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 16),

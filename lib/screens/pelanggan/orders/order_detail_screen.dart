@@ -2278,12 +2278,99 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // --- CHOOSE PAYMENT METHOD CARD ---
   Widget _buildChoosePaymentMethodCard(bool isEn) {
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String? dbMetodeBayar = pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : null;
+
     final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
     
     // Dynamic Cash payment label based on logistics method (Ambil di Toko / Antar ke Rumah)
     final String cashLabel = isDropOff
         ? (isEn ? 'Cash at Store (Pay when picking up)' : 'Bayar Tunai di Toko (Saat Ambil)')
         : (isEn ? 'Cash (Pay to Courier)' : 'Bayar Tunai ke Kurir (Cash)');
+
+    if (dbMetodeBayar != null && dbMetodeBayar.isNotEmpty && dbMetodeBayar != 'UNPAID' && dbMetodeBayar != 'BELUM DIBAYAR' && dbMetodeBayar != '-') {
+      final bool isCash = dbMetodeBayar == 'CASH' || dbMetodeBayar == 'COD';
+      
+      final String selectedLabel = isCash ? cashLabel : 'QRIS';
+
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isEn ? 'Payment Method' : 'Metode Pembayaran',
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: navyColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.green.shade400,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isCash ? Icons.payments_rounded : Icons.qr_code_scanner_rounded,
+                    color: Colors.green.shade700,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          selectedLabel,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isCash
+                              ? (isEn
+                                  ? 'Cash payment confirmed'
+                                  : 'Pembayaran cash dikonfirmasi')
+                              : (isEn ? 'QRIS payment' : 'Pembayaran QRIS'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Colors.green.shade600,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -3581,6 +3668,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       return const SizedBox.shrink();
     }
 
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String dbMetodeBayar = pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : '';
+    final bool isAlreadyConfirmedCash = dbMetodeBayar == 'CASH';
+
     // If NOT PAID, show interactive Pay Now (QRIS) or Confirm COD button
     final bool isQRIS = _selectedPaymentMethod == 'QRIS';
     final double kuantitasVal = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
@@ -3665,14 +3758,140 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
               const SizedBox(width: 12),
               SizedBox(
-                width: 170,
+                width: 180,
                 height: 48,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isNotWeighed
-                        ? Colors.grey.shade300
-                        : (isQRIS ? navyColor : Colors.green.shade700),
-                    foregroundColor: isNotWeighed ? Colors.grey.shade500 : Colors.white,
+                child: isAlreadyConfirmedCash
+                    ? ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shadowColor: Colors.red.shade700.withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => Dialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              child: Container(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade50,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(Icons.change_circle_rounded, color: Colors.red.shade700, size: 40),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      isEn ? 'Change Method?' : 'Ganti Metode?',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: navyColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      isEn
+                                          ? 'Are you sure you want to cancel Cash payment and change the payment method?'
+                                          : 'Apakah Anda yakin ingin membatalkan metode Cash dan mengganti metode pembayaran?',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            onPressed: () => Navigator.pop(context),
+                                            child: Text(
+                                              isEn ? 'No' : 'Tidak',
+                                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red.shade700,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 12),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            onPressed: () async {
+                                              Navigator.pop(context);
+                                              try {
+                                                final updatedOrder = await OrderService.updateOrder(
+                                                  _currentOrder['id_order'],
+                                                  {
+                                                    'status_pembayaran': 'Belum Lunas',
+                                                    'metode_bayar': 'BELUM DIBAYAR',
+                                                  },
+                                                );
+                                                setState(() {
+                                                  _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                                                  _selectedPaymentMethod = 'QRIS';
+                                                });
+                                              } catch (e) {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        isEn ? 'Failed: $e' : 'Gagal: $e',
+                                                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                                      ),
+                                                      backgroundColor: Colors.red,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: Text(
+                                              isEn ? 'Yes, Change' : 'Ya, Ganti',
+                                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.change_circle_rounded, size: 18, color: Colors.white),
+                        label: Text(
+                          isEn ? 'Change Method' : 'Ganti Metode',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.white,
+                          ),
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isNotWeighed
+                              ? Colors.grey.shade300
+                              : (isQRIS ? navyColor : Colors.green.shade700),
+                          foregroundColor: isNotWeighed ? Colors.grey.shade500 : Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     elevation: isNotWeighed ? 0 : 4,
                     shadowColor: isNotWeighed

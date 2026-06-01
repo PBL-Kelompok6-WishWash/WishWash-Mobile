@@ -6,7 +6,7 @@ import 'package:mobile/utils/constants.dart';
 class AuthService {
   // Gunakan 10.0.2.2 untuk memanggil localhost komputer dari emulator Android
   // Sesuaikan port 8080 dan URL endpoint dengan route Golang-mu nanti
-  static const String baseUrl = Constants.baseUrl;
+  static String get baseUrl => Constants.baseUrl;
 
   // Fungsi Login
   static Future<Map<String, dynamic>> login(String username, String password) async {

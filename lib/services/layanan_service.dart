@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 
 class LayananService {
-  static const String baseUrl = '${Constants.baseUrl}/layanan';
+  static String get baseUrl => '${Constants.baseUrl}/layanan';
 
   static Future<List<dynamic>> getLayanan() async {
     try {

@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 
 class PelangganService {
-  static const String baseUrl = Constants.baseUrl;
+  static String get baseUrl => Constants.baseUrl;
 
   static Future<Map<String, dynamic>> getProfile() async {
     try {
