@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/karyawan/orders/pesanan.dart';
-import 'package:mobile/screens/karyawan/orders/pesanan_diproses.dart';
-import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
-import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
+import 'package:mobile/screens/karyawan/orders/orders.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 import 'package:mobile/screens/karyawan/home/riwayat_pendapatan.dart';
 import 'package:mobile/screens/karyawan/home/scanner_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
+import 'package:mobile/services/order_service.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
@@ -15,25 +13,31 @@ import 'dart:ui';
 
 class DashboardKaryawan extends StatefulWidget {
   final VoidCallback? onProfileTap;
-  const DashboardKaryawan({super.key, this.onProfileTap});
+  final Function(int)? onTabChange;
+  const DashboardKaryawan({super.key, this.onProfileTap, this.onTabChange});
 
   @override
   State<DashboardKaryawan> createState() => _DashboardKaryawanState();
 }
 
 class _DashboardKaryawanState extends State<DashboardKaryawan> {
-  int orderCount = 3;
+  int orderCount = 0;
   int prosesCount = 0;
   int antarCount = 0;
-  int selesaiCount = 8;
+  int selesaiCount = 0;
 
   String _namaKaryawan = 'Karyawan';
   String _fotoKaryawan = '';
+
+  List<dynamic> _realOrders = [];
+  bool _isLoadingOrders = true;
+  double _todayRevenue = 0.0;
 
   @override
   void initState() {
     super.initState();
     _fetchProfile();
+    _fetchOrders();
   }
 
   Future<void> _fetchProfile() async {
@@ -51,12 +55,287 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
+  String _getOrderStatus(Map<String, dynamic> order) {
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList == null || historyList is! List || historyList.isEmpty) {
+      final layanan = order['Layanan'];
+      final refList = layanan != null
+          ? (layanan['referensi_status'] ?? layanan['ReferensiStatus'])
+          : null;
+      if (layanan != null && refList != null && refList is List) {
+        if (refList.isNotEmpty) {
+          List<dynamic> sortedRef = List.from(refList);
+          sortedRef.sort(
+            (a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(
+              b['urutan_tahap'] as int? ?? 0,
+            ),
+          );
+          return sortedRef.first['nama_status'] ?? 'Pesanan Diterima';
+        }
+      }
+      return 'Pesanan Diterima';
+    }
+
+    List<dynamic> sortedHistory = List.from(historyList);
+    sortedHistory.sort((a, b) {
+      final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+      final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+      return idA.compareTo(idB);
+    });
+
+    final latestHistory = sortedHistory.last;
+    final refStatus = latestHistory['ReferensiStatus'];
+    if (refStatus != null && refStatus is Map) {
+      return refStatus['nama_status'] ?? 'Pesanan Diterima';
+    }
+    return 'Pesanan Diterima';
+  }
+
+  bool _isBaruOrder(String status) {
+    final s = status.toLowerCase();
+    return s == 'pesanan diterima' ||
+        s.contains('received') ||
+        s.contains('baru');
+  }
+
+  bool _isOutletOrder(String status, String logistikType) {
+    final s = status.toLowerCase();
+    if (s.contains('batal') ||
+        s.contains('cancel') ||
+        s.contains('tolak') ||
+        s.contains('reject')) {
+      return false;
+    }
+    if (s == 'pesanan diterima') {
+      return false;
+    }
+    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
+      return s != 'selesai';
+    }
+    return s == 'proses timbang' ||
+        s == 'proses cuci' ||
+        s == 'proses kering' ||
+        s == 'proses lipat' ||
+        s == 'proses setrika';
+  }
+
+  bool _isLogistikOrder(String status, String logistikType) {
+    final s = status.toLowerCase();
+    if (s.contains('batal') ||
+        s.contains('cancel') ||
+        s.contains('tolak') ||
+        s.contains('reject')) {
+      return false;
+    }
+    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
+      return false;
+    }
+    if (s == 'pesanan diterima') {
+      return false;
+    }
+    return s == 'penjemputan' || s == 'siap diantar';
+  }
+
+  bool _isSelesaiOrder(String status) {
+    final s = status.toLowerCase();
+    return s == 'selesai' ||
+        s.contains('completed') ||
+        s.contains('success') ||
+        s.contains('batal') ||
+        s.contains('cancel') ||
+        s.contains('tolak') ||
+        s.contains('reject');
+  }
+
+  Future<void> _fetchOrders() async {
+    try {
+      final list = await OrderService.getOrders();
+      final List<Map<String, dynamic>> listMaps = list
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      int countIncoming = 0;
+      int countProses = 0;
+      int countAntar = 0;
+      int countSelesai = 0;
+      double revenue = 0.0;
+      final now = DateTime.now();
+
+      for (var map in listMaps) {
+        final status = _getOrderStatus(map);
+        final logistikType = map['tipe_logistik']?.toString() ?? '';
+
+        if (_isBaruOrder(status)) {
+          countIncoming++;
+        } else if (_isOutletOrder(status, logistikType)) {
+          countProses++;
+        } else if (_isLogistikOrder(status, logistikType)) {
+          countAntar++;
+        } else if (_isSelesaiOrder(status)) {
+          countSelesai++;
+        }
+
+        // Calculate today's revenue from completed payments
+        if (_isSelesaiOrder(status)) {
+          bool isToday = false;
+          final historyList = map['RiwayatStatusDetail'];
+          if (historyList != null &&
+              historyList is List &&
+              historyList.isNotEmpty) {
+            List<dynamic> sortedHistory = List.from(historyList);
+            sortedHistory.sort(
+              (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
+                b['id_riwayat_status_detail'] as num? ?? 0,
+              ),
+            );
+            final rawTime =
+                sortedHistory.last['waktu_update'] ??
+                sortedHistory.last['WaktuUpdate'];
+            if (rawTime != null) {
+              try {
+                final dt = DateTime.parse(rawTime.toString()).toLocal();
+                if (dt.year == now.year &&
+                    dt.month == now.month &&
+                    dt.day == now.day) {
+                  isToday = true;
+                }
+              } catch (_) {}
+            }
+          } else {
+            final rawTime = map['tgl_pesanan'];
+            if (rawTime != null) {
+              try {
+                final dt = DateTime.parse(rawTime.toString()).toLocal();
+                if (dt.year == now.year &&
+                    dt.month == now.month &&
+                    dt.day == now.day) {
+                  isToday = true;
+                }
+              } catch (_) {}
+            }
+          }
+
+          if (isToday) {
+            final double val = (map['total_bayar'] as num?)?.toDouble() ?? 0.0;
+            revenue += val;
+          }
+        }
+      }
+
+      // Sort all orders by tgl_pesanan descending for recent activities
+      listMaps.sort((a, b) {
+        final tA = a['tgl_pesanan']?.toString() ?? '';
+        final tB = b['tgl_pesanan']?.toString() ?? '';
+        return tB.compareTo(tA);
+      });
+
+      if (mounted) {
+        setState(() {
+          _realOrders = listMaps;
+          orderCount = countIncoming;
+          prosesCount = countProses;
+          antarCount = countAntar;
+          selesaiCount = countSelesai;
+          _todayRevenue = revenue;
+          _isLoadingOrders = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching orders on dashboard: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingOrders = false;
+        });
+      }
+    }
+  }
+
+  String _formatPrice(double price) {
+    final str = price.toInt().toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        buffer.write('.');
+      }
+      buffer.write(str[i]);
+    }
+    return 'Rp ${buffer.toString()}';
+  }
+
+  String _getCurrentDateTimeString() {
+    final now = DateTime.now();
+    final isEn = TranslationService.currentLang == 'en';
+    
+    final daysEn = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final daysId = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    
+    final monthsEn = [
+      'January', 'February', 'March', 'April', 'May', 'June', 
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final monthsId = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    
+    final dayName = isEn ? daysEn[now.weekday - 1] : daysId[now.weekday - 1];
+    final monthName = isEn ? monthsEn[now.month - 1] : monthsId[now.month - 1];
+    
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    
+    return '$dayName, ${now.day} $monthName ${now.year} • $hour:$minute';
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pesanan diterima':
+        return Colors.blue.shade700;
+      case 'penjemputan':
+        return const Color(0xFFFBC02D);
+      case 'proses timbang':
+        return Colors.cyan.shade700;
+      case 'proses cuci':
+      case 'proses kering':
+      case 'proses lipat':
+      case 'proses setrika':
+        return const Color(0xFF9C27B0);
+      case 'siap diantar':
+        return const Color(0xFF0288D1);
+      case 'selesai':
+        return const Color(0xFF2E7D32);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getTimeElapsed(String isoString, bool isEn) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) {
+        return isEn ? 'Just now' : 'Baru saja';
+      } else if (diff.inMinutes < 60) {
+        return isEn ? '${diff.inMinutes}m ago' : '${diff.inMinutes}m lalu';
+      } else if (diff.inHours < 24) {
+        return isEn ? '${diff.inHours}h ago' : '${diff.inHours}j lalu';
+      } else {
+        return isEn ? '${diff.inDays}d ago' : '${diff.inDays}h lalu';
+      }
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<void> _onRefresh() async {
     await _fetchProfile();
+    await _fetchOrders();
   }
 
   Widget _buildProfileImage() {
-    if (_fotoKaryawan.startsWith('http://') || _fotoKaryawan.startsWith('https://')) {
+    if (_fotoKaryawan.startsWith('http://') ||
+        _fotoKaryawan.startsWith('https://')) {
       return Image.network(
         _fotoKaryawan,
         width: 50,
@@ -175,49 +454,56 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   onRefresh: _onRefresh,
                   color: const Color(0xFF0C4B8E),
                   backgroundColor: Colors.white,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
 
-                        // --- HEADER PRIBADI ---
-                        _buildHeader(navyColor),
-                        const SizedBox(height: 30),
+                            // --- HEADER PRIBADI ---
+                            _buildHeader(navyColor),
+                            const SizedBox(height: 30),
 
-                        // --- HERO INCOME CARD (PREMIUM) ---
-                        _buildIncomeCard(navyColor, cyanColor, lightCyan),
-                        const SizedBox(height: 30),
+                            // --- HERO INCOME CARD (PREMIUM) ---
+                            _buildIncomeCard(navyColor, cyanColor, lightCyan),
+                            const SizedBox(height: 30),
 
-                        // --- GRID STATUS 2x2 ---
-                        Text(
-                          TranslationService.translate('monitor_orders'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: navyColor,
-                          ),
+                            // --- GRID STATUS 2x2 ---
+                            Text(
+                              TranslationService.translate('monitor_orders'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: navyColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildStatusGrid(context),
+                            const SizedBox(height: 30),
+
+                            // --- AKTIVITAS TERKINI ---
+                            Text(
+                              TranslationService.translate('recent_activities'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: navyColor,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildRecentActivities(navyColor, cyanColor),
+
+                            const SizedBox(
+                              height: 100,
+                            ), // Spacing agar tidak tertutup Bottom Nav
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        _buildStatusGrid(context),
-                        const SizedBox(height: 30),
-
-                        // --- AKTIVITAS TERKINI ---
-                        Text(
-                          TranslationService.translate('recent_activities'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: navyColor,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildRecentActivities(navyColor, cyanColor),
-
-                        const SizedBox(height: 100), // Spacing agar tidak tertutup Bottom Nav
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -257,9 +543,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     ),
                   ],
                 ),
-                child: ClipOval(
-                  child: _buildProfileImage(),
-                ),
+                child: ClipOval(child: _buildProfileImage()),
               ),
             ),
             const SizedBox(width: 16),
@@ -285,38 +569,42 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             ),
           ],
         ),
-       Row(
-        children: [
-          _buildGlassIconButton(
-            Icons.qr_code_scanner_rounded,
-            navyColor,
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ScannerScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 10),
-          _buildGlassIconButton(
-            Icons.notifications_none_rounded,
-            navyColor, // ➔ Koma di sini penting biar dia turun baris
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ), // ➔ Koma di sini juga ngebantu perapian
-              );
-            },
-          ), // ➔ Tutup kurung ini juga dikasih koma
-        ],
-      ),
-    ],
+        Row(
+          children: [
+            _buildGlassIconButton(
+              Icons.qr_code_scanner_rounded,
+              navyColor,
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ScannerScreen()),
+                );
+              },
+            ),
+            const SizedBox(width: 10),
+            _buildGlassIconButton(
+              Icons.notifications_none_rounded,
+              navyColor, // ➔ Koma di sini penting biar dia turun baris
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ), // ➔ Koma di sini juga ngebantu perapian
+                );
+              },
+            ), // ➔ Tutup kurung ini juga dikasih koma
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildGlassIconButton(IconData icon, Color color, {VoidCallback? onTap}) {
+  Widget _buildGlassIconButton(
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return Container(
       width: 45,
       height: 45,
@@ -448,21 +736,23 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                TranslationService.translate('total_revenue_today').toUpperCase(),
+                                TranslationService.translate(
+                                  'total_revenue_today',
+                                ).toUpperCase(),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white.withOpacity(0.7),
-                                  letterSpacing: 1.2,
+                                  color: Colors.white,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                "PENDAPATAN HARI INI",
+                                _getCurrentDateTimeString(),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withOpacity(0.7),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -476,7 +766,8 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const RiwayatPendapatanScreen(),
+                              builder: (context) =>
+                                  const RiwayatPendapatanScreen(),
                             ),
                           );
                         },
@@ -498,7 +789,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   const SizedBox(height: 28),
                   // Currency Amount
                   Text(
-                    "Rp 727.000,00",
+                    _formatPrice(_todayRevenue),
                     style: GoogleFonts.poppins(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
@@ -509,7 +800,10 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   const SizedBox(height: 20),
                   // Trending badge (Glass design chip)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(30),
@@ -548,182 +842,129 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   }
 
   Widget _buildStatusGrid(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isTablet = screenWidth > 600;
+    final int crossAxisCount = isTablet ? 4 : 2;
+    final double childAspectRatio = isTablet ? 1.3 : 1.15;
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: crossAxisCount,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.15, // slightly wider than tall
+      childAspectRatio: childAspectRatio,
       children: [
-        _buildGridCard(TranslationService.translate('order_incoming'), "$orderCount", const Color(0xFFFFF3E0), const Color(0xFFFF9800), Icons.receipt_long_rounded, onTap: () async {
-          final acceptedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananScreen()));
-          if (acceptedCount != null && acceptedCount is int && acceptedCount > 0) {
-            setState(() {
-              orderCount -= acceptedCount;
-              if (orderCount < 0) orderCount = 0;
-              prosesCount += acceptedCount;
-            });
-          }
-        }),
-        _buildGridCard(TranslationService.translate('in_progress'), "$prosesCount", const Color(0xFFE3F2FD), const Color(0xFF2196F3), Icons.local_laundry_service_rounded, onTap: () async {
-          final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiprosesScreen()));
-          if (finishedCount != null && finishedCount is int && finishedCount > 0) {
-            setState(() {
-              prosesCount -= finishedCount;
-              if (prosesCount < 0) prosesCount = 0;
-              antarCount += finishedCount;
-            });
-          }
-        }),
-        _buildGridCard(TranslationService.translate('ready_for_delivery'), "$antarCount", const Color(0xFFF3E5F5), const Color(0xFF9C27B0), Icons.delivery_dining_rounded, onTap: () async {
-          final finishedCount = await Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananDiantarScreen()));
-          if (finishedCount != null && finishedCount is int && finishedCount > 0) {
-            setState(() {
-              antarCount -= finishedCount;
-              if (antarCount < 0) antarCount = 0;
-              selesaiCount += finishedCount;
-            });
-          }
-        }),
-        _buildGridCard(TranslationService.translate('completed'), "$selesaiCount", const Color(0xFFE8F5E9), const Color(0xFF4CAF50), Icons.check_circle_outline_rounded, onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const PesananSelesaiScreen()));
-        }),
+        GridMonitorCard(
+          title: TranslationService.translate('order_incoming'),
+          count: "$orderCount",
+          bgColor: const Color(0xFFFFF3E0),
+          iconColor: const Color(0xFFFF9800),
+          icon: Icons.receipt_long_rounded,
+          onTap: () {
+            OrderScreenKaryawan.orderTabNotifier.value = 1; // Tab 1: Baru
+            widget.onTabChange?.call(1); // Swatch to orders page index 1
+          },
+        ),
+        GridMonitorCard(
+          title: TranslationService.translate('in_progress'),
+          count: "$prosesCount",
+          bgColor: const Color(0xFFE3F2FD),
+          iconColor: const Color(0xFF2196F3),
+          icon: Icons.local_laundry_service_rounded,
+          onTap: () {
+            OrderScreenKaryawan.orderTabNotifier.value = 3; // Tab 3: Outlet
+            widget.onTabChange?.call(1);
+          },
+        ),
+        GridMonitorCard(
+          title: TranslationService.translate('ready_for_delivery'),
+          count: "$antarCount",
+          bgColor: const Color(0xFFF3E5F5),
+          iconColor: const Color(0xFF9C27B0),
+          icon: Icons.delivery_dining_rounded,
+          onTap: () {
+            OrderScreenKaryawan.orderTabNotifier.value = 2; // Tab 2: Logistik
+            widget.onTabChange?.call(1);
+          },
+        ),
+        GridMonitorCard(
+          title: TranslationService.translate('completed'),
+          count: "$selesaiCount",
+          bgColor: const Color(0xFFE8F5E9),
+          iconColor: const Color(0xFF4CAF50),
+          icon: Icons.check_circle_outline_rounded,
+          onTap: () {
+            OrderScreenKaryawan.orderTabNotifier.value = 4; // Tab 4: Selesai
+            widget.onTabChange?.call(1);
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildGridCard(String title, String count, Color bgColor, Color iconColor, IconData icon, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: bgColor, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: iconColor.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Aesthetic background icon
-          Positioned(
-            right: -15,
-            bottom: -15,
-            child: Icon(
-              icon,
-              size: 80,
-              color: bgColor.withOpacity(0.8),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 24),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      count,
-                      style: GoogleFonts.poppins(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF0C4B8E),
-                        height: 1.1,
-                      ),
-                    ),
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ));
-  }
-
   Widget _buildRecentActivities(Color navyColor, Color cyanColor) {
     final bool isEn = TranslationService.currentLang == 'en';
-    
-    // High-fidelity mock of the 5 latest orders for this employee
-    final List<Map<String, dynamic>> recentOrders = [
-      {
-        "id": "WW-H78F2",
-        "name": "Cecil Clarissa",
-        "service": isEn ? "Wash & Iron" : "Cuci & Setrika",
-        "time": isEn ? "Just now" : "Baru saja",
-        "status": isEn ? "Processing" : "Diproses",
-        "statusColor": const Color(0xFF2196F3),
-        "statusBg": const Color(0xFFE3F2FD),
-      },
-      {
-        "id": "WW-K92B1",
-        "name": "Abilah Budi",
-        "service": isEn ? "Ironing Only" : "Setrika Saja",
-        "time": isEn ? "10m ago" : "10m lalu",
-        "status": isEn ? "New Order" : "Pesanan Baru",
-        "statusColor": const Color(0xFFFF9800),
-        "statusBg": const Color(0xFFFFF3E0),
-      },
-      {
-        "id": "WW-T33G4",
-        "name": "Clarissa Ica",
-        "service": isEn ? "Dry Clean & Fold" : "Cuci Kering Lipat",
-        "time": isEn ? "1h ago" : "1j lalu",
-        "status": isEn ? "Delivering" : "Diantar",
-        "statusColor": const Color(0xFF9C27B0),
-        "statusBg": const Color(0xFFF3E5F5),
-      },
-      {
-        "id": "WW-P11A9",
-        "name": "Devi Ajeng",
-        "service": isEn ? "Dry Clean & Fold" : "Cuci Kering Lipat",
-        "time": isEn ? "3h ago" : "3j lalu",
-        "status": isEn ? "Completed" : "Selesai",
-        "statusColor": const Color(0xFF4CAF50),
-        "statusBg": const Color(0xFFE8F5E9),
-      },
-      {
-        "id": "WW-L88P3",
-        "name": "Budi Santoso",
-        "service": isEn ? "Wash & Iron" : "Cuci & Setrika",
-        "time": isEn ? "Yesterday" : "Kemarin",
-        "status": isEn ? "Completed" : "Selesai",
-        "statusColor": const Color(0xFF4CAF50),
-        "statusBg": const Color(0xFFE8F5E9),
-      },
-    ];
+    if (_isLoadingOrders) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+          ),
+        ),
+      );
+    }
+    if (_realOrders.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Icon(
+              Icons.history_toggle_off_rounded,
+              size: 48,
+              color: Colors.grey.shade300,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isEn ? 'No activities recorded' : 'Belum ada aktivitas terekam',
+              style: GoogleFonts.poppins(
+                color: Colors.grey.shade500,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
+    final int displayCount = _realOrders.length > 5 ? 5 : _realOrders.length;
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: recentOrders.length,
+      itemCount: displayCount,
       itemBuilder: (context, index) {
-        final order = recentOrders[index];
-        final String initials = _getInitials(order["name"]);
+        final order = _realOrders[index];
+        final pelanggan = order['Pelanggan'] as Map<String, dynamic>? ?? {};
+        final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
+        final String initials = _getInitials(customerName);
+        final String orderCode =
+            order['kode_order'] ?? 'WW-${order['id_order']}';
+
+        final String tglPesanan = order['tgl_pesanan'] ?? '';
+        final String timeText = _getTimeElapsed(tglPesanan, isEn);
+
+        final layanan = order['Layanan'] as Map<String, dynamic>? ?? {};
+        final String rawServiceName = layanan['nama_layanan'] ?? 'Layanan';
+        final String serviceName = TranslationService.translateService(
+          rawServiceName,
+        );
+
+        final String status = _getOrderStatus(order);
+        final Color statusColor = _getStatusColor(status);
+        final Color statusBg = statusColor.withOpacity(0.12);
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -742,7 +983,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           ),
           child: Row(
             children: [
-              // Circular Initial Avatar
               Container(
                 width: 44,
                 height: 44,
@@ -756,13 +996,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     end: Alignment.bottomRight,
                   ),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: cyanColor.withOpacity(0.12),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -775,7 +1008,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                 ),
               ),
               const SizedBox(width: 14),
-              // Center Info details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -783,27 +1015,29 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     Row(
                       children: [
                         Text(
-                          "#${order['id']}",
+                          "#$orderCode",
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                             color: cyanColor,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "•  ${order['time']}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: Colors.grey.shade400,
-                            fontWeight: FontWeight.w500,
+                        if (timeText.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            "•  $timeText",
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.grey.shade400,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      order["name"],
+                      customerName,
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -812,10 +1046,10 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      order["service"],
+                      serviceName,
                       style: GoogleFonts.poppins(
                         fontSize: 11,
-                        color: Colors.grey.shade500,
+                        color: Colors.grey.shade600,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -823,19 +1057,21 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Right Status Pill Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: order["statusBg"],
+                  color: statusBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  order["status"],
+                  TranslationService.translateStatus(status),
                   style: GoogleFonts.poppins(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: order["statusColor"],
+                    color: statusColor,
                   ),
                 ),
               ),
@@ -843,6 +1079,132 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           ),
         );
       },
+    );
+  }
+}
+
+class GridMonitorCard extends StatefulWidget {
+  final String title;
+  final String count;
+  final Color bgColor;
+  final Color iconColor;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const GridMonitorCard({
+    super.key,
+    required this.title,
+    required this.count,
+    required this.bgColor,
+    required this.iconColor,
+    required this.icon,
+    this.onTap,
+  });
+
+  @override
+  State<GridMonitorCard> createState() => _GridMonitorCardState();
+}
+
+class _GridMonitorCardState extends State<GridMonitorCard> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: widget.bgColor, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: widget.iconColor.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            onTapDown: (_) => setState(() => _isPressed = true),
+            onTapUp: (_) => setState(() => _isPressed = false),
+            onTapCancel: () => setState(() => _isPressed = false),
+            borderRadius: BorderRadius.circular(18),
+            splashColor: Colors.transparent, // Hapus efek splash warna
+            highlightColor: Colors.transparent, // Hapus efek highlight warna
+            child: Stack(
+              children: [
+                // Aesthetic background icon with dynamic scaling and rotation on click!
+                Positioned(
+                  right: -15,
+                  bottom: -15,
+                  child: AnimatedRotation(
+                    turns: _isPressed ? -0.04 : 0.0,
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutBack,
+                    child: AnimatedScale(
+                      scale: _isPressed ? 1.25 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOutBack,
+                      child: Icon(
+                        widget.icon,
+                        size: 80,
+                        color: widget.bgColor.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: widget.bgColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          widget.icon,
+                          color: widget.iconColor,
+                          size: 24,
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.count,
+                            style: GoogleFonts.poppins(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0C4B8E),
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            widget.title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

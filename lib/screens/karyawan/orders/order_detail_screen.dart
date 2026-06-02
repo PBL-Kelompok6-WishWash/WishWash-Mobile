@@ -7,7 +7,6 @@ import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/karyawan/orders/karyawan_tracking_screen.dart';
 import 'package:mobile/utils/constants.dart';
 
-
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
   final Function(Map<String, dynamic>) onOrderUpdated;
@@ -19,7 +18,8 @@ class OrderDetailScreenKaryawan extends StatefulWidget {
   });
 
   @override
-  State<OrderDetailScreenKaryawan> createState() => _OrderDetailScreenKaryawanState();
+  State<OrderDetailScreenKaryawan> createState() =>
+      _OrderDetailScreenKaryawanState();
 }
 
 class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
@@ -39,10 +39,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   // --- KONSISTENSI DENGAN DETIL PESANAN PELANGGAN ---
-  List<Map<String, dynamic>> _getSortedReferenceStatuses(Map<String, dynamic> order) {
+  List<Map<String, dynamic>> _getSortedReferenceStatuses(
+    Map<String, dynamic> order,
+  ) {
     final layanan = order['Layanan'];
-    final List<dynamic>? refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
-    
+    final List<dynamic>? refList = layanan != null
+        ? (layanan['referensi_status'] ?? layanan['ReferensiStatus'])
+        : null;
+
     List<Map<String, dynamic>> sortedList = [];
     if (refList == null || refList.isEmpty) {
       sortedList = [
@@ -68,9 +72,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         final item = temp[i];
         final name = (item['nama_status'] ?? '').toString();
         final nameLower = name.toLowerCase();
-        if (nameLower.contains('diterima') || nameLower.contains('received') ||
-            nameLower.contains('batal') || nameLower.contains('cancel') ||
-            nameLower.contains('tolak') || nameLower.contains('reject')) {
+        if (nameLower.contains('diterima') ||
+            nameLower.contains('received') ||
+            nameLower.contains('batal') ||
+            nameLower.contains('cancel') ||
+            nameLower.contains('tolak') ||
+            nameLower.contains('reject')) {
           continue;
         }
         sortedList.add({
@@ -84,24 +91,33 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     if (order['tipe_logistik'] == 'Drop-off') {
       sortedList.removeWhere((element) {
         final name = (element['nama_status'] ?? '').toString().toLowerCase();
-        return name.contains('jemput') || name.contains('pickup') || name.contains('penjemputan');
+        return name.contains('jemput') ||
+            name.contains('pickup') ||
+            name.contains('penjemputan');
       });
     }
 
     return sortedList;
   }
 
-  String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false}) {
+  String _getShortStatusLabel(
+    String rawStatus,
+    String lang, {
+    bool isCancelled = false,
+  }) {
     String status = rawStatus.toLowerCase().trim();
     if (status.startsWith('proses ')) {
       status = status.replaceFirst('proses ', '').trim();
     }
     final isEn = lang == 'en';
-    
+
     if (status.contains('diterima') || status.contains('received')) {
       return isEn ? 'Received' : 'Diterima';
     }
-    if (status.contains('jemput') || status.contains('pickup') || status.contains('pick up') || status.contains('penjemputan')) {
+    if (status.contains('jemput') ||
+        status.contains('pickup') ||
+        status.contains('pick up') ||
+        status.contains('penjemputan')) {
       return isEn ? 'Pickup' : 'Jemput';
     }
     if (status.contains('timbang') || status.contains('weigh')) {
@@ -119,17 +135,26 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     if (status.contains('setrika') || status.contains('iron')) {
       return isEn ? 'Iron' : 'Setrika';
     }
-    if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
+    if (status.contains('antar') ||
+        status.contains('ready') ||
+        status.contains('siap diantar')) {
       final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
       return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
-    if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done') || status.contains('batal') || status.contains('cancel') || status.contains('tolak') || status.contains('reject')) {
+    if (status.contains('selesai') ||
+        status.contains('completed') ||
+        status.contains('success') ||
+        status.contains('done') ||
+        status.contains('batal') ||
+        status.contains('cancel') ||
+        status.contains('tolak') ||
+        status.contains('reject')) {
       if (isCancelled) {
         return isEn ? 'Cancelled' : 'Dibatalkan';
       }
       return isEn ? 'Done' : 'Selesai';
     }
-    
+
     if (status.isNotEmpty) {
       return status[0].toUpperCase() + status.substring(1);
     }
@@ -140,11 +165,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final historyList = order['RiwayatStatusDetail'];
     if (historyList == null || historyList is! List || historyList.isEmpty) {
       final layanan = order['Layanan'];
-      final refList = layanan != null ? (layanan['referensi_status'] ?? layanan['ReferensiStatus']) : null;
+      final refList = layanan != null
+          ? (layanan['referensi_status'] ?? layanan['ReferensiStatus'])
+          : null;
       if (layanan != null && refList != null && refList is List) {
         if (refList.isNotEmpty) {
           List<dynamic> sortedRef = List.from(refList);
-          sortedRef.sort((a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(b['urutan_tahap'] as int? ?? 0));
+          sortedRef.sort(
+            (a, b) => (a['urutan_tahap'] as int? ?? 0).compareTo(
+              b['urutan_tahap'] as int? ?? 0,
+            ),
+          );
           return sortedRef.first['nama_status'] ?? 'Pesanan Diterima';
         }
       }
@@ -179,16 +210,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
-    final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(order);
+    final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(
+      order,
+    );
     final String currentStatus = _getOrderStatus(order);
     final String lowerCurrent = currentStatus.toLowerCase().trim();
-    
+
     int activeIndex = 0;
     for (int i = 0; i < refStatuses.length; i++) {
-      final String refName = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
-      
+      final String refName = (refStatuses[i]['nama_status'] ?? '')
+          .toString()
+          .toLowerCase()
+          .trim();
+
       // Flexible matching for both dynamic DB alur
-      if (refName == lowerCurrent || 
+      if (refName == lowerCurrent ||
           (lowerCurrent.contains('diterima') && refName.contains('diterima')) ||
           (lowerCurrent.contains('jemput') && refName.contains('jemput')) ||
           (lowerCurrent.contains('timbang') && refName.contains('timbang')) ||
@@ -208,7 +244,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       activeIndex = 0;
     }
 
-    final bool isSelesai = lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
+    final bool isSelesai =
+        lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
 
     return {
       'nama_status': TranslationService.translateStatus(currentStatus),
@@ -222,12 +259,27 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   String _formatDate(String? isoString) {
     if (isoString == null || isoString.isEmpty) return '-';
     try {
-      final dt = DateTime.parse(isoString);
+      final dt = DateTime.parse(isoString).toLocal();
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agt',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
       ];
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      final int hour = dt.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
       try {
         return isoString.split('T')[0];
@@ -240,7 +292,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   String _getEstSelesaiDate(Map<String, dynamic> order) {
     final String? pickupStr = order['jadwal_pickup']?.toString();
     final String? tglPesananStr = order['tgl_pesanan']?.toString();
-    final String? baseDateStr = (pickupStr != null && pickupStr.isNotEmpty) ? pickupStr : tglPesananStr;
+    final String? baseDateStr = (pickupStr != null && pickupStr.isNotEmpty)
+        ? pickupStr
+        : tglPesananStr;
 
     if (baseDateStr == null || baseDateStr.isEmpty) {
       return '-';
@@ -248,18 +302,46 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     try {
       final baseDate = DateTime.parse(baseDateStr).toLocal();
       final paket = order['PaketLayanan'];
-      final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
-      
+      final int durasiJam = paket != null
+          ? (paket['durasi_jam'] as num?)?.toInt() ?? 0
+          : 0;
+
       if (durasiJam == 0) {
         return _formatDate(baseDateStr);
       }
-      
+
       final estSelesai = baseDate.add(Duration(hours: durasiJam));
       final lang = TranslationService.currentLang;
-      final months = lang == 'en' 
-          ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-          : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
-      
+      final months = lang == 'en'
+          ? [
+              'Jan',
+              'Feb',
+              'Mar',
+              'Apr',
+              'May',
+              'Jun',
+              'Jul',
+              'Aug',
+              'Sep',
+              'Oct',
+              'Nov',
+              'Dec',
+            ]
+          : [
+              'Jan',
+              'Feb',
+              'Mar',
+              'Apr',
+              'Mei',
+              'Jun',
+              'Jul',
+              'Agt',
+              'Sep',
+              'Okt',
+              'Nov',
+              'Des',
+            ];
+
       final int hour = estSelesai.hour;
       final String amPm = hour >= 12 ? 'PM' : 'AM';
       final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
@@ -287,7 +369,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       return const Color(0xFF00BCD4); // Cyan (#00BCD4)
     } else if (name.contains('kering') && !name.contains('lipat')) {
       return const Color(0xFF8BC34A); // Green (#8BC34A)
-    } else if (name.contains('setrika') && (name.contains('cuci') || name.contains('wash'))) {
+    } else if (name.contains('setrika') &&
+        (name.contains('cuci') || name.contains('wash'))) {
       return const Color(0xFF9C27B0); // Purple (#9C27B0)
     } else if (name.contains('setrika')) {
       return const Color(0xFFFFC107); // Yellow (#FFC107)
@@ -311,7 +394,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   // --- PEMBARUAN STATUS KARYAWAN & SIMULASI INTERAKSI ---
-  
+
   void _showConfirmationDialog({
     required String title,
     required String content,
@@ -323,7 +406,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
@@ -349,17 +434,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   height: 72,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [navyColor.withValues(alpha: 0.12), navyColor.withValues(alpha: 0.06)],
+                      colors: [
+                        navyColor.withValues(alpha: 0.12),
+                        navyColor.withValues(alpha: 0.06),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.sync_rounded,
-                    color: navyColor,
-                    size: 36,
-                  ),
+                  child: Icon(Icons.sync_rounded, color: navyColor, size: 36),
                 ),
                 const SizedBox(height: 20),
                 // Title
@@ -392,7 +476,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       backgroundColor: navyColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () {
@@ -401,7 +487,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     },
                     child: Text(
                       isEn ? 'Yes, Update' : 'Ya, Perbarui',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -413,13 +502,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       backgroundColor: const Color(0xFFFF3B30),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       isEn ? 'Cancel' : 'Batal',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -431,16 +525,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     );
   }
 
-  void _showSuccessDialog({
-    required String title,
-    required String content,
-  }) {
+  void _showSuccessDialog({required String title, required String content}) {
     final isEn = TranslationService.currentLang == 'en';
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -451,19 +544,31 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   color: Colors.green.shade50,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.check_circle_rounded, color: Colors.green.shade600, size: 48),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.green.shade600,
+                  size: 48,
+                ),
               ),
               const SizedBox(height: 18),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18, color: navyColor),
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: navyColor,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 content,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -473,7 +578,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: navyColor,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () => Navigator.pop(context),
                   child: Text(
@@ -510,7 +617,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             widget.onOrderUpdated(_currentOrder);
 
             _showSuccessDialog(
-              title: isEn ? 'Status Updated Successfully' : 'Status Berhasil Diperbarui',
+              title: isEn
+                  ? 'Status Updated Successfully'
+                  : 'Status Berhasil Diperbarui',
               content: isEn
                   ? 'Order status has been successfully updated to "$translatedStatus".'
                   : 'Status pesanan berhasil diperbarui ke "$translatedStatus".',
@@ -520,7 +629,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(isEn ? 'Failed to update status: $e' : 'Gagal memperbarui status: $e'),
+                content: Text(
+                  isEn
+                      ? 'Failed to update status: $e'
+                      : 'Gagal memperbarui status: $e',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -535,10 +648,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     try {
       final updatedOrder = await OrderService.updateOrder(
         _currentOrder['id_order'],
-        {
-          'status_pembayaran': 'Lunas',
-          'metode_bayar': 'Cash',
-        },
+        {'status_pembayaran': 'Lunas', 'metode_bayar': 'Cash'},
       );
       if (mounted) {
         setState(() {
@@ -557,7 +667,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEn ? 'Failed to record payment: $e' : 'Gagal mencatat pembayaran: $e'),
+            content: Text(
+              isEn
+                  ? 'Failed to record payment: $e'
+                  : 'Gagal mencatat pembayaran: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -565,16 +679,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
   }
 
-  Future<void> _submitWeightAndStatus(double weight, double totalBayar, String status) async {
+  Future<void> _submitWeightAndStatus(
+    double weight,
+    double totalBayar,
+    String status,
+  ) async {
     final isEn = TranslationService.currentLang == 'en';
     try {
       final updatedOrder = await OrderService.updateOrder(
         _currentOrder['id_order'],
-        {
-          'kuantitas': weight,
-          'total_bayar': totalBayar,
-          'status': status,
-        },
+        {'kuantitas': weight, 'total_bayar': totalBayar, 'status': status},
       );
       if (mounted) {
         setState(() {
@@ -584,7 +698,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
         _showSuccessDialog(
           title: isEn ? 'Weighing Successful' : 'Timbangan Berhasil',
-          content: isEn 
+          content: isEn
               ? 'Laundry successfully weighed ($weight kg) and status updated to "${TranslationService.translateStatus(status)}".'
               : 'Cucian berhasil ditimbang ($weight kg) dan status diperbarui ke "${TranslationService.translateStatus(status)}".',
         );
@@ -593,7 +707,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEn ? 'Failed to update weighing data: $e' : 'Gagal memperbarui data timbangan: $e'),
+            content: Text(
+              isEn
+                  ? 'Failed to update weighing data: $e'
+                  : 'Gagal memperbarui data timbangan: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -609,7 +727,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
@@ -653,7 +773,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  isEn 
+                  isEn
                       ? 'Enter the reason why this order is rejected'
                       : 'Masukkan alasan mengapa pesanan ini ditolak',
                   textAlign: TextAlign.center,
@@ -667,9 +787,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   controller: reasonController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    hintText: isEn ? 'Write the rejection reason here...' : 'Tulis alasan penolakan di sini...',
-                    hintStyle: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade400),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    hintText: isEn
+                        ? 'Write the rejection reason here...'
+                        : 'Tulis alasan penolakan di sini...',
+                    hintStyle: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey.shade400,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: navyColor, width: 2),
@@ -687,7 +814,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       backgroundColor: const Color(0xFFFF3B30),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () async {
@@ -696,14 +825,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              isEn ? 'Please enter a rejection reason!' : 'Harap masukkan alasan penolakan!'
+                              isEn
+                                  ? 'Please enter a rejection reason!'
+                                  : 'Harap masukkan alasan penolakan!',
                             ),
                           ),
                         );
                         return;
                       }
                       Navigator.pop(context);
-                      
+
                       try {
                         final updatedOrder = await OrderService.updateOrder(
                           _currentOrder['id_order'],
@@ -713,8 +844,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           },
                         );
                         if (mounted) {
-                           setState(() {
-                            _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                          setState(() {
+                            _currentOrder = Map<String, dynamic>.from(
+                              updatedOrder,
+                            );
                           });
                           widget.onOrderUpdated(_currentOrder);
                           _showSuccessDialog(
@@ -728,7 +861,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              isEn ? 'Failed to reject order: $e' : 'Gagal menolak pesanan: $e'
+                              isEn
+                                  ? 'Failed to reject order: $e'
+                                  : 'Gagal menolak pesanan: $e',
                             ),
                             backgroundColor: Colors.red,
                           ),
@@ -737,7 +872,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     },
                     child: Text(
                       isEn ? 'Yes, Reject Order' : 'Ya, Tolak Pesanan',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -749,13 +887,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       backgroundColor: Colors.grey.shade200,
                       foregroundColor: Colors.grey.shade700,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       isEn ? 'Cancel' : 'Batal',
-                      style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -769,9 +912,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   void _showWeighingDialog() {
     final textController = TextEditingController();
-    final double hargaPerKg = (_currentOrder['Layanan']['harga_per_satuan'] as num).toDouble();
-    final double biayaTambahan = (_currentOrder['PaketLayanan']['biaya_tambahan'] as num).toDouble();
-    final String namaPaket = (_currentOrder['PaketLayanan']['nama_paket'] as String?) ?? 'Paket Laundry';
+    final double hargaPerKg =
+        (_currentOrder['Layanan']['harga_per_satuan'] as num).toDouble();
+    final double biayaTambahan =
+        (_currentOrder['PaketLayanan']['biaya_tambahan'] as num).toDouble();
+    final String namaPaket =
+        (_currentOrder['PaketLayanan']['nama_paket'] as String?) ??
+        'Paket Laundry';
     final isEn = TranslationService.currentLang == 'en';
 
     showDialog(
@@ -780,13 +927,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            double? previewWeight = double.tryParse(textController.text.replaceAll(',', '.'));
+            double? previewWeight = double.tryParse(
+              textController.text.replaceAll(',', '.'),
+            );
             double previewTotal = previewWeight != null && previewWeight > 0
                 ? (previewWeight * hargaPerKg) + biayaTambahan
                 : 0;
 
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
               elevation: 0,
               backgroundColor: Colors.transparent,
               child: Container(
@@ -812,7 +963,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       height: 72,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [navyColor.withValues(alpha: 0.12), navyColor.withValues(alpha: 0.06)],
+                          colors: [
+                            navyColor.withValues(alpha: 0.12),
+                            navyColor.withValues(alpha: 0.06),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -835,7 +989,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isEn ? 'Enter actual laundry weight in kilograms' : 'Masukkan berat cucian riil dalam kilogram',
+                      isEn
+                          ? 'Enter actual laundry weight in kilograms'
+                          : 'Masukkan berat cucian riil dalam kilogram',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -846,7 +1002,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     // TextField
                     TextField(
                       controller: textController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                       ],
@@ -859,7 +1017,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           color: navyColor,
                           fontWeight: FontWeight.bold,
                         ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide(color: navyColor, width: 2),
@@ -877,7 +1037,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     const SizedBox(height: 14),
                     // Info row
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(12),
@@ -888,16 +1051,42 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(isEn ? 'Price/Kg' : 'Harga/Kg', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
-                              Text(_formatRupiah(hargaPerKg), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: navyColor)),
+                              Text(
+                                isEn ? 'Price/Kg' : 'Harga/Kg',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                _formatRupiah(hargaPerKg),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: navyColor,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(isEn ? '$namaPaket Cost' : 'Biaya $namaPaket', style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600)),
-                              Text(_formatRupiah(biayaTambahan), style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.w600, color: navyColor)),
+                              Text(
+                                isEn ? '$namaPaket Cost' : 'Biaya $namaPaket',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                _formatRupiah(biayaTambahan),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: navyColor,
+                                ),
+                              ),
                             ],
                           ),
                           if (previewTotal > 0) ...[
@@ -905,10 +1094,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(isEn ? 'Estimated Total' : 'Estimasi Total', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: navyColor)),
+                                Text(
+                                  isEn ? 'Estimated Total' : 'Estimasi Total',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: navyColor,
+                                  ),
+                                ),
                                 Text(
                                   _formatRupiah(previewTotal),
-                                  style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
                                 ),
                               ],
                             ),
@@ -925,34 +1125,64 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           backgroundColor: navyColor,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           elevation: 0,
                         ),
                         onPressed: () {
-                          final double? weight = double.tryParse(textController.text.replaceAll(',', '.'));
+                          final double? weight = double.tryParse(
+                            textController.text.replaceAll(',', '.'),
+                          );
                           if (weight == null || weight <= 0.0) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(isEn ? 'Please enter a valid weight number!' : 'Harap masukkan angka berat yang valid!')),
+                              SnackBar(
+                                content: Text(
+                                  isEn
+                                      ? 'Please enter a valid weight number!'
+                                      : 'Harap masukkan angka berat yang valid!',
+                                ),
+                              ),
                             );
                             return;
                           }
                           Navigator.pop(context);
-                          final double computedTotal = (weight * hargaPerKg) + biayaTambahan;
-                          
-                          final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(_currentOrder);
+                          final double computedTotal =
+                              (weight * hargaPerKg) + biayaTambahan;
+
+                          final List<Map<String, dynamic>> refStatuses =
+                              _getSortedReferenceStatuses(_currentOrder);
                           final int timbangIdx = refStatuses.indexWhere(
-                            (element) => (element['nama_status'] ?? '').toString().toLowerCase().contains('timbang') ||
-                                         (element['nama_status'] ?? '').toString().toLowerCase().contains('weigh')
+                            (element) =>
+                                (element['nama_status'] ?? '')
+                                    .toString()
+                                    .toLowerCase()
+                                    .contains('timbang') ||
+                                (element['nama_status'] ?? '')
+                                    .toString()
+                                    .toLowerCase()
+                                    .contains('weigh'),
                           );
                           String targetNextStatus = 'proses cuci'; // fallback
-                          if (timbangIdx != -1 && timbangIdx < refStatuses.length - 1) {
-                            targetNextStatus = (refStatuses[timbangIdx + 1]['nama_status'] ?? '').toString();
+                          if (timbangIdx != -1 &&
+                              timbangIdx < refStatuses.length - 1) {
+                            targetNextStatus =
+                                (refStatuses[timbangIdx + 1]['nama_status'] ??
+                                        '')
+                                    .toString();
                           }
-                          _submitWeightAndStatus(weight, computedTotal, targetNextStatus);
+                          _submitWeightAndStatus(
+                            weight,
+                            computedTotal,
+                            targetNextStatus,
+                          );
                         },
                         child: Text(
                           isEn ? 'Save & Process' : 'Simpan & Proses',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -964,13 +1194,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           backgroundColor: const Color(0xFFFF3B30),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           elevation: 0,
                         ),
                         onPressed: () => Navigator.pop(context),
                         child: Text(
                           isEn ? 'Cancel' : 'Batal',
-                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ),
@@ -986,25 +1221,34 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
-    final String orderId = _currentOrder['kode_order'] != null && _currentOrder['kode_order'].toString().isNotEmpty
+    final String orderId =
+        _currentOrder['kode_order'] != null &&
+            _currentOrder['kode_order'].toString().isNotEmpty
         ? _currentOrder['kode_order'].toString()
         : 'WW-${_currentOrder['id_order']}';
 
     final layanan = _currentOrder['Layanan'] ?? {};
     final String rawServiceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
-    final double kuantitas = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final double kuantitas =
+        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyStr = kuantitas == 0.0
-        ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
+        ? (TranslationService.currentLang == 'en'
+              ? ' (Pending Weight)'
+              : ' (Menunggu Timbang)')
         : ' ($kuantitas kg)';
-    final serviceName = '${TranslationService.translateService(rawServiceName)}$qtyStr';
+    final serviceName =
+        '${TranslationService.translateService(rawServiceName)}$qtyStr';
     final baseColor = _getServiceColor(rawServiceName);
     final orderColor = _getDarkenedTextColor(baseColor);
 
-    final double totalBayar = (_currentOrder['total_bayar'] as num?)?.toDouble() ?? 0.0;
-    final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double totalBayar =
+        (_currentOrder['total_bayar'] as num?)?.toDouble() ?? 0.0;
+    final double hargaPerSatuan =
+        (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
     final double subtotalCucian = kuantitas * hargaPerSatuan;
     final paketLayanan = _currentOrder['PaketLayanan'] ?? {};
-    final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaTambahan =
+        (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
 
     // Diskon Promo
     final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
@@ -1014,9 +1258,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       final promo = promoOrderObj['Promo'] ?? {};
       if (promo.isNotEmpty) {
         final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
-        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
-        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
-        
+        final double nominalPotongan =
+            (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+        final double maksimalPotongan =
+            (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
         if (tipePromo.toLowerCase().contains('persen')) {
           promoDiscount = subtotalCucian * (nominalPotongan / 100);
           if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
@@ -1029,7 +1275,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
 
     final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
-    final double totalTagihan = kuantitas > 0.0 
+    final double totalTagihan = kuantitas > 0.0
         ? (computedTotal > 0.0 ? computedTotal : 0.0)
         : 0.0;
     final priceStr = _formatRupiah(totalTagihan);
@@ -1041,15 +1287,27 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final pelanggan = _currentOrder['Pelanggan'] ?? {};
     final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
-    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? pelanggan['NoTelp'] ?? pelanggan['NoHp'] ?? pelanggan['noTelp'] ?? '-').toString();
+    final String customerPhone =
+        (pelanggan['no_telp'] ??
+                pelanggan['no_hp'] ??
+                pelanggan['NoTelp'] ??
+                pelanggan['NoHp'] ??
+                pelanggan['noTelp'] ??
+                '-')
+            .toString();
 
     final alamatPengambilan = _currentOrder['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
-    
+
     final alamatPenyerahan = _currentOrder['AlamatPenyerahan'];
-    final String deliveryAddr = (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+    final String deliveryAddr =
+        (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null && alamatPenyerahan['alamat_lengkap'].toString().isNotEmpty)
         ? alamatPenyerahan['alamat_lengkap'].toString()
-        : (TranslationService.currentLang == 'en' ? 'Not specified yet' : 'Belum ditentukan');
+        : (alamatPengambilan['alamat_lengkap'] != null && alamatPengambilan['alamat_lengkap'].toString().isNotEmpty)
+            ? alamatPengambilan['alamat_lengkap'].toString()
+            : (TranslationService.currentLang == 'en'
+                  ? 'Not specified yet'
+                  : 'Belum ditentukan');
 
     final parfum = _currentOrder['Parfum'] ?? {};
     final String perfumeName = parfum['nama_parfum'] ?? 'Lavender Bliss';
@@ -1061,11 +1319,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFBCEFF2),
-              Color(0xFFF8FBFC),
-              Colors.white,
-            ],
+            colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC), Colors.white],
           ),
         ),
         child: SafeArea(
@@ -1073,7 +1327,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             children: [
               // --- APP BAR LENGKAP ---
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1086,7 +1343,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       onPressed: () => Navigator.pop(context),
                     ),
                     Text(
-                      TranslationService.currentLang == 'en' ? 'Order Detail' : 'Detail Pesanan',
+                      TranslationService.currentLang == 'en'
+                          ? 'Order Detail'
+                          : 'Detail Pesanan',
                       style: GoogleFonts.poppins(
                         color: navyColor,
                         fontWeight: FontWeight.bold,
@@ -1105,7 +1364,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ],
                 ),
               ),
-              
+
               // --- SCROLL CONTENT ---
               Expanded(
                 child: SingleChildScrollView(
@@ -1115,7 +1374,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     children: [
                       // 1. Progress Card (Desain & Horizontal Stepper Persis Punya Pelanggan)
                       (() {
-                        final bool isCancelled = currentStatus.toLowerCase().contains('batal') || currentStatus.toLowerCase().contains('tolak') || currentStatus.toLowerCase().contains('reject');
+                        final bool isCancelled =
+                            currentStatus.toLowerCase().contains('batal') ||
+                            currentStatus.toLowerCase().contains('tolak') ||
+                            currentStatus.toLowerCase().contains('reject');
                         return _buildProgressCard(
                           order: _currentOrder,
                           orderId: orderId,
@@ -1135,32 +1397,56 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       _buildCustomerCard(pelanggan),
                       const SizedBox(height: 16),
 
-                      // 3. Schedule Details Card (Sama Persis Punya Pelanggan)
-                      _buildScheduleCard(
-                        pickupDate: estDate,
-                        pickupAddr: pickupAddr,
-                        deliveryAddr: deliveryAddr,
-                        logistikType: _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
-                        navyColor: navyColor,
-                      ),
-                      const SizedBox(height: 24),
-
                       // 4. Clean Order Preview Card (Tinjau Pesanan) with Slide-Up Receipt Modal Button
-                      _buildReviewOrderCard(
-                        mainService: TranslationService.translateService(rawServiceName),
-                        packageName: packageName,
-                        perfumeName: perfumeName,
-                        pickupAddr: pickupAddr,
-                        deliveryAddr: deliveryAddr,
-                        pickupDate: estDate,
-                        logistikType: _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
-                        isEn: TranslationService.currentLang == 'en',
-                        hargaPerSatuan: hargaPerSatuan,
-                        biayaTambahan: biayaTambahan,
-                        catatan: _currentOrder['catatan_order'] ?? '',
-                        orderDate: orderDate,
-                        estDate: estDate,
-                      ),
+                      (() {
+                        final List<dynamic> _historyList = _currentOrder['RiwayatStatusDetail'] ?? [];
+                        final bool isEn = TranslationService.currentLang == 'en';
+                        String pickupDateDisplay = isEn ? 'Pending Pickup' : 'Belum dijemput';
+                        for (final h in _historyList) {
+                          try {
+                            final String name =
+                                ((h['ReferensiStatus'] != null
+                                            ? h['ReferensiStatus']['nama_status']
+                                            : null) ??
+                                        h['nama_status'] ??
+                                        '')
+                                    .toString()
+                                    .toLowerCase();
+                            final dynamic timeVal = h['waktu_update'] ?? h['WaktuUpdate'];
+                            if (name.contains('jemput') || name.contains('pickup')) {
+                              if (timeVal != null && timeVal.toString().isNotEmpty) {
+                                pickupDateDisplay = _formatDate(timeVal.toString());
+                              } else if (_currentOrder['jadwal_pickup'] != null &&
+                                  _currentOrder['jadwal_pickup'].toString().isNotEmpty) {
+                                pickupDateDisplay = _formatDate(_currentOrder['jadwal_pickup']);
+                              } else {
+                                pickupDateDisplay = isEn ? 'Pending Pickup' : 'Belum dijemput';
+                              }
+                              break;
+                            }
+                          } catch (_) {}
+                        }
+
+                        return _buildReviewOrderCard(
+                          mainService: TranslationService.translateService(
+                            rawServiceName,
+                          ),
+                          packageName: packageName,
+                          perfumeName: perfumeName,
+                          pickupAddr: pickupAddr,
+                          deliveryAddr: deliveryAddr,
+                          pickupDate: pickupDateDisplay,
+                          logistikType:
+                              _currentOrder['tipe_logistik'] ??
+                              'Courier Delivery',
+                          isEn: isEn,
+                          hargaPerSatuan: hargaPerSatuan,
+                          biayaTambahan: biayaTambahan,
+                          catatan: _currentOrder['catatan_order'] ?? '',
+                          orderDate: orderDate,
+                          estDate: estDate,
+                        );
+                      })(),
                     ],
                   ),
                 ),
@@ -1189,22 +1475,34 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     bool isCancelled = false,
   }) {
     final bool isEn = TranslationService.currentLang == 'en';
-    
+
     // Retrieve cancellation time if cancelled
     String cancelTime = '-';
     if (isCancelled) {
       final historyList = order['RiwayatStatusDetail'];
-      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      if (historyList != null &&
+          historyList is List &&
+          historyList.isNotEmpty) {
         List<dynamic> sortedHistory = List.from(historyList);
-        sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
-        cancelTime = _formatDate(sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate']);
+        sortedHistory.sort(
+          (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
+            b['id_riwayat_status_detail'] as num? ?? 0,
+          ),
+        );
+        cancelTime = _formatDate(
+          sortedHistory.last['waktu_update'] ??
+              sortedHistory.last['WaktuUpdate'],
+        );
       }
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(baseColor.withValues(alpha: 0.18), Colors.white),
+        color: Color.alphaBlend(
+          baseColor.withValues(alpha: 0.18),
+          Colors.white,
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isCancelled
@@ -1227,7 +1525,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                TranslationService.currentLang == 'en' ? 'Order #$orderId' : 'Pesanan #$orderId',
+                TranslationService.currentLang == 'en'
+                    ? 'Order #$orderId'
+                    : 'Pesanan #$orderId',
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   color: isCancelled ? Colors.red.shade800 : orderColor,
@@ -1244,7 +1544,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   const SizedBox(width: 4),
                   Text(
                     isCancelled
-                        ? (isEn ? 'Cancelled: $cancelTime' : 'Dibatalkan: $cancelTime')
+                        ? (isEn
+                              ? 'Cancelled: $cancelTime'
+                              : 'Dibatalkan: $cancelTime')
                         : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
                     style: GoogleFonts.poppins(
                       fontSize: 10,
@@ -1259,7 +1561,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           const SizedBox(height: 12),
           Text(
             isCancelled
-                ? (isEn ? '${serviceName.split('(')[0].trim()} (Cancelled)' : '${serviceName.split('(')[0].trim()} (Dibatalkan)')
+                ? (isEn
+                      ? '${serviceName.split('(')[0].trim()} (Cancelled)'
+                      : '${serviceName.split('(')[0].trim()} (Dibatalkan)')
                 : serviceName,
             style: GoogleFonts.poppins(
               fontSize: 16,
@@ -1281,25 +1585,38 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ),
                 ),
                 (() {
-                  final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                  final double kuantitas =
+                      (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
                   if (kuantitas > 0.0) {
                     final String paymentStatus = _getPaymentStatus(order);
                     final bool isLunas = paymentStatus == 'Lunas';
-                    final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
-                    final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                    final Color capBg = isLunas
+                        ? const Color(0xFFE8F5E9)
+                        : const Color(0xFFFFF3E0);
+                    final Color capText = isLunas
+                        ? const Color(0xFF2E7D32)
+                        : const Color(0xFFE65100);
                     final bool isEn = TranslationService.currentLang == 'en';
-                    final String capLabel = isLunas ? (isEn ? 'Paid' : 'Lunas') : (isEn ? 'Unpaid' : 'Belum Lunas');
-                    
+                    final String capLabel = isLunas
+                        ? (isEn ? 'Paid' : 'Lunas')
+                        : (isEn ? 'Unpaid' : 'Belum Lunas');
+
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: capBg,
                             borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
+                            border: Border.all(
+                              color: capText.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             capLabel,
@@ -1318,7 +1635,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               ],
             ),
           ],
-          if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
+          if (isCancelled &&
+              order['catatan_order'] != null &&
+              order['catatan_order'].toString().isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -1354,23 +1673,35 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ),
           ],
           const SizedBox(height: 24),
-          
+
           // Stepper Tracker Horizontal Persis Punya Pelanggan
           (() {
             final lang = TranslationService.currentLang;
-            final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+            final List<Map<String, dynamic>> refStatuses =
+                statusInfo['statuses'];
             final int activeIdx = statusInfo['active_index'];
             final bool isSelesai = statusInfo['is_selesai'] == true;
-            final String rawStatus = statusInfo['raw_status'] ?? 'Pesanan Diterima';
-            final bool isCancelled = rawStatus.toLowerCase().contains('batal') || rawStatus.toLowerCase().contains('tolak') || rawStatus.toLowerCase().contains('reject');
+            final String rawStatus =
+                statusInfo['raw_status'] ?? 'Pesanan Diterima';
+            final bool isCancelled =
+                rawStatus.toLowerCase().contains('batal') ||
+                rawStatus.toLowerCase().contains('tolak') ||
+                rawStatus.toLowerCase().contains('reject');
 
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: isCancelled);
-              
+              final String shortLabel = _getShortStatusLabel(
+                rawName,
+                lang,
+                isCancelled: isCancelled,
+              );
+
               final bool isCurrent = i == activeIdx && !isSelesai;
-              final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);
+              final bool isDone =
+                  (i < activeIdx) ||
+                  (isSelesai && i == refStatuses.length - 1) ||
+                  (i == 0 && activeIdx > 0);
               final bool isActive = isDone || isCurrent;
 
               steps.add(
@@ -1468,10 +1799,24 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                     child: Center(
                       child: isCancelled
-                          ? const Icon(Icons.close_rounded, size: 10, color: Colors.white)
+                          ? const Icon(
+                              Icons.close_rounded,
+                              size: 10,
+                              color: Colors.white,
+                            )
                           : (isCurrent
-                              ? Icon(Icons.fiber_manual_record, size: 8, color: themeColor)
-                              : (isDone ? const Icon(Icons.check, size: 10, color: Colors.white) : const SizedBox.shrink())),
+                                ? Icon(
+                                    Icons.fiber_manual_record,
+                                    size: 8,
+                                    color: themeColor,
+                                  )
+                                : (isDone
+                                      ? const Icon(
+                                          Icons.check,
+                                          size: 10,
+                                          color: Colors.white,
+                                        )
+                                      : const SizedBox.shrink())),
                     ),
                   ),
                 ),
@@ -1489,7 +1834,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: 8,
-                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isCurrent || isDone
+                    ? FontWeight.bold
+                    : FontWeight.normal,
                 color: isActive ? themeColor : Colors.grey.shade600,
               ),
             ),
@@ -1501,8 +1848,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Card Informasi Pelanggan (Ingat: Pelanggan tidak bisa ditelepon, melainkan dikirimi pesan/chat)
   Widget _buildCustomerCard(Map<String, dynamic> pelanggan) {
-    final String customerName = (pelanggan['nama_lengkap'] ?? 'Pelanggan').toString();
-    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? pelanggan['NoTelp'] ?? pelanggan['NoHp'] ?? pelanggan['noTelp'] ?? '-').toString();
+    final String customerName = (pelanggan['nama_lengkap'] ?? 'Pelanggan')
+        .toString();
+    final String customerPhone =
+        (pelanggan['no_telp'] ??
+                pelanggan['no_hp'] ??
+                pelanggan['NoTelp'] ??
+                pelanggan['NoHp'] ??
+                pelanggan['noTelp'] ??
+                '-')
+            .toString();
     final String rawFoto = (pelanggan['foto_pelanggan'] ?? '').toString();
 
     // Build full photo URL same as other screens
@@ -1524,8 +1879,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final String initials = nameParts.length >= 2
         ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
         : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
-            ? nameParts[0][0].toUpperCase()
-            : '?');
+              ? nameParts[0][0].toUpperCase()
+              : '?');
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -1555,11 +1910,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   color: navyColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.person_pin_rounded, color: navyColor, size: 18),
+                child: Icon(
+                  Icons.person_pin_rounded,
+                  color: navyColor,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               Text(
-                TranslationService.currentLang == 'en' ? 'Customer Information' : 'Informasi Pelanggan',
+                TranslationService.currentLang == 'en'
+                    ? 'Customer Information'
+                    : 'Informasi Pelanggan',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -1650,7 +2011,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.phone_rounded, size: 12, color: Color(0xFF718096)),
+                        const Icon(
+                          Icons.phone_rounded,
+                          size: 12,
+                          color: Color(0xFF718096),
+                        ),
                         const SizedBox(width: 5),
                         Text(
                           customerPhone,
@@ -1669,7 +2034,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               GestureDetector(
                 onTap: () => _openCustomerChat(customerName),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [navyColor, const Color(0xFF105CAE)],
@@ -1688,10 +2056,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 13),
+                      const Icon(
+                        Icons.chat_bubble_rounded,
+                        color: Colors.white,
+                        size: 13,
+                      ),
                       const SizedBox(width: 6),
                       Text(
-                        TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
+                        TranslationService.currentLang == 'en'
+                            ? 'Message'
+                            : 'Pesan',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -1867,7 +2241,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required String estDate,
   }) {
     final bool isDropOff = logistikType == 'Drop-off';
-    final double kuantitasVal = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final double kuantitasVal =
+        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyText = kuantitasVal == 0.0
         ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
         : '$kuantitasVal kg';
@@ -1898,7 +2273,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   color: navyColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.fact_check_rounded, color: navyColor, size: 18),
+                child: Icon(
+                  Icons.fact_check_rounded,
+                  color: navyColor,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               Text(
@@ -1912,7 +2291,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Main Service Padded Box
           Container(
             padding: const EdgeInsets.all(14),
@@ -1929,7 +2308,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     color: softTeal,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.local_laundry_service_rounded, color: navyColor, size: 22),
+                  child: Icon(
+                    Icons.local_laundry_service_rounded,
+                    color: navyColor,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1938,12 +2321,20 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     children: [
                       Text(
                         isEn ? 'Laundry Service' : 'Layanan Laundry',
-                        style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         mainService,
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: navyColor),
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: navyColor,
+                        ),
                       ),
                       if (hargaPerSatuan > 0) ...[
                         const SizedBox(height: 2),
@@ -1960,7 +2351,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: navyColor,
                     borderRadius: BorderRadius.circular(8),
@@ -1996,18 +2390,51 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.inventory_2_outlined, color: navyColor, size: 14),
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            color: navyColor,
+                            size: 14,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             isEn ? 'Package' : 'Paket',
-                            style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        packageName,
-                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        children: [
+                          Text(
+                            packageName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
+                            ),
+                          ),
+                          (() {
+                            final paket = _currentOrder['PaketLayanan'] ?? {};
+                            final int durasiJam = (paket['durasi_jam'] as num?)?.toInt() ?? 0;
+                            if (durasiJam > 0) {
+                              return Text(
+                                isEn ? '($durasiJam hrs)' : '($durasiJam Jam)',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade500,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          })(),
+                        ],
                       ),
                       if (biayaTambahan > 0) ...[
                         const SizedBox(height: 2),
@@ -2043,14 +2470,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           const SizedBox(width: 6),
                           Text(
                             isEn ? 'Perfume' : 'Parfum',
-                            style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         perfumeName,
-                        style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                        ),
                       ),
                     ],
                   ),
@@ -2122,27 +2557,45 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   Icons.devices_rounded,
                 ),
                 const Divider(height: 20),
-                _buildDetailRow(isEn ? 'Order Date' : 'Tanggal Pesanan', orderDate, Icons.calendar_month_rounded),
+                _buildDetailRow(
+                  isEn ? 'Order Date' : 'Tanggal Pesanan',
+                  orderDate,
+                  Icons.calendar_month_rounded,
+                ),
                 const Divider(height: 20),
-                
+
                 if (!isDropOff) ...[
-                  _buildDetailRow(isEn ? 'Pick Up Date' : 'Tanggal Penjemputan', pickupDate, Icons.airport_shuttle_rounded),
+                  _buildDetailRow(
+                    isEn ? 'Pick Up Date' : 'Tanggal Penjemputan',
+                    pickupDate,
+                    Icons.motorcycle_rounded,
+                  ),
                   const Divider(height: 20),
-                  _buildDetailRow(isEn ? 'Pickup Address' : 'Alamat Penjemputan', pickupAddr, Icons.location_on_rounded),
+                  _buildDetailRow(
+                    isEn ? 'Pickup Address' : 'Alamat Penjemputan',
+                    pickupAddr,
+                    Icons.location_on_rounded,
+                  ),
                   const Divider(height: 20),
                 ],
-                
+
                 _buildDetailRow(
                   isEn ? 'Logistics' : 'Tipe Logistik',
-                  isDropOff 
-                      ? (isEn ? 'Store Pickup (Drop-off)' : 'Ambil Sendiri di Toko') 
+                  isDropOff
+                      ? (isEn
+                            ? 'Store Pickup (Drop-off)'
+                            : 'Ambil Sendiri di Toko')
                       : (isEn ? 'Courier Delivery' : 'Pengantaran Kurir'),
                   Icons.local_shipping_rounded,
                 ),
                 const Divider(height: 20),
-                _buildDetailRow(isEn ? 'Estimated Finished' : 'Estimasi Selesai', estDate, Icons.av_timer_rounded),
+                _buildDetailRow(
+                  isEn ? 'Estimated Finished' : 'Estimasi Selesai',
+                  estDate,
+                  Icons.av_timer_rounded,
+                ),
                 const Divider(height: 20),
-                
+
                 if (!isDropOff) ...[
                   _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
@@ -2160,29 +2613,36 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ),
           ),
 
-          const SizedBox(height: 18),
-          
-          // Action Button: View Transaction Receipt
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              icon: Icon(Icons.receipt_long_rounded, color: navyColor, size: 18),
-              label: Text(
-                isEn ? 'View Transaction Receipt' : 'Lihat Resi Transaksi',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
+          if (kuantitasVal > 0.0) ...[
+            const SizedBox(height: 18),
+            // Action Button: View Transaction Receipt
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                icon: Icon(
+                  Icons.receipt_long_rounded,
                   color: navyColor,
-                  fontSize: 12,
+                  size: 18,
                 ),
+                label: Text(
+                  isEn ? 'View Transaction Receipt' : 'Lihat Resi Transaksi',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                    fontSize: 12,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: navyColor.withOpacity(0.4), width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () => _showReceiptModal(),
               ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: navyColor.withOpacity(0.4), width: 1.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () => _showReceiptModal(),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -2200,12 +2660,20 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             children: [
               Text(
                 label,
-                style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: GoogleFonts.poppins(fontSize: 12, fontWeight: FontWeight.bold, color: navyColor),
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
               ),
             ],
           ),
@@ -2215,23 +2683,32 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   void _showReceiptModal() {
-    final String orderId = _currentOrder['kode_order'] != null && _currentOrder['kode_order'].toString().isNotEmpty
+    final String orderId =
+        _currentOrder['kode_order'] != null &&
+            _currentOrder['kode_order'].toString().isNotEmpty
         ? _currentOrder['kode_order'].toString()
         : 'WW-${_currentOrder['id_order']}';
 
     final layanan = _currentOrder['Layanan'] ?? {};
     final String rawServiceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
-    final double kuantitas = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final double kuantitas =
+        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyStr = kuantitas == 0.0
-        ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
+        ? (TranslationService.currentLang == 'en'
+              ? ' (Pending Weight)'
+              : ' (Menunggu Timbang)')
         : ' ($kuantitas kg)';
-    final serviceName = '${TranslationService.translateService(rawServiceName)}$qtyStr';
+    final serviceName =
+        '${TranslationService.translateService(rawServiceName)}$qtyStr';
 
-    final double totalBayar = (_currentOrder['total_bayar'] as num?)?.toDouble() ?? 0.0;
-    final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double totalBayar =
+        (_currentOrder['total_bayar'] as num?)?.toDouble() ?? 0.0;
+    final double hargaPerSatuan =
+        (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
     final double subtotalCucian = kuantitas * hargaPerSatuan;
     final paketLayanan = _currentOrder['PaketLayanan'] ?? {};
-    final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaTambahan =
+        (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
 
     // Diskon Promo
     final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
@@ -2241,9 +2718,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       final promo = promoOrderObj['Promo'] ?? {};
       if (promo.isNotEmpty) {
         final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
-        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
-        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
-        
+        final double nominalPotongan =
+            (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+        final double maksimalPotongan =
+            (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
         if (tipePromo.toLowerCase().contains('persen')) {
           promoDiscount = subtotalCucian * (nominalPotongan / 100);
           if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
@@ -2256,7 +2735,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
 
     final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
-    final double totalTagihan = kuantitas > 0.0 
+    final double totalTagihan = kuantitas > 0.0
         ? (computedTotal > 0.0 ? computedTotal : 0.0)
         : 0.0;
     final priceStr = _formatRupiah(totalTagihan);
@@ -2301,7 +2780,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       customerName: customerName,
                       packageName: packageName,
                       perfumeName: perfumeName,
-                      logistikType: _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
+                      logistikType:
+                          _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
                       totalBayar: totalBayar,
                       price: priceStr,
                       catatan: _currentOrder['catatan_order'],
@@ -2328,7 +2808,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     top: 14,
                     right: 14,
                     child: IconButton(
-                      icon: Icon(Icons.close_rounded, color: Colors.grey.shade600),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: Colors.grey.shade600,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -2361,28 +2844,38 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final String estDateText = _getEstSelesaiDate(order);
 
     final pelanggan = order['Pelanggan'] ?? {};
-    final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
+    final String customerPhone =
+        (pelanggan['no_telp'] ??
+                pelanggan['NoTelp'] ??
+                pelanggan['no_hp'] ??
+                '-')
+            .toString();
 
     final alamatPengambilan = order['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
 
     final alamatPenyerahan = order['AlamatPenyerahan'];
-    final String deliveryAddr = (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+    final String deliveryAddr =
+        (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
         ? alamatPenyerahan['alamat_lengkap'].toString()
         : (isEn ? 'Not specified yet' : 'Belum ditentukan');
 
     final layanan = order['Layanan'] ?? {};
-    final String mainService = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan Laundry');
+    final String mainService = TranslationService.translateService(
+      layanan['nama_layanan'] ?? 'Layanan Laundry',
+    );
 
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String weightText = kuantitas == 0.0
         ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
         : '$kuantitas kg';
 
-    final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+    final double hargaPerSatuan =
+        (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
     final double subtotalCucian = kuantitas * hargaPerSatuan;
     final paketLayanan = order['PaketLayanan'] ?? {};
-    final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaTambahan =
+        (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
 
     final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
     double promoDiscount = 0.0;
@@ -2394,9 +2887,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       if (promo.isNotEmpty) {
         promoCode = promo['kode_promo'] ?? '';
         final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
-        final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
-        final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
-        
+        final double nominalPotongan =
+            (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+        final double maksimalPotongan =
+            (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
         if (tipePromo.toLowerCase().contains('persen')) {
           promoDiscount = subtotalCucian * (nominalPotongan / 100);
           if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
@@ -2409,28 +2904,40 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
 
     final karyawan = order['Karyawan'];
-    final String employeeName = karyawan != null && karyawan['nama_karyawan'] != null
+    final String employeeName =
+        karyawan != null && karyawan['nama_karyawan'] != null
         ? karyawan['nama_karyawan'].toString()
         : (isEn ? 'Assigning Courier...' : 'Menunggu Kurir...');
 
     final pembayaran = order['Pembayaran'];
-    final String paymentMethod = pembayaran != null && pembayaran['metode_bayar'] != null
+    final String paymentMethod =
+        pembayaran != null && pembayaran['metode_bayar'] != null
         ? pembayaran['metode_bayar'].toString()
         : (isEn ? 'Unpaid Yet' : 'Belum Dibayar');
 
-    final String paymentStatusLabel = pembayaran != null && pembayaran['status_pembayaran'] != null
-        ? (pembayaran['status_pembayaran'] == 'Lunas' ? (isEn ? 'Paid' : 'Lunas') : (isEn ? 'Unpaid' : 'Belum Lunas'))
+    final String paymentStatusLabel =
+        pembayaran != null && pembayaran['status_pembayaran'] != null
+        ? (pembayaran['status_pembayaran'] == 'Lunas'
+              ? (isEn ? 'Paid' : 'Lunas')
+              : (isEn ? 'Unpaid' : 'Belum Lunas'))
         : (isEn ? 'Unpaid' : 'Belum Lunas');
 
-    final String patokanLokasi = order['keterangan_lokasi'] != null && order['keterangan_lokasi'].toString().trim().isNotEmpty
+    final String patokanLokasi =
+        order['keterangan_lokasi'] != null &&
+            order['keterangan_lokasi'].toString().trim().isNotEmpty
         ? order['keterangan_lokasi'].toString().trim()
         : '-';
 
-    final String paymentRef = pembayaran != null && pembayaran['referensi_bayar'] != null && pembayaran['referensi_bayar'].toString().trim().isNotEmpty
+    final String paymentRef =
+        pembayaran != null &&
+            pembayaran['referensi_bayar'] != null &&
+            pembayaran['referensi_bayar'].toString().trim().isNotEmpty
         ? pembayaran['referensi_bayar'].toString().trim()
         : '-';
 
-    final Color charBlack = const Color(0xFF2D3748); // Charcoal Black utama struk
+    final Color charBlack = const Color(
+      0xFF2D3748,
+    ); // Charcoal Black utama struk
     final Color slateGray = const Color(0xFF718096); // Slate Gray label struk
 
     return Column(
@@ -2474,7 +2981,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             children: [
               // Bagian Atas Struk (Header Struk Belanja)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade50,
                   borderRadius: const BorderRadius.only(
@@ -2506,7 +3016,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0C4B8E), // Kode pesanan tetap berwarna brand WishWash
+                            color: const Color(
+                              0xFF0C4B8E,
+                            ), // Kode pesanan tetap berwarna brand WishWash
                           ),
                         ),
                       ],
@@ -2542,17 +3054,44 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildReceiptRow(isEn ? 'Customer' : 'Pelanggan', customerName),
-                    _buildReceiptRow(isEn ? 'Phone Number' : 'No. Telepon', customerPhone),
-                    _buildReceiptRow(isEn ? 'Service Type' : 'Jenis Layanan', mainService),
-                    _buildReceiptRow(isEn ? 'Estimated Finish' : 'Estimasi Selesai', estDateText),
-                    _buildReceiptRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
-                    _buildReceiptRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
+                    _buildReceiptRow(
+                      isEn ? 'Customer' : 'Pelanggan',
+                      customerName,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Phone Number' : 'No. Telepon',
+                      customerPhone,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Service Type' : 'Jenis Layanan',
+                      mainService,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Estimated Finish' : 'Estimasi Selesai',
+                      estDateText,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Weight' : 'Berat Cucian',
+                      weightText,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Package & Perfume' : 'Paket & Pewangi',
+                      '$packageName - $perfumeName',
+                    ),
                     if (logistikType != 'Drop-off')
-                      _buildReceiptRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
-                    _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
+                      _buildReceiptRow(
+                        isEn ? 'Pickup Address' : 'Alamat Jemput',
+                        pickupAddr,
+                      ),
+                    _buildReceiptRow(
+                      isEn ? 'Delivery Address' : 'Alamat Antar',
+                      deliveryAddr,
+                    ),
                     if (patokanLokasi != '-')
-                      _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
+                      _buildReceiptRow(
+                        isEn ? 'Location Notes' : 'Patokan Lokasi',
+                        patokanLokasi,
+                      ),
                     _buildReceiptRow(
                       isEn ? 'Order Type' : 'Tipe Pemesanan',
                       logistikType.toLowerCase().contains('drop')
@@ -2560,24 +3099,40 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
                     ),
                     _buildReceiptRow(
-                      isEn ? 'Logistics Method' : 'Metode Logistik', 
+                      isEn ? 'Logistics Method' : 'Metode Logistik',
                       logistikType.toLowerCase().contains('drop')
                           ? 'Drop-off'
                           : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                     ),
-                    _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),
-                    _buildReceiptRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
                     _buildReceiptRow(
-                      isEn ? 'Payment Status' : 'Status Pembayaran', 
+                      isEn ? 'Courier / Worker' : 'Kurir / Petugas',
+                      employeeName,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Payment Method' : 'Metode Pembayaran',
+                      paymentMethod,
+                    ),
+                    _buildReceiptRow(
+                      isEn ? 'Payment Status' : 'Status Pembayaran',
                       paymentStatusLabel,
                       isStatus: true,
-                      statusColor: paymentStatusLabel == 'Lunas' || paymentStatusLabel == 'Paid' ? Colors.green.shade700 : Colors.orange.shade700,
+                      statusColor:
+                          paymentStatusLabel == 'Lunas' ||
+                              paymentStatusLabel == 'Paid'
+                          ? Colors.green.shade700
+                          : Colors.orange.shade700,
                     ),
                     if (paymentRef != '-')
-                      _buildReceiptRow(isEn ? 'Transaction Ref' : 'Ref. Transaksi', paymentRef),
+                      _buildReceiptRow(
+                        isEn ? 'Transaction Ref' : 'Ref. Transaksi',
+                        paymentRef,
+                      ),
                     if (catatan != null && catatan.trim().isNotEmpty)
-                      _buildReceiptRow(isEn ? 'Note / Instruction' : 'Catatan Khusus', catatan),
-                    
+                      _buildReceiptRow(
+                        isEn ? 'Note / Instruction' : 'Catatan Khusus',
+                        catatan,
+                      ),
+
                     _buildDashedDivider(),
 
                     // Perhitungan Harga
@@ -2599,16 +3154,20 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     const SizedBox(height: 8),
                     _buildPriceRow(
                       promoCode.isNotEmpty
-                          ? (isEn ? 'Promo Discount ($promoCode)' : 'Diskon Promo ($promoCode)')
+                          ? (isEn
+                                ? 'Promo Discount ($promoCode)'
+                                : 'Diskon Promo ($promoCode)')
                           : (isEn ? 'Promo Discount' : 'Diskon Promo'),
                       promoDiscount > 0.0
                           ? '- ${_formatRupiah(promoDiscount)}'
                           : _formatRupiah(0.0),
                       isBoldLabel: false,
-                      textColor: promoDiscount > 0.0 ? Colors.red.shade700 : charBlack,
+                      textColor: promoDiscount > 0.0
+                          ? Colors.red.shade700
+                          : charBlack,
                     ),
                     _buildDashedDivider(),
-                    
+
                     // Grand Total Bayar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2637,11 +3196,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     Center(
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade100, width: 1),
+                          border: Border.all(
+                            color: Colors.grey.shade100,
+                            width: 1,
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -2654,7 +3219,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              isEn ? '*Scan this barcode for operational validation' : '*Pindai barcode ini untuk validasi operasional',
+                              isEn
+                                  ? '*Scan this barcode for operational validation'
+                                  : '*Pindai barcode ini untuk validasi operasional',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.poppins(
                                 color: slateGray,
@@ -2719,7 +3286,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     );
   }
 
-  Widget _buildReceiptRow(String label, String value, {bool isStatus = false, Color? statusColor}) {
+  Widget _buildReceiptRow(
+    String label,
+    String value, {
+    bool isStatus = false,
+    Color? statusColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -2741,7 +3313,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               textAlign: TextAlign.right,
               style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
-                color: isStatus ? (statusColor ?? const Color(0xFF2D3748)) : const Color(0xFF2D3748), // Charcoal Black
+                color: isStatus
+                    ? (statusColor ?? const Color(0xFF2D3748))
+                    : const Color(0xFF2D3748), // Charcoal Black
                 fontSize: 12,
               ),
             ),
@@ -2776,7 +3350,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   label,
                   style: GoogleFonts.poppins(
                     color: textColor ?? charBlack,
-                    fontWeight: isTotal || isBoldLabel ? FontWeight.bold : FontWeight.w500,
+                    fontWeight: isTotal || isBoldLabel
+                        ? FontWeight.bold
+                        : FontWeight.w500,
                     fontSize: isTotal ? 14 : 12,
                   ),
                 ),
@@ -2808,7 +3384,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   // --- PEMBUATAN CHAT DIALOG SEMENTARA ---
-  
+
   void _openCustomerChat(String name) {
     final bool isEn = TranslationService.currentLang == 'en';
     ScaffoldMessenger.of(context).showSnackBar(
@@ -2828,7 +3404,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final status = _getOrderStatus(_currentOrder).toLowerCase();
     final statusPembayaran = _getPaymentStatus(_currentOrder);
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
-    final double kuantitas = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final double kuantitas =
+        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final bool showTandaiLunas = isBelumLunas && kuantitas > 0.0;
 
     String actionBtnText = '';
@@ -2837,25 +3414,35 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final refStatuses = _getSortedReferenceStatuses(_currentOrder);
     final currentStatusIdx = refStatuses.indexWhere(
-      (element) => (element['nama_status'] ?? '').toString().toLowerCase().trim() == status
+      (element) =>
+          (element['nama_status'] ?? '').toString().toLowerCase().trim() ==
+          status,
     );
 
-    final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
+    final String logistikType =
+        _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
     final bool isDropOff = logistikType == 'Drop-off';
 
     final pembayaran = _currentOrder['Pembayaran'];
-    final String paymentMethod = pembayaran != null && pembayaran['metode_bayar'] != null
+    final String paymentMethod =
+        pembayaran != null && pembayaran['metode_bayar'] != null
         ? pembayaran['metode_bayar'].toString().toUpperCase()
         : '';
     final String paymentStatus = _getPaymentStatus(_currentOrder);
 
-    final bool isPaymentConfirmed = pembayaran != null && paymentMethod.isNotEmpty;
-    final bool canDeliver = isPaymentConfirmed && 
-        (paymentMethod == 'CASH' || paymentMethod == 'COD' || (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
+    final bool isPaymentConfirmed =
+        pembayaran != null && paymentMethod.isNotEmpty;
+    final bool canDeliver =
+        isPaymentConfirmed &&
+        (paymentMethod == 'CASH' ||
+            paymentMethod == 'COD' ||
+            (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
     if (status == 'siap diantar' && !isDropOff) {
       if (!_isDeliveryStarted) {
-        actionBtnText = TranslationService.currentLang == 'en' ? 'Deliver Now' : 'Antar Sekarang';
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'Deliver Now'
+            : 'Antar Sekarang';
         customAction = () {
           if (!canDeliver) {
             String warningMsg = '';
@@ -2875,7 +3462,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               builder: (context) {
                 final isEn = TranslationService.currentLang == 'en';
                 return Dialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                   elevation: 0,
                   backgroundColor: Colors.transparent,
                   child: Container(
@@ -2912,7 +3501,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         const SizedBox(height: 20),
                         // Title
                         Text(
-                          isEn ? 'Payment Unconfirmed' : 'Pembayaran Belum Siap',
+                          isEn
+                              ? 'Payment Unconfirmed'
+                              : 'Pembayaran Belum Siap',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 17,
@@ -2940,13 +3531,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                               backgroundColor: navyColor,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               elevation: 0,
                             ),
                             onPressed: () => Navigator.pop(context),
                             child: Text(
                               isEn ? 'Understood' : 'Mengerti',
-                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ),
@@ -2960,7 +3556,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           }
 
           _showConfirmationDialog(
-            title: TranslationService.currentLang == 'en' ? 'Start Delivery?' : 'Mulai Pengantaran?',
+            title: TranslationService.currentLang == 'en'
+                ? 'Start Delivery?'
+                : 'Mulai Pengantaran?',
             content: TranslationService.currentLang == 'en'
                 ? 'Are you sure you want to start delivering this order now?'
                 : 'Apakah Anda yakin ingin mulai mengantarkan pesanan ini sekarang?',
@@ -2974,7 +3572,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       } else {
         actionBtnText = '';
       }
-    } else if (currentStatusIdx != -1 && currentStatusIdx < refStatuses.length - 1) {
+    } else if (currentStatusIdx != -1 &&
+        currentStatusIdx < refStatuses.length - 1) {
       final nextRef = refStatuses[currentStatusIdx + 1];
       final rawNextName = (nextRef['nama_status'] ?? '').toString();
       final lowerNext = rawNextName.toLowerCase().trim();
@@ -2982,18 +3581,29 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       nextStatus = lowerNext;
 
       // Map button label dynamically
-      if (status.contains('timbang') || status.contains('weigh') ||
+      if (status.contains('timbang') ||
+          status.contains('weigh') ||
           ((lowerNext.contains('timbang') || lowerNext.contains('weigh')) &&
-           !(status.contains('jemput') || status.contains('pickup') || status.contains('penjemputan')))) {
-        actionBtnText = TranslationService.currentLang == 'en' ? 'Start Weighing Laundry' : 'Mulai Timbang Cucian';
+              !(status.contains('jemput') ||
+                  status.contains('pickup') ||
+                  status.contains('penjemputan')))) {
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'Start Weighing Laundry'
+            : 'Mulai Timbang Cucian';
         customAction = _showWeighingDialog;
-      } else if (status.contains('jemput') || status.contains('pickup') || status.contains('penjemputan')) {
+      } else if (status.contains('jemput') ||
+          status.contains('pickup') ||
+          status.contains('penjemputan')) {
         if (!_isPickupStarted) {
-          actionBtnText = TranslationService.currentLang == 'en' ? 'Pick Up Now' : 'Jemput Sekarang';
+          actionBtnText = TranslationService.currentLang == 'en'
+              ? 'Pick Up Now'
+              : 'Jemput Sekarang';
           customAction = () {
             _showConfirmationDialog(
-              title: TranslationService.currentLang == 'en' ? 'Start Pickup?' : 'Mulai Penjemputan?',
-              content: TranslationService.currentLang == 'en' 
+              title: TranslationService.currentLang == 'en'
+                  ? 'Start Pickup?'
+                  : 'Mulai Penjemputan?',
+              content: TranslationService.currentLang == 'en'
                   ? 'Are you sure you want to start picking up this order now?'
                   : 'Apakah Anda yakin ingin mulai menjemput pesanan ini sekarang?',
               onConfirm: () {
@@ -3006,20 +3616,36 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         } else {
           actionBtnText = '';
         }
-      } else if (lowerNext.contains('jemput') || lowerNext.contains('pickup') || lowerNext.contains('penjemputan')) {
-        actionBtnText = TranslationService.currentLang == 'en' ? 'Order Received ➔ Ready to Pick Up' : 'Pesanan Diterima ➔ Siap Jemput';
+      } else if (lowerNext.contains('jemput') ||
+          lowerNext.contains('pickup') ||
+          lowerNext.contains('penjemputan')) {
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'Order Received ➔ Ready to Pick Up'
+            : 'Pesanan Diterima ➔ Siap Jemput';
       } else {
         final isEn = TranslationService.currentLang == 'en';
-        final String currentLabel = _getShortStatusLabel(status, TranslationService.currentLang);
-        final String nextLabel = _getShortStatusLabel(rawNextName, TranslationService.currentLang);
+        final String currentLabel = _getShortStatusLabel(
+          status,
+          TranslationService.currentLang,
+        );
+        final String nextLabel = _getShortStatusLabel(
+          rawNextName,
+          TranslationService.currentLang,
+        );
 
-        if (lowerNext.contains('selesai') || lowerNext.contains('completed') || lowerNext.contains('success')) {
+        if (lowerNext.contains('selesai') ||
+            lowerNext.contains('completed') ||
+            lowerNext.contains('success')) {
           if (!isBelumLunas) {
-            actionBtnText = isEn ? 'Mark Order as Completed' : 'Tandai Pesanan Selesai';
+            actionBtnText = isEn
+                ? 'Mark Order as Completed'
+                : 'Tandai Pesanan Selesai';
           } else {
             actionBtnText = '';
           }
-        } else if (lowerNext.contains('antar') || lowerNext.contains('delivery') || lowerNext.contains('siap diantar')) {
+        } else if (lowerNext.contains('antar') ||
+            lowerNext.contains('delivery') ||
+            lowerNext.contains('siap diantar')) {
           actionBtnText = isEn
               ? 'Process $currentLabel Completed ➔ Ready to Deliver'
               : 'Proses $currentLabel Selesai ➔ Siap Diantar';
@@ -3031,7 +3657,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       }
     }
 
-    final bool hasMapButton = status == 'penjemputan' || status == 'siap diantar' || nextStatus == 'penjemputan';
+    final bool hasMapButton =
+        status == 'penjemputan' ||
+        status == 'siap diantar' ||
+        nextStatus == 'penjemputan';
     if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton) {
       return const SizedBox.shrink();
     }
@@ -3066,17 +3695,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 20),
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       !isPaymentConfirmed
                           ? (TranslationService.currentLang == 'en'
-                              ? 'Waiting for customer to choose payment method (Cash/QRIS) in the app.'
-                              : 'Menunggu pelanggan memilih metode pembayaran (Cash/QRIS) di aplikasi.')
+                                ? 'Waiting for customer to choose payment method (Cash/QRIS) in the app.'
+                                : 'Menunggu pelanggan memilih metode pembayaran (Cash/QRIS) di aplikasi.')
                           : (TranslationService.currentLang == 'en'
-                              ? 'Customer selected QRIS, waiting for payment confirmation.'
-                              : 'Pelanggan menggunakan QRIS. Menunggu pembayaran lunas sebelum diantar.'),
+                                ? 'Customer selected QRIS, waiting for payment confirmation.'
+                                : 'Pelanggan menggunakan QRIS. Menunggu pembayaran lunas sebelum diantar.'),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -3098,15 +3731,24 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFFF3B30),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 4,
-                        shadowColor: const Color(0xFFFF3B30).withValues(alpha: 0.4),
+                        shadowColor: const Color(
+                          0xFFFF3B30,
+                        ).withValues(alpha: 0.4),
                       ),
                       onPressed: _showTolakPesananDialog,
                       icon: const Icon(Icons.cancel_rounded, size: 18),
                       label: Text(
-                        TranslationService.currentLang == 'en' ? 'Reject Order' : 'Tolak Pesanan',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                        TranslationService.currentLang == 'en'
+                            ? 'Reject Order'
+                            : 'Tolak Pesanan',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -3119,7 +3761,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: navyColor,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: 4,
                         shadowColor: navyColor.withValues(alpha: 0.4),
                       ),
@@ -3130,8 +3774,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       },
                       icon: const Icon(Icons.check_circle_rounded, size: 18),
                       label: Text(
-                        TranslationService.currentLang == 'en' ? 'Accept Order' : 'Terima Pesanan',
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                        TranslationService.currentLang == 'en'
+                            ? 'Accept Order'
+                            : 'Terima Pesanan',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -3146,7 +3795,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: navyColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 4,
                   shadowColor: navyColor.withValues(alpha: 0.4),
                 ),
@@ -3160,9 +3811,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(status == 'siap diantar' || status == 'penjemputan' || nextStatus == 'penjemputan'
-                        ? Icons.local_shipping_outlined 
-                        : Icons.check_circle_outline_rounded,
+                    Icon(
+                      status == 'siap diantar' ||
+                              status == 'penjemputan' ||
+                              nextStatus == 'penjemputan'
+                          ? Icons.local_shipping_outlined
+                          : Icons.check_circle_outline_rounded,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -3178,7 +3832,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               ),
             ),
           ],
-          if ((status == 'penjemputan' && _isPickupStarted) || (status == 'siap diantar' && _isDeliveryStarted)) ...[
+          if ((status == 'penjemputan' && _isPickupStarted) ||
+              (status == 'siap diantar' && _isDeliveryStarted)) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -3187,17 +3842,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: navyColor,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 2,
                 ),
                 onPressed: () async {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => KaryawanTrackingScreen(order: _currentOrder),
+                      builder: (context) =>
+                          KaryawanTrackingScreen(order: _currentOrder),
                     ),
                   );
-                  if (result != null && result is Map<String, dynamic> && mounted) {
+                  if (result != null &&
+                      result is Map<String, dynamic> &&
+                      mounted) {
                     setState(() {
                       _currentOrder = result;
                     });
@@ -3206,17 +3866,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 },
                 icon: const Icon(Icons.map_outlined),
                 label: Text(
-                  status == 'siap diantar' 
-                      ? (TranslationService.currentLang == 'en' ? 'Open Delivery Map' : 'Buka Peta Pengantaran')
-                      : (TranslationService.currentLang == 'en' ? 'Open Pickup Map' : 'Buka Peta Penjemputan'),
+                  status == 'siap diantar'
+                      ? (TranslationService.currentLang == 'en'
+                            ? 'Open Delivery Map'
+                            : 'Buka Peta Pengantaran')
+                      : (TranslationService.currentLang == 'en'
+                            ? 'Open Pickup Map'
+                            : 'Buka Peta Penjemputan'),
                   style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
           ],
-          
+
           if (showTandaiLunas) ...[
-            if (actionBtnText.isNotEmpty || (status == 'penjemputan' || status == 'siap diantar')) const SizedBox(height: 12),
+            if (actionBtnText.isNotEmpty ||
+                (status == 'penjemputan' || status == 'siap diantar'))
+              const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               height: 48,
@@ -3224,12 +3890,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade700,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 2,
                 ),
                 onPressed: () {
                   _showConfirmationDialog(
-                    title: TranslationService.currentLang == 'en' ? 'Mark Payment as Paid?' : 'Tandai Pembayaran Lunas?',
+                    title: TranslationService.currentLang == 'en'
+                        ? 'Mark Payment as Paid?'
+                        : 'Tandai Pembayaran Lunas?',
                     content: TranslationService.currentLang == 'en'
                         ? 'Make sure payment has been received before marking this order as PAID.'
                         : 'Pastikan pembayaran sudah diterima sebelum menandai pesanan ini sebagai LUNAS.',
@@ -3242,7 +3912,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     const Icon(Icons.monetization_on_outlined, size: 18),
                     const SizedBox(width: 8),
                     Text(
-                      TranslationService.currentLang == 'en' ? 'Mark Payment as PAID' : 'Tandai Pembayaran LUNAS',
+                      TranslationService.currentLang == 'en'
+                          ? 'Mark Payment as PAID'
+                          : 'Tandai Pembayaran LUNAS',
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,

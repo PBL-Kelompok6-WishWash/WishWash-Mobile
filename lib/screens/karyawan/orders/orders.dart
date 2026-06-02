@@ -9,14 +9,17 @@ import 'package:mobile/services/order_service.dart';
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
 
+  static final ValueNotifier<int> orderTabNotifier = ValueNotifier<int>(0);
+
   @override
   State<OrderScreenKaryawan> createState() => _OrderScreenKaryawanState();
 }
 
 class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
-  int _activeTabIndex = 0; // 0: Semua, 1: Logistik, 2: Outlet, 3: Selesai
+  int _activeTabIndex = 0; // 0: Semua, 1: Baru, 2: Logistik, 3: Outlet, 4: Selesai
   int _activeLogistikSubIndex = 0; // 0: Semua, 1: Pickup, 2: Delivery
   int _activeOutletSubIndex = 0; // 0: Semua, 1: Timbang, 2: Cuci & Kering, 3: Lipat & Setrika
+  int _activeSelesaiSubIndex = 0; // 0: Semua, 1: Selesai, 2: Dibatalkan
   String _searchQuery = "";
   final TextEditingController _searchController = TextEditingController();
 
@@ -32,7 +35,23 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   @override
   void initState() {
     super.initState();
+    _activeTabIndex = OrderScreenKaryawan.orderTabNotifier.value;
     _fetchOrders();
+    OrderScreenKaryawan.orderTabNotifier.addListener(_onTabNotifierChange);
+  }
+
+  void _onTabNotifierChange() {
+    if (mounted) {
+      setState(() {
+        _activeTabIndex = OrderScreenKaryawan.orderTabNotifier.value;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    OrderScreenKaryawan.orderTabNotifier.removeListener(_onTabNotifierChange);
+    super.dispose();
   }
 
   Future<void> _fetchOrders() async {
@@ -373,19 +392,24 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     }
   }
 
+  bool _isBaruOrder(String status) {
+    final s = status.toLowerCase();
+    return s == 'pesanan diterima' || s.contains('received') || s.contains('baru');
+  }
+
   bool _isOutletOrder(String status, String logistikType) {
     final s = status.toLowerCase();
     if (s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject')) {
       return false;
     }
+    // 'pesanan diterima' is now isolated in the 'Baru' tab
+    if (s == 'pesanan diterima') {
+      return false;
+    }
     if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
       return s != 'selesai';
     }
-    if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
-      return false;
-    }
-    return s == 'pesanan diterima' ||
-        s == 'proses timbang' ||
+    return s == 'proses timbang' ||
         s == 'proses cuci' ||
         s == 'proses kering' ||
         s == 'proses lipat' ||
@@ -400,8 +424,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
       return false;
     }
-    if (s == 'pesanan diterima' && logistikType == 'Courier Delivery') {
-      return true;
+    // 'pesanan diterima' is isolated in the 'Baru' tab
+    if (s == 'pesanan diterima') {
+      return false;
     }
     return s == 'penjemputan' || s == 'siap diantar';
   }
@@ -420,30 +445,32 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       final orderCode = (order['kode_order'] ?? '').toString().toLowerCase();
       final logistikType = order['tipe_logistik']?.toString() ?? '';
 
-      // 1. Check Primary Tab Filter
+      // 1. Check Primary Tab Filter (0: Semua, 1: Baru, 2: Logistik, 3: Outlet, 4: Selesai)
       bool matchesTab = false;
       if (_activeTabIndex == 0) {
         // Semua (Menampilkan semua pesanan aktif, yaitu yang belum selesai)
         matchesTab = !_isSelesaiOrder(status);
       } else if (_activeTabIndex == 1) {
+        // Pesanan Baru (Received)
+        matchesTab = _isBaruOrder(status);
+      } else if (_activeTabIndex == 2) {
         // Logistik
         matchesTab = _isLogistikOrder(status, logistikType);
         if (matchesTab) {
           // Sub-Filter Logistik
           if (_activeLogistikSubIndex == 1) {
-            matchesTab = status.toLowerCase() == 'penjemputan' || (status.toLowerCase() == 'pesanan diterima' && logistikType == 'Courier Delivery');
+            matchesTab = status.toLowerCase() == 'penjemputan';
           } else if (_activeLogistikSubIndex == 2) {
             matchesTab = status.toLowerCase() == 'siap diantar';
           }
         }
-      } else if (_activeTabIndex == 2) {
+      } else if (_activeTabIndex == 3) {
         // Outlet
         matchesTab = _isOutletOrder(status, logistikType);
         if (matchesTab) {
           // Sub-Filter Outlet
           if (_activeOutletSubIndex == 1) {
-            matchesTab = status.toLowerCase() == 'pesanan diterima' ||
-                status.toLowerCase() == 'proses timbang';
+            matchesTab = status.toLowerCase() == 'proses timbang';
           } else if (_activeOutletSubIndex == 2) {
             matchesTab = status.toLowerCase() == 'proses cuci' ||
                 status.toLowerCase() == 'proses kering';
@@ -455,6 +482,16 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       } else {
         // Selesai
         matchesTab = _isSelesaiOrder(status);
+        if (matchesTab) {
+          // Sub-Filter Selesai
+          final s = status.toLowerCase();
+          final isBatal = s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject');
+          if (_activeSelesaiSubIndex == 1) {
+            matchesTab = !isBatal;
+          } else if (_activeSelesaiSubIndex == 2) {
+            matchesTab = isBatal;
+          }
+        }
       }
 
       // 2. Check Search Query
@@ -465,6 +502,10 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       return matchesTab && matchesSearch;
     }).toList();
   }
+
+  int get _baruCount => _orders.where((o) {
+    return _isBaruOrder(_getOrderStatus(Map<String, dynamic>.from(o)));
+  }).length;
 
   int get _outletCount => _orders.where((o) {
     final map = Map<String, dynamic>.from(o);
@@ -485,77 +526,95 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       builder: (context, lang, child) {
         return Scaffold(
           backgroundColor: Colors.transparent,
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- HEADER OPERASIONAL ---
-              _buildHeaderSection(),
-              const SizedBox(height: 10),
+          body: RefreshIndicator(
+            onRefresh: _fetchOrders,
+            color: navyColor,
+            backgroundColor: Colors.white,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- HEADER OPERASIONAL ---
+                      _buildHeaderSection(),
+                      const SizedBox(height: 10),
 
-              // --- METRIC RINGKASAN CARD ---
-              _buildSummaryMetrics(),
+                      // --- METRIC RINGKASAN CARD ---
+                      _buildSummaryMetrics(),
 
-              // --- BILAH PENCARIAN & FILTER TAB ---
-              _buildSearchAndFilters(),
+                      // --- BILAH PENCARIAN & FILTER TAB ---
+                      _buildSearchAndFilters(),
+                    ],
+                  ),
+                ),
 
-              // --- DAFTAR KARTU PESANAN OPERASIONAL ---
-              Expanded(
-                child: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
-                        ),
-                      )
-                    : _errorMessage.isNotEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error_outline, size: 40, color: Colors.red),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    _errorMessage,
-                                    style: GoogleFonts.poppins(color: Colors.red, fontSize: 13),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 15),
-                                  ElevatedButton(
-                                    onPressed: _fetchOrders,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: navyColor,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Coba Lagi',
-                                      style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                // --- DAFTAR KARTU PESANAN OPERASIONAL ---
+                if (_isLoading)
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+                      ),
+                    ),
+                  )
+                else if (_errorMessage.isNotEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 40, color: Colors.red),
+                            const SizedBox(height: 10),
+                            Text(
+                              _errorMessage,
+                              style: GoogleFonts.poppins(color: Colors.red, fontSize: 13),
+                              textAlign: TextAlign.center,
                             ),
-                          )
-                        : _filteredOrders.isEmpty
-                            ? _buildEmptyState()
-                            : RefreshIndicator(
-                                onRefresh: _fetchOrders,
-                                color: navyColor,
-                                backgroundColor: Colors.white,
-                                child: ListView.builder(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-                                  itemCount: _filteredOrders.length,
-                                  itemBuilder: (context, index) {
-                                    final order = _filteredOrders[index];
-                                    return _buildOrderCard(order);
-                                  },
+                            const SizedBox(height: 15),
+                            ElevatedButton(
+                              onPressed: _fetchOrders,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: navyColor,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
-              ),
-            ],
+                              child: Text(
+                                'Coba Lagi',
+                                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_filteredOrders.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildEmptyState(),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final order = _filteredOrders[index];
+                          return _buildOrderCard(order);
+                        },
+                        childCount: _filteredOrders.length,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -626,6 +685,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     );
   }
 
+  bool _isMetricsExpanded = true;
+
   Widget _buildSummaryMetrics() {
     final now = DateTime.now();
     final months = [
@@ -635,7 +696,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     final days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
     final todayStr = '${days[now.weekday % 7]}, ${now.day} ${months[now.month - 1]} ${now.year}';
 
-    final int totalAktif = _outletCount + _logistikCount;
+    final int totalAktif = _baruCount + _outletCount + _logistikCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
@@ -655,97 +716,125 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         child: Column(
           children: [
             // ── Header tanggal & total aktif ──
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              decoration: BoxDecoration(
-                color: navyColor.withValues(alpha: 0.03),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: navyColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isMetricsExpanded = !_isMetricsExpanded;
+                });
+              },
+              borderRadius: _isMetricsExpanded
+                  ? const BorderRadius.vertical(top: Radius.circular(24))
+                  : BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: navyColor.withValues(alpha: 0.03),
+                  borderRadius: _isMetricsExpanded
+                      ? const BorderRadius.vertical(top: Radius.circular(24))
+                      : BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: navyColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.event_note_outlined, color: navyColor, size: 15),
                     ),
-                    child: Icon(Icons.event_note_outlined, color: navyColor, size: 15),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      todayStr,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: navyColor.withValues(alpha: 0.7),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        todayStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: navyColor.withValues(alpha: 0.7),
+                        ),
                       ),
                     ),
-                  ),
-                  // Badge: total
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: navyColor,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${totalAktif + _selesaiCount} total',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    // Badge: total
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: navyColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${totalAktif + _selesaiCount} total',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Icon(
+                      _isMetricsExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: navyColor.withValues(alpha: 0.5),
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
             ),
 
-            // ── Divider ──
-            Divider(height: 1, thickness: 1, color: navyColor.withValues(alpha: 0.06)),
+            if (_isMetricsExpanded) ...[
+              // ── Divider ──
+              Divider(height: 1, thickness: 1, color: navyColor.withValues(alpha: 0.06)),
 
-            // ── Metric Row ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-              child: Row(
-                children: [
-                  _buildMetricItem(
-                    icon: Icons.store_mall_directory_outlined,
-                    color: const Color(0xFF9C27B0),
-                    label: 'Outlet',
-                    count: _outletCount,
-                    total: totalAktif + _selesaiCount,
-                  ),
-                  Container(
-                    width: 1,
-                    height: 52,
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    color: Colors.grey.shade100,
-                  ),
-                  _buildMetricItem(
-                    icon: Icons.local_shipping_outlined,
-                    color: const Color(0xFF0288D1),
-                    label: 'Logistik',
-                    count: _logistikCount,
-                    total: totalAktif + _selesaiCount,
-                  ),
-                  Container(
-                    width: 1,
-                    height: 60,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    color: Colors.grey.shade100,
-                  ),
-                  _buildMetricItem(
-                    icon: Icons.check_circle_outline_rounded,
-                    color: const Color(0xFF2E7D32),
-                    label: 'Selesai',
-                    count: _selesaiCount,
-                    total: totalAktif + _selesaiCount,
-                  ),
-                ],
+              // ── Metric Row (Responsive Grid-style Layout) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.spaceBetween,
+                      children: [
+                        _buildMetricItem(
+                          icon: Icons.assignment_late_outlined,
+                          color: const Color(0xFFE65100),
+                          label: 'Baru',
+                          count: _baruCount,
+                          total: totalAktif + _selesaiCount,
+                          width: (constraints.maxWidth - 12) / 2,
+                        ),
+                        _buildMetricItem(
+                          icon: Icons.store_mall_directory_outlined,
+                          color: const Color(0xFF9C27B0),
+                          label: 'Outlet',
+                          count: _outletCount,
+                          total: totalAktif + _selesaiCount,
+                          width: (constraints.maxWidth - 12) / 2,
+                        ),
+                        _buildMetricItem(
+                          icon: Icons.local_shipping_outlined,
+                          color: const Color(0xFF0288D1),
+                          label: 'Logistik',
+                          count: _logistikCount,
+                          total: totalAktif + _selesaiCount,
+                          width: (constraints.maxWidth - 12) / 2,
+                        ),
+                        _buildMetricItem(
+                          icon: Icons.check_circle_outline_rounded,
+                          color: const Color(0xFF2E7D32),
+                          label: 'Selesai',
+                          count: _selesaiCount,
+                          total: totalAktif + _selesaiCount,
+                          width: (constraints.maxWidth - 12) / 2,
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -758,74 +847,74 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     required String label,
     required int count,
     required int total,
+    required double width,
   }) {
     final double fraction = (total > 0) ? (count / total).clamp(0.0, 1.0) : 0.0;
 
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Baris atas: icon + label & angka
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Icon besar di kiri
-                Container(
-                  padding: const EdgeInsets.all(11),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(icon, color: color, size: 24),
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Baris atas: icon + label & angka
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Icon besar di kiri
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(width: 12),
-
-                // Label di atas, angka di bawahnya
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade400,
-                          height: 1.4,
-                        ),
-                      ),
-                      Text(
-                        count.toString(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: navyColor,
-                          height: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            // Progress bar full-width di bawah seluruh row
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 5,
-                backgroundColor: color.withValues(alpha: 0.10),
-                valueColor: AlwaysStoppedAnimation<Color>(color),
+                child: Icon(icon, color: color, size: 20),
               ),
+              const SizedBox(width: 8),
+
+              // Label di atas, angka di bawahnya
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.poppins(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey.shade400,
+                        height: 1.2,
+                      ),
+                    ),
+                    Text(
+                      count.toString(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: navyColor,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Progress bar full-width di bawah seluruh row
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 4,
+              backgroundColor: color.withValues(alpha: 0.10),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -913,7 +1002,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final double totalWidth = constraints.maxWidth;
-                final double tabWidth = totalWidth / 4; 
+                final double tabWidth = totalWidth / 5; 
 
                 return Stack(
                   children: [
@@ -940,10 +1029,10 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                       ),
                     ),
 
-                    // 2. Row of Typography Text Buttons
+                    // 2. Row of Typography Text Buttons (5 Tabs)
                     Row(
-                      children: List.generate(4, (index) {
-                        final String label = ['Semua', 'Logistik', 'Outlet', 'Selesai'][index];
+                      children: List.generate(5, (index) {
+                        final String label = ['Semua', 'Baru', 'Logistik', 'Outlet', 'Selesai'][index];
                         final isSelected = _activeTabIndex == index;
                         return Expanded(
                           child: GestureDetector(
@@ -957,7 +1046,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
+                                  fontSize: 10.5,
                                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                                   color: isSelected ? Colors.white : Colors.grey.shade500,
                                 ),
@@ -974,8 +1063,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
             ),
           ),
 
-          // Sub-Filter Dinamis (Level 2)
-          if (_activeTabIndex == 1 || _activeTabIndex == 2) ...[
+          // Sub-Filter Dinamis (Level 2 - Logistik (2), Outlet (3), or Selesai (4))
+          if (_activeTabIndex == 2 || _activeTabIndex == 3 || _activeTabIndex == 4) ...[
             const SizedBox(height: 14),
             _buildSubFilterChips(),
           ],
@@ -985,7 +1074,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildSubFilterChips() {
-    if (_activeTabIndex == 1) {
+    if (_activeTabIndex == 2) {
       // Logistik Sub-Filters
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1000,7 +1089,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           ],
         ),
       );
-    } else if (_activeTabIndex == 2) {
+    } else if (_activeTabIndex == 3) {
       // Outlet Sub-Filters
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1017,19 +1106,38 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           ],
         ),
       );
+    } else if (_activeTabIndex == 4) {
+      // Selesai Sub-Filters
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: [
+            _buildSubChip(0, TranslationService.translate('all_history'), isLogistik: false, isSelesai: true),
+            const SizedBox(width: 8),
+            _buildSubChip(1, TranslationService.translate('completed_sub'), isLogistik: false, isSelesai: true),
+            const SizedBox(width: 8),
+            _buildSubChip(2, TranslationService.translate('canceled'), isLogistik: false, isSelesai: true),
+          ],
+        ),
+      );
     }
     return const SizedBox.shrink();
   }
 
-  Widget _buildSubChip(int index, String label, {required bool isLogistik}) {
-    final isSelected = isLogistik 
-        ? _activeLogistikSubIndex == index 
-        : _activeOutletSubIndex == index;
+  Widget _buildSubChip(int index, String label, {required bool isLogistik, bool isSelesai = false}) {
+    final isSelected = isSelesai
+        ? _activeSelesaiSubIndex == index
+        : (isLogistik 
+            ? _activeLogistikSubIndex == index 
+            : _activeOutletSubIndex == index);
         
     return GestureDetector(
       onTap: () {
         setState(() {
-          if (isLogistik) {
+          if (isSelesai) {
+            _activeSelesaiSubIndex = index;
+          } else if (isLogistik) {
             _activeLogistikSubIndex = index;
           } else {
             _activeOutletSubIndex = index;

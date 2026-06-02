@@ -27,6 +27,7 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
   LatLng _currentPosition = const LatLng(-6.1753924, 106.8271528);
   bool _isLoadingMap = true;
   String _currentAddress = '';
+  String _currentPlaceName = '';
   
   // Search & Autocomplete State
   List<dynamic> _searchResults = [];
@@ -40,6 +41,9 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
 
   // State to track if map is actively being dragged
   bool _isDraggingMap = false;
+
+  // Flag to lock location when programmatic selection is chosen from lists
+  bool _isProgrammaticSelection = false;
 
   @override
   void initState() {
@@ -198,15 +202,19 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
   }
 
   Future<void> _getAddressFromLatLng(LatLng position) async {
+    if (_isProgrammaticSelection) return;
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (_isProgrammaticSelection) return;
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         setState(() {
+          _currentPlaceName = place.name ?? place.street ?? 'Lokasi Terpilih';
           _currentAddress = _buildFullAddress(place);
         });
       }
     } catch (e) {
+      if (_isProgrammaticSelection) return;
       setState(() {
         _currentAddress = _getTxt('failed_load_address', 'Gagal memuat alamat.');
       });
@@ -290,49 +298,143 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
     final double minLon = lon - delta;
     final double maxLon = lon + delta;
 
-    // Fetch multiple recognizable categories in parallel to get rich POIs
-    final List<String> categories = ['masjid', 'restoran', 'cafe', 'mart', 'apotek', 'sekolah'];
-    final List<Future<http.Response>> requests = categories.map((cat) {
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(cat)}&viewbox=$minLon,$maxLat,$maxLon,$minLat&bounded=1&limit=6&accept-language=id',
-      );
-      return http.get(
-        url,
-        headers: {'User-Agent': 'WishWash-App/1.0'},
-      ).timeout(const Duration(seconds: 4));
-    }).toList();
-
+    // Fetch high-quality POIs in a single Overpass API request (Rate-limit free & extremely fast)
     try {
-      final responses = await Future.wait(requests);
-      for (var response in responses) {
-        if (response.statusCode == 200) {
-          final List<dynamic> data = jsonDecode(response.body);
-          for (var item in data) {
-            final String name = item['name'] ?? item['display_name']?.split(',').first ?? '';
-            final String address = item['display_name'] ?? '';
-            if (name.isNotEmpty && !uniqueNames.contains(name.toLowerCase())) {
-              uniqueNames.add(name.toLowerCase());
-              
-              final double itemLat = double.tryParse(item['lat'].toString()) ?? lat;
-              final double itemLon = double.tryParse(item['lon'].toString()) ?? lon;
-              final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
+      final overpassUrl = 'https://overpass-api.de/api/interpreter?data='
+          '${Uri.encodeComponent('[out:json][timeout:5];(node["amenity"~"place_of_worship|restaurant|cafe|pharmacy|school|fast_food"](around:1200,$lat,$lon);node["shop"~"supermarket|convenience"](around:1200,$lat,$lon););out body 15;')}';
+      final response = await http.get(
+        Uri.parse(overpassUrl),
+        headers: {'User-Agent': 'WishWash-App/1.0'},
+      ).timeout(const Duration(seconds: 5));
 
-              places.add({
-                'name': name,
-                'address': address,
-                'position': LatLng(itemLat, itemLon),
-                'distance': distance,
-              });
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decoded = jsonDecode(response.body);
+        final List<dynamic> elements = decoded['elements'] ?? [];
+        for (var element in elements) {
+          final Map<String, dynamic> tags = element['tags'] ?? {};
+          final String name = tags['name'] ?? '';
+          if (name.isNotEmpty && !uniqueNames.contains(name.toLowerCase())) {
+            uniqueNames.add(name.toLowerCase());
+            final double itemLat = double.tryParse(element['lat'].toString()) ?? lat;
+            final double itemLon = double.tryParse(element['lon'].toString()) ?? lon;
+            final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
+
+            // Construct premium GMaps style category display label in Indonesian
+            String categoryLabel = '';
+            if (tags['amenity'] != null) {
+              final String am = tags['amenity'].toString().toLowerCase();
+              if (am == 'place_of_worship') {
+                categoryLabel = 'Masjid/Rumah Ibadah';
+              } else if (am == 'restaurant' || am == 'fast_food') {
+                categoryLabel = 'Restoran/Kuliner';
+              } else if (am == 'cafe') {
+                categoryLabel = 'Kafe';
+              } else if (am == 'pharmacy') {
+                categoryLabel = 'Apotek';
+              } else if (am == 'school') {
+                categoryLabel = 'Sekolah/Universitas';
+              } else {
+                categoryLabel = am;
+              }
+            } else if (tags['shop'] != null) {
+              categoryLabel = 'Minimarket/Toko';
+            } else {
+              categoryLabel = 'Tempat Terdekat';
             }
+
+            // Extract full address tags if available in OSM
+            final String street = tags['addr:street'] ?? tags['road'] ?? '';
+            final String housenumber = tags['addr:housenumber'] ?? '';
+            final String suburb = tags['addr:suburb'] ?? tags['suburb'] ?? tags['addr:hamlet'] ?? '';
+            final String city = tags['addr:city'] ?? tags['city'] ?? '';
+
+            List<String> addrParts = [];
+            if (street.isNotEmpty) {
+              String streetStr = street.toLowerCase().startsWith('jl') ? street : 'Jl. $street';
+              if (housenumber.isNotEmpty) {
+                streetStr += ' No. $housenumber';
+              }
+              addrParts.add(streetStr);
+            }
+            if (suburb.isNotEmpty) {
+              addrParts.add(suburb);
+            }
+            if (city.isNotEmpty) {
+              addrParts.add(city);
+            }
+
+            String displayAddress = '';
+            if (addrParts.isNotEmpty) {
+              displayAddress = addrParts.join(', ');
+            } else {
+              // Intelligent fallback: Parse the active pin's address parts to construct a complete surrounding address
+              if (_currentAddress.isNotEmpty && !_currentAddress.contains('Gagal memuat') && !_currentAddress.contains('Mencari lokasi')) {
+                final parts = _currentAddress.split(',');
+                if (parts.length >= 3) {
+                  displayAddress = '${parts[0].trim()}, ${parts[1].trim()}, ${parts[2].trim()}';
+                } else if (parts.length >= 2) {
+                  displayAddress = '${parts[0].trim()}, ${parts[1].trim()}';
+                } else {
+                  displayAddress = _currentAddress;
+                }
+              } else {
+                displayAddress = 'Sekitar area terpilih';
+              }
+            }
+
+            places.add({
+              'name': name,
+              'address': displayAddress,
+              'position': LatLng(itemLat, itemLon),
+              'distance': distance,
+            });
           }
         }
       }
     } catch (_) {}
 
-    // Sort by proximity/distance
-    places.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+    // Fallback: If Overpass fails, use a sequential, spaced-out Nominatim query (to avoid rate-limiting)
+    if (places.isEmpty) {
+      final List<String> categories = ['masjid', 'restoran', 'cafe', 'mart', 'apotek', 'sekolah'];
+      for (var cat in categories) {
+        if (!mounted) break;
+        try {
+          final url = Uri.parse(
+            'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(cat)}&viewbox=$minLon,$maxLat,$maxLon,$minLat&bounded=1&limit=4&accept-language=id',
+          );
+          final response = await http.get(
+            url,
+            headers: {'User-Agent': 'WishWash-App/1.0'},
+          ).timeout(const Duration(seconds: 3));
 
-    // Fallback: If Nominatim API queries fail or return empty, fall back to our geocoding offsets
+          if (response.statusCode == 200) {
+            final List<dynamic> data = jsonDecode(response.body);
+            for (var item in data) {
+              final String name = item['name'] ?? item['display_name']?.split(',').first ?? '';
+              final String addressStr = item['display_name'] ?? '';
+              if (name.isNotEmpty && !uniqueNames.contains(name.toLowerCase())) {
+                uniqueNames.add(name.toLowerCase());
+                
+                final double itemLat = double.tryParse(item['lat'].toString()) ?? lat;
+                final double itemLon = double.tryParse(item['lon'].toString()) ?? lon;
+                final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
+
+                places.add({
+                  'name': name,
+                  'address': addressStr,
+                  'position': LatLng(itemLat, itemLon),
+                  'distance': distance,
+                });
+              }
+            }
+          }
+        } catch (_) {}
+        // Spacing of 300ms to guarantee no rate limiting on OSM Nominatim
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+    }
+
+    // Fallback 2: If Nominatim API queries fail or return empty, fall back to our geocoding offsets
     if (places.isEmpty) {
       final List<LatLng> offsets = [
         LatLng(center.latitude + 0.0011, center.longitude + 0.0009), // Northeast
@@ -369,6 +471,9 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
       }
     }
 
+    // Sort by proximity/distance
+    places.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+
     if (mounted) {
       setState(() {
         _nearbyLocations = places.take(12).toList(); // Show up to 12 rich results
@@ -382,6 +487,7 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
       _currentPosition = camera.center;
       if (hasGesture) {
         _isDraggingMap = true; // Hide speech bubble card immediately on user drag
+        _isProgrammaticSelection = false; // Reset lock because user is dragging manually
       }
       
       // Recalculate distance in real-time for all nearby locations based on the new live center
@@ -398,16 +504,23 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
       }
     });
     
-    // Debounce reverse geocoding API to prevent excessive requests while panning map
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) {
-        setState(() {
-          _isDraggingMap = false; // Show speech bubble card again on pan stop
-        });
-      }
-      _getAddressFromLatLng(_currentPosition);
-    });
+    // ONLY debounce reverse geocoding API if the map is moved by a user hand gesture.
+    // If it's a programmatic movement (like clicking a suggestion), DO NOT reverse geocode
+    // as it will instantly overwrite the selected landmark's beautiful name!
+    if (hasGesture) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          setState(() {
+            _isDraggingMap = false; // Show speech bubble card again on pan stop
+          });
+        }
+        _getAddressFromLatLng(_currentPosition);
+      });
+    } else {
+      // Programmatic move: just cancel any active drag timers silently
+      _debounceTimer?.cancel();
+    }
   }
 
   Future<void> _goToMyLocation() async {
@@ -450,7 +563,7 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
     }
   }
 
-  // Fetch search recommendations from free Nominatim OpenStreetMap API
+  // Fetch search recommendations using native device geocoding services, with Nominatim as a robust fallback
   Future<void> _searchAddress(String query) async {
     if (query.trim().isEmpty) {
       setState(() {
@@ -464,14 +577,69 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
       _isSearching = true;
     });
 
+    // 1. Try Native Device Geocoder (Incredibly fast, zero rate limit, uses Google/Apple system services)
+    try {
+      // Append ", Indonesia" to narrow down search to Indonesia regions only
+      final String indonesianQuery = query.toLowerCase().contains("indonesia") ? query : "$query, Indonesia";
+      final List<Location> locations = await locationFromAddress(indonesianQuery);
+      if (locations.isNotEmpty) {
+        final List<Map<String, dynamic>> results = [];
+        for (var loc in locations.take(5)) {
+          // Bounding box filter to ensure search coordinates are strictly within Indonesia
+          if (!_isWithinIndonesia(loc.latitude, loc.longitude)) {
+            continue; 
+          }
+          try {
+            final List<Placemark> placemarks = await placemarkFromCoordinates(loc.latitude, loc.longitude);
+            if (placemarks.isNotEmpty) {
+              final place = placemarks[0];
+              final String fullAddress = _buildFullAddress(place);
+              
+              // Filter out cryptic Plus Codes (e.g. "WCWM+XRJ") to display beautiful human-readable names
+              String shortName = place.name ?? '';
+              if (shortName.contains('+') || shortName.length <= 4) {
+                shortName = place.street ?? place.thoroughfare ?? place.locality ?? query;
+              }
+              if (shortName.trim().isEmpty) {
+                shortName = query;
+              }
+              
+              results.add({
+                'display_name': '$shortName, $fullAddress',
+                'lat': loc.latitude.toString(),
+                'lon': loc.longitude.toString(),
+              });
+            }
+          } catch (_) {
+            results.add({
+              'display_name': 'Koordinat GPS - ${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)}',
+              'lat': loc.latitude.toString(),
+              'lon': loc.longitude.toString(),
+            });
+          }
+        }
+
+        if (results.isNotEmpty) {
+          setState(() {
+            _searchResults = results;
+            _isSearching = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint("Native Geocoder failed or no results: $e. Falling back to OSM...");
+    }
+
+    // 2. Fallback: HTTP OpenStreetMap Nominatim API
     try {
       final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&accept-language=id&countrycodes=id&limit=5',
+        'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&accept-language=id&countrycodes=id&limit=8',
       );
       final response = await http.get(
         url,
         headers: {
-          'User-Agent': 'WishWash-App/1.0',
+          'User-Agent': 'WishWashLaundryCustomerAppPBLSemarangProject-v1.0.2',
         },
       ).timeout(const Duration(seconds: 6));
 
@@ -482,11 +650,13 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
           _isSearching = false;
         });
       } else {
+        debugPrint("Nominatim API response status code: ${response.statusCode}");
         setState(() {
           _isSearching = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint("Nominatim Search Error: $e");
       setState(() {
         _isSearching = false;
       });
@@ -500,31 +670,59 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
     });
   }
 
+  Future<void> _getFullAddressForSelection(LatLng position) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty && _isProgrammaticSelection) {
+        Placemark place = placemarks[0];
+        final String fullAddress = _buildFullAddress(place);
+        if (mounted) {
+          setState(() {
+            _currentAddress = fullAddress;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
   void _selectSearchResult(dynamic result) {
+    _debounceTimer?.cancel();
     final lat = double.parse(result['lat']);
     final lon = double.parse(result['lon']);
     final target = LatLng(lat, lon);
     
-    _mapController.move(target, 16.0);
-    
     setState(() {
+      _isProgrammaticSelection = true;
       _currentPosition = target;
-      _currentAddress = result['display_name'] ?? 'Alamat terpilih';
+      final String disp = result['display_name'] ?? 'Alamat terpilih';
+      final parts = disp.split(',');
+      _currentPlaceName = parts.isNotEmpty ? parts.first.trim() : 'Lokasi Terpilih';
+      _currentAddress = disp;
       _searchResults = [];
       _searchController.text = '';
     });
     
+    _mapController.move(target, 16.0);
     FocusScope.of(context).unfocus();
+    _getFullAddressForSelection(target);
   }
 
   void _selectNearbyLocation(Map<String, dynamic> place) {
+    _debounceTimer?.cancel();
     final target = place['position'] as LatLng;
-    _mapController.move(target, 16.0);
+    
     setState(() {
+      _isProgrammaticSelection = true;
       _currentPosition = target;
+      _currentPlaceName = place['name'] ?? 'Lokasi Terpilih';
       _currentAddress = place['address'] ?? '';
     });
-    _getAddressFromLatLng(target);
+    
+    _mapController.move(target, 16.0);
+    // ONLY fetch nearby locations to refresh recommendations around the new coordinates.
+    // DO NOT call _getAddressFromLatLng as it will trigger reverse-geocoding and overwrite this beautiful landmark name!
+    _fetchNearbyLocations(target);
+    _getFullAddressForSelection(target);
   }
 
   @override
@@ -832,12 +1030,14 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _getTxt('selected_location', 'Lokasi Terpilih / Pin Peta'),
+                                _currentPlaceName.isNotEmpty ? _currentPlaceName : _getTxt('selected_location', 'Lokasi Terpilih / Pin Peta'),
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   color: _navyColor,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 2),
                               Text(

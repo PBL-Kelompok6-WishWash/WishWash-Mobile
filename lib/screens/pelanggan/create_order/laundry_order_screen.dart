@@ -99,24 +99,28 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
       'id': 2,
       'name': 'Lavender Bliss',
       'desc': 'Aroma bunga lavender premium untuk relaksasi mendalam.',
+      'desc_en': 'Premium lavender flower scent for deep relaxation.',
       'icon': Icons.local_florist_outlined,
     },
     {
       'id': 5,
       'name': 'Ocean Breeze',
       'desc': 'Kesegaran hembusan laut segar untuk pakaian aktif.',
+      'desc_en': 'Fresh ocean breeze freshness for active wear.',
       'icon': Icons.water_drop_outlined,
     },
     {
       'id': 4,
       'name': 'Fresh Cotton',
       'desc': 'Keharuman kapas bersih lembut dan hipoalergenik.',
+      'desc_en': 'Soft clean cotton fragrance and hypoallergenic.',
       'icon': Icons.block,
     },
     {
       'id': 1,
       'name': 'Malaikat Subuh',
       'desc': 'Aroma tradisional yang mewah, menenangkan, dan hangat.',
+      'desc_en': 'Luxurious, soothing, and warm traditional fragrance.',
       'icon': Icons.spa_outlined,
     },
   ];
@@ -271,26 +275,12 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     height: 48,
                     child: Row(
                       children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: navyColor,
                           ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.arrow_back_ios_new_rounded,
-                              color: navyColor,
-                              size: 16,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                          ),
+                          onPressed: () => Navigator.pop(context),
                         ),
                         Expanded(
                           child: Center(
@@ -792,7 +782,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     const SizedBox(height: 8),
                     Expanded(
                       child: Text(
-                        perfume['desc'],
+                        TranslationService.currentLang == 'en' ? (perfume['desc_en'] ?? perfume['desc']) : perfume['desc'],
                         style: GoogleFonts.poppins(
                           color: Colors.grey.shade500,
                           fontSize: 9,
@@ -1046,29 +1036,142 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    TranslationService.currentLang == 'en' ? 'Pick Up Address' : 'Alamat Penjemputan',
-                    style: GoogleFonts.poppins(
-                      color: navyColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        TranslationService.currentLang == 'en' ? 'Pick Up Address' : 'Alamat Penjemputan',
+                        style: GoogleFonts.poppins(
+                          color: navyColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (address != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: activeSelectionColor.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: activeSelectionColor.withOpacity(0.2), width: 0.8),
+                          ),
+                          child: Text(
+                            address['tipe_alamat'] ?? 'Rumah',
+                            style: GoogleFonts.poppins(
+                              color: activeSelectionColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    isLoadingAddresses
-                        ? (TranslationService.currentLang == 'en' ? 'Loading address...' : 'Memuat alamat...')
-                        : address != null
-                        ? '${address['alamat_lengkap']} (${address['tipe_alamat']}) - Penerima: ${address['nama_penerima']}'
-                        : (TranslationService.currentLang == 'en' 
+                  const SizedBox(height: 6),
+                  () {
+                    if (isLoadingAddresses) {
+                      return Text(
+                        TranslationService.currentLang == 'en' ? 'Loading address...' : 'Memuat alamat...',
+                        style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 11),
+                      );
+                    }
+                    if (address == null) {
+                      return Text(
+                        TranslationService.currentLang == 'en' 
                             ? 'Address not set. Tap button to add.' 
-                            : 'Alamat belum disetel. Ketuk tombol untuk menambahkan.'),
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey.shade600,
-                      fontSize: 11,
-                      height: 1.4,
-                    ),
-                  ),
+                            : 'Alamat belum disetel. Ketuk tombol untuk menambahkan.',
+                        style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 11),
+                      );
+                    }
+                    
+                    // Parse composite address string (extracting bracketed detail note if any)
+                    String mainAddress = '';
+                    String noteAddress = '';
+                    final String rawAlamat = address['alamat_lengkap'] ?? '';
+                    if (rawAlamat.contains('(') && rawAlamat.endsWith(')')) {
+                      final int startIdx = rawAlamat.indexOf('(');
+                      mainAddress = rawAlamat.substring(0, startIdx).trim();
+                      noteAddress = rawAlamat.substring(startIdx + 1, rawAlamat.length - 1).trim();
+                    } else {
+                      mainAddress = rawAlamat;
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Physical Street Address
+                        Text(
+                          mainAddress,
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey.shade800,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 11.5,
+                            height: 1.4,
+                          ),
+                        ),
+                        
+                        // 2. Benchmarks / Notes
+                        if (noteAddress.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline_rounded, color: Colors.orange.shade700, size: 13),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'Catatan: $noteAddress',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.orange.shade800,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        // 3. Recipient Name
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.person_outline_rounded, color: Colors.grey.shade500, size: 13),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'Penerima: ${address['nama_penerima'] ?? '-'}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // 4. Phone Number
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.phone_outlined, color: Colors.grey.shade500, size: 13),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                'No. Telp: ${address['nohp_penerima'] ?? '-'}',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  }(),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () => _chooseAddress(false),
@@ -1455,11 +1558,10 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     size: 40,
                   ),
                 ),
-                const SizedBox(height: 24),
                 Text(
                   TranslationService.currentLang == 'en'
-                      ? 'Request Submitted Successfully!'
-                      : 'Pengajuan Berhasil!',
+                      ? 'Order Created Successfully!'
+                      : 'Pesanan Berhasil Dibuat!',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     color: navyColor,
@@ -1470,8 +1572,8 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                 const SizedBox(height: 8),
                 Text(
                   TranslationService.currentLang == 'en'
-                      ? 'Wait for your order to be confirmed by our karyawan.'
-                      : 'Mohon tunggu konfirmasi pesanan Anda dari karyawan kami.',
+                      ? 'Your laundry order has been successfully created. We will pick up your laundry soon.'
+                      : 'Pesanan laundry Anda telah berhasil dibuat. Kami akan segera menjemput laundry Anda.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     color: textGrey,
@@ -1530,6 +1632,268 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     );
   }
 
+  // Pre-order confirmation dialog — shows order summary before placing
+  void _showPreOrderConfirmDialog() {
+    final isEn = TranslationService.currentLang == 'en';
+    final isWalkIn = widget.selectedCustomer != null;
+    final String rawName = widget.service['nama_layanan'] ?? '';
+    final String serviceName = TranslationService.translateService(rawName);
+    final String packageName = selectedPackageMap?['nama_paket'] ?? '-';
+    final String dateStr = dates.isNotEmpty ? dates[selectedDateIndex]['fullDate'] ?? '-' : '-';
+    final String timeLabel = selectedTime == 'Morning'
+        ? (isEn ? 'Morning (08:00–12:00)' : 'Pagi (08:00–12:00)')
+        : (isEn ? 'Afternoon (12:00–16:00)' : 'Siang (12:00–16:00)');
+    final String address = selectedPickupAddress?['alamat_lengkap'] ?? '-';
+    final String recipient = selectedPickupAddress?['nama_penerima'] ?? '-';
+
+    // Find perfume description
+    final perf = perfumes.firstWhere(
+      (p) => p['name'] == selectedPerfume,
+      orElse: () => perfumes.first,
+    );
+    final String perfumeLabel = perf['name'] ?? selectedPerfume;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 12,
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: navyColor.withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEn ? 'Order Confirmation' : 'Konfirmasi Pesanan',
+                              style: GoogleFonts.poppins(
+                                color: navyColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              isEn ? 'Please review your order details below.' : 'Periksa detail pesanan Anda sebelum melanjutkan.',
+                              style: GoogleFonts.poppins(
+                                color: textGrey,
+                                fontSize: 10,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  Container(height: 1, color: Colors.grey.shade100),
+                  const SizedBox(height: 16),
+
+                  // Order Summary Items
+                  _buildConfirmRow(
+                    icon: Icons.local_laundry_service_rounded,
+                    label: isEn ? 'Service' : 'Layanan',
+                    value: serviceName,
+                  ),
+                  _buildConfirmRow(
+                    icon: Icons.inventory_2_outlined,
+                    label: isEn ? 'Package' : 'Paket',
+                    value: packageName,
+                  ),
+                  _buildConfirmRow(
+                    icon: Icons.spa_outlined,
+                    label: isEn ? 'Perfume' : 'Parfum',
+                    value: perfumeLabel,
+                  ),
+                  if (!isWalkIn) ...[
+                    _buildConfirmRow(
+                      icon: Icons.calendar_today_rounded,
+                      label: isEn ? 'Pickup Date' : 'Tgl. Jemput',
+                      value: dateStr,
+                    ),
+                    _buildConfirmRow(
+                      icon: Icons.access_time_rounded,
+                      label: isEn ? 'Pickup Time' : 'Waktu Jemput',
+                      value: timeLabel,
+                    ),
+                    _buildConfirmRow(
+                      icon: Icons.location_on_outlined,
+                      label: isEn ? 'Pickup Address' : 'Alamat Jemput',
+                      value: address,
+                    ),
+                    _buildConfirmRow(
+                      icon: Icons.person_outline_rounded,
+                      label: isEn ? 'Recipient' : 'Penerima',
+                      value: recipient,
+                    ),
+                  ],
+                  if (instructionController.text.trim().isNotEmpty)
+                    _buildConfirmRow(
+                      icon: Icons.notes_rounded,
+                      label: isEn ? 'Notes' : 'Catatan',
+                      value: instructionController.text.trim(),
+                    ),
+
+                  const SizedBox(height: 20),
+                  Container(height: 1, color: Colors.grey.shade100),
+                  const SizedBox(height: 20),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            isEn ? 'Cancel' : 'Batal',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0F9D58), Color(0xFF1B5E20)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0F9D58).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _placeOrder();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              foregroundColor: Colors.white,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle_outline_rounded, size: 18, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isEn ? 'Confirm Order' : 'Konfirmasi',
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildConfirmRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: activeSelectionColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 15, color: activeSelectionColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    color: Colors.grey.shade500,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    color: navyColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildReviewOrderButton() {
     final isWalkIn = widget.selectedCustomer != null;
     return Container(
@@ -1576,11 +1940,12 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                   return;
                 }
 
-                _placeOrder();
+                // Show pre-order confirmation dialog before placing
+                _showPreOrderConfirmDialog();
               },
         icon: _isPlacingOrder
             ? const SizedBox.shrink()
-            : Icon(isWalkIn ? Icons.add_shopping_cart_rounded : Icons.local_shipping_rounded, color: Colors.white, size: 20),
+            : Icon(isWalkIn ? Icons.add_shopping_cart_rounded : Icons.shopping_bag_rounded, color: Colors.white, size: 20),
         label: _isPlacingOrder
             ? const SizedBox(
                 height: 20,
@@ -1593,9 +1958,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
             : Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: Text(
-                  isWalkIn
-                      ? (TranslationService.currentLang == 'en' ? 'Create Order' : 'Buat Pesanan')
-                      : (TranslationService.currentLang == 'en' ? 'Request Pick Up' : 'Ajukan Penjemputan'),
+                  TranslationService.currentLang == 'en' ? 'Create Order' : 'Buat Pesanan',
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontSize: 16,

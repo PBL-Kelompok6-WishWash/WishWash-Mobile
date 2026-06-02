@@ -23,7 +23,10 @@ class _MainKaryawanState extends State<MainKaryawan> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pages = [
-      DashboardKaryawan(onProfileTap: () => _onTap(4)),
+      DashboardKaryawan(
+        onProfileTap: () => _onTap(4),
+        onTabChange: (index) => _onTap(index),
+      ),
       const OrderScreenKaryawan(),
       const SizedBox(), // Placeholder for + button
       const KaryawanChatScreen(),
