@@ -6,6 +6,7 @@ import 'package:mobile/screens/karyawan/orders/pesanan_diantar.dart';
 import 'package:mobile/screens/karyawan/orders/pesanan_selesai.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 import 'package:mobile/screens/karyawan/home/riwayat_pendapatan.dart';
+import 'package:mobile/screens/karyawan/home/scanner_screen.dart';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/utils/constants.dart';
@@ -286,7 +287,16 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         ),
        Row(
         children: [
-          _buildGlassIconButton(Icons.qr_code_scanner_rounded, navyColor),
+          _buildGlassIconButton(
+            Icons.qr_code_scanner_rounded,
+            navyColor,
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ScannerScreen()),
+              );
+            },
+          ),
           const SizedBox(width: 10),
           _buildGlassIconButton(
             Icons.notifications_none_rounded,
