@@ -109,63 +109,127 @@ class _AlamatScreenState extends State<AlamatScreen> {
       lon ??= 106.8271528;
 
       final List<Map<String, dynamic>> places = [];
-      
-      // Call OSM Nominatim reverse geocoder for hyper-local nearby places
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1&accept-language=id',
-      );
-      final response = await http.get(
-        url,
-        headers: {
-          'User-Agent': 'WishWash-App/1.0',
-        },
-      ).timeout(const Duration(seconds: 4));
+      final Set<String> uniqueNames = {};
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        final String displayName = data['display_name'] ?? 'Lokasi Terdekat';
-        final String name = data['name'] ?? data['address']?['road'] ?? 'Tempat Terdekat';
+      final double delta = 0.012; // approx 1.2km viewbox
+      final double minLat = lat - delta;
+      final double maxLat = lat + delta;
+      final double minLon = lon - delta;
+      final double maxLon = lon + delta;
 
-        places.add({
-          'name': name,
-          'alamat_lengkap': displayName,
-          'latitude': lat.toString(),
-          'longitude': lon.toString(),
-        });
-      }
+      // Fetch multiple recognizable categories in parallel
+      final List<String> categories = ['masjid', 'restoran', 'cafe', 'mart', 'apotek', 'sekolah'];
+      final List<Future<http.Response>> requests = categories.map((cat) {
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(cat)}&viewbox=$minLon,$maxLat,$maxLon,$minLat&bounded=1&limit=6&accept-language=id',
+        );
+        return http.get(
+          url,
+          headers: {'User-Agent': 'WishWash-App/1.0'},
+        ).timeout(const Duration(seconds: 4));
+      }).toList();
 
-      // Add 2 neighborhood offsets to suggest places nearby
-      final listOffsets = [
-        {'lat': lat + 0.0011, 'lon': lon + 0.0009, 'name': 'Gedung / Landskap Terdekat', 'sub': 'Sekitar area lokasi utama'},
-        {'lat': lat - 0.0009, 'lon': lon - 0.0012, 'name': 'Akses Jalan Utama Terdekat', 'sub': 'Sekitar area pemukiman'},
-      ];
+      try {
+        final responses = await Future.wait(requests);
+        for (var response in responses) {
+          if (response.statusCode == 200) {
+            final List<dynamic> data = jsonDecode(response.body);
+            for (var item in data) {
+              final String name = item['name'] ?? item['display_name']?.split(',').first ?? '';
+              final String addressStr = item['display_name'] ?? '';
+              if (name.isNotEmpty && !uniqueNames.contains(name.toLowerCase())) {
+                uniqueNames.add(name.toLowerCase());
+                
+                final double itemLat = double.tryParse(item['lat'].toString()) ?? lat;
+                final double itemLon = double.tryParse(item['lon'].toString()) ?? lon;
+                final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
 
-      for (var offset in listOffsets) {
-        try {
-          final resOffset = await http.get(
-            Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${offset['lat']}&lon=${offset['lon']}&zoom=18&addressdetails=1&accept-language=id'),
-            headers: {'User-Agent': 'WishWash-App/1.0'},
-          ).timeout(const Duration(seconds: 3));
-          
-          if (resOffset.statusCode == 200) {
-            final Map<String, dynamic> data = jsonDecode(resOffset.body);
-            final String displayName = data['display_name'] ?? 'Lokasi Terdekat';
-            final String name = data['name'] ?? data['address']?['road'] ?? offset['name'].toString();
-            places.add({
-              'name': name,
-              'alamat_lengkap': displayName,
-              'latitude': offset['lat'].toString(),
-              'longitude': offset['lon'].toString(),
-            });
+                places.add({
+                  'name': name,
+                  'alamat_lengkap': addressStr,
+                  'latitude': itemLat.toString(),
+                  'longitude': itemLon.toString(),
+                  'distance': distance,
+                });
+              }
+            }
           }
-        } catch (_) {}
+        }
+      } catch (_) {}
+
+      // Fallback: reverse-geocoder on geographic offsets if web results are empty
+      if (places.isEmpty) {
+        // Call OSM Nominatim reverse geocoder for hyper-local nearby places
+        final url = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1&accept-language=id',
+        );
+        final response = await http.get(
+          url,
+          headers: {
+            'User-Agent': 'WishWash-App/1.0',
+          },
+        ).timeout(const Duration(seconds: 4));
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> data = jsonDecode(response.body);
+          final String displayName = data['display_name'] ?? 'Lokasi Terdekat';
+          final String name = data['name'] ?? data['address']?['road'] ?? 'Tempat Terdekat';
+
+          places.add({
+            'name': name,
+            'alamat_lengkap': displayName,
+            'latitude': lat.toString(),
+            'longitude': lon.toString(),
+            'distance': 0.0,
+          });
+        }
+
+        // Add 2 neighborhood offsets to suggest places nearby
+        final listOffsets = [
+          {'lat': lat + 0.0011, 'lon': lon + 0.0009, 'name': 'Gedung / Landskap Terdekat', 'sub': 'Sekitar area lokasi utama'},
+          {'lat': lat - 0.0009, 'lon': lon - 0.0012, 'name': 'Akses Jalan Utama Terdekat', 'sub': 'Sekitar area pemukiman'},
+        ];
+
+        for (var offset in listOffsets) {
+          try {
+            final resOffset = await http.get(
+              Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${offset['lat']}&lon=${offset['lon']}&zoom=18&addressdetails=1&accept-language=id'),
+              headers: {'User-Agent': 'WishWash-App/1.0'},
+            ).timeout(const Duration(seconds: 3));
+            
+            if (resOffset.statusCode == 200) {
+              final Map<String, dynamic> data = jsonDecode(resOffset.body);
+              final String displayName = data['display_name'] ?? 'Lokasi Terdekat';
+              final String name = data['name'] ?? data['address']?['road'] ?? offset['name'].toString();
+              
+              final double itemLat = double.tryParse(offset['lat'].toString()) ?? lat;
+              final double itemLon = double.tryParse(offset['lon'].toString()) ?? lon;
+              final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
+
+              places.add({
+                'name': name,
+                'alamat_lengkap': displayName,
+                'latitude': offset['lat'].toString(),
+                'longitude': offset['lon'].toString(),
+                'distance': distance,
+              });
+            }
+          } catch (_) {}
+        }
       }
+
+      // Sort suggested places by proximity
+      places.sort((a, b) {
+        final double distA = a['distance'] != null ? double.parse(a['distance'].toString()) : 999999.0;
+        final double distB = b['distance'] != null ? double.parse(b['distance'].toString()) : 999999.0;
+        return distA.compareTo(distB);
+      });
 
       if (mounted) {
         setState(() {
           _mapLat = lat;
           _mapLon = lon;
-          _suggestedNearby = places;
+          _suggestedNearby = places.take(12).toList();
           _isLoadingSuggested = false;
         });
       }
@@ -781,18 +845,48 @@ class _AlamatScreenState extends State<AlamatScreen> {
               itemCount: _suggestedNearby.length,
               separatorBuilder: (context, idx) => Divider(color: Colors.grey.shade100, height: 1),
               itemBuilder: (context, index) {
-                final place = _suggestedNearby[index];
-                final String name = place['name'] ?? 'Rekomendasi Tempat';
-                final String address = place['alamat_lengkap'] ?? '';
+                // Format distance beautifully
+                final double distVal = place['distance'] != null ? double.tryParse(place['distance'].toString()) ?? 0.0 : 0.0;
+                String distanceText = '';
+                if (distVal > 0) {
+                  if (distVal < 1000) {
+                    distanceText = '${distVal.toStringAsFixed(0)} m';
+                  } else {
+                    distanceText = '${(distVal / 1000).toStringAsFixed(1)} km';
+                  }
+                }
 
                 return ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.1),
-                      shape: BoxShape.circle,
+                  leading: SizedBox(
+                    width: 52,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.location_on, color: Colors.amber, size: 16),
+                        ),
+                        if (distanceText.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              distanceText,
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.amber.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    child: const Icon(Icons.location_on, color: Colors.amber, size: 20),
                   ),
                   title: Text(
                     name,

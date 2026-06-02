@@ -280,65 +280,101 @@ class _PilihAlamatScreenState extends State<PilihAlamatScreen> {
     });
 
     final List<Map<String, dynamic>> places = [];
-    
-    // 3 geographical offsets in the neighborhood (approx. 80 - 150 meters away)
-    final List<LatLng> offsets = [
-      LatLng(center.latitude + 0.0011, center.longitude + 0.0009), // Northeast
-      LatLng(center.latitude - 0.0009, center.longitude - 0.0012), // Southwest
-      LatLng(center.latitude + 0.0006, center.longitude - 0.0015), // Northwest
-    ];
+    final Set<String> uniqueNames = {};
 
-    for (int i = 0; i < offsets.length; i++) {
-      try {
-        final List<Placemark> placemarks = await placemarkFromCoordinates(
-          offsets[i].latitude,
-          offsets[i].longitude,
-        );
-        if (placemarks.isNotEmpty) {
-          final place = placemarks[0];
-          final String fullAddressString = _buildFullAddress(place);
-          final String shortName = place.name ?? place.street ?? 'Jalan Sekitar';
-          
-          final double distance = Geolocator.distanceBetween(
-            center.latitude,
-            center.longitude,
+    final double lat = center.latitude;
+    final double lon = center.longitude;
+    final double delta = 0.012; // approx 1.2km viewbox
+    final double minLat = lat - delta;
+    final double maxLat = lat + delta;
+    final double minLon = lon - delta;
+    final double maxLon = lon + delta;
+
+    // Fetch multiple recognizable categories in parallel to get rich POIs
+    final List<String> categories = ['masjid', 'restoran', 'cafe', 'mart', 'apotek', 'sekolah'];
+    final List<Future<http.Response>> requests = categories.map((cat) {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(cat)}&viewbox=$minLon,$maxLat,$maxLon,$minLat&bounded=1&limit=6&accept-language=id',
+      );
+      return http.get(
+        url,
+        headers: {'User-Agent': 'WishWash-App/1.0'},
+      ).timeout(const Duration(seconds: 4));
+    }).toList();
+
+    try {
+      final responses = await Future.wait(requests);
+      for (var response in responses) {
+        if (response.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(response.body);
+          for (var item in data) {
+            final String name = item['name'] ?? item['display_name']?.split(',').first ?? '';
+            final String address = item['display_name'] ?? '';
+            if (name.isNotEmpty && !uniqueNames.contains(name.toLowerCase())) {
+              uniqueNames.add(name.toLowerCase());
+              
+              final double itemLat = double.tryParse(item['lat'].toString()) ?? lat;
+              final double itemLon = double.tryParse(item['lon'].toString()) ?? lon;
+              final double distance = Geolocator.distanceBetween(lat, lon, itemLat, itemLon);
+
+              places.add({
+                'name': name,
+                'address': address,
+                'position': LatLng(itemLat, itemLon),
+                'distance': distance,
+              });
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // Sort by proximity/distance
+    places.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+
+    // Fallback: If Nominatim API queries fail or return empty, fall back to our geocoding offsets
+    if (places.isEmpty) {
+      final List<LatLng> offsets = [
+        LatLng(center.latitude + 0.0011, center.longitude + 0.0009), // Northeast
+        LatLng(center.latitude - 0.0009, center.longitude - 0.0012), // Southwest
+        LatLng(center.latitude + 0.0006, center.longitude - 0.0015), // Northwest
+      ];
+
+      for (int i = 0; i < offsets.length; i++) {
+        try {
+          final List<Placemark> placemarks = await placemarkFromCoordinates(
             offsets[i].latitude,
             offsets[i].longitude,
           );
+          if (placemarks.isNotEmpty) {
+            final place = placemarks[0];
+            final String fullAddressString = _buildFullAddress(place);
+            final String shortName = place.name ?? place.street ?? 'Jalan Sekitar';
+            
+            final double distance = Geolocator.distanceBetween(
+              center.latitude,
+              center.longitude,
+              offsets[i].latitude,
+              offsets[i].longitude,
+            );
 
-          places.add({
-            'name': shortName,
-            'address': fullAddressString,
-            'position': offsets[i],
-            'distance': distance,
-          });
-        }
-      } catch (_) {}
+            places.add({
+              'name': shortName,
+              'address': fullAddressString,
+              'position': offsets[i],
+              'distance': distance,
+            });
+          }
+        } catch (_) {}
+      }
     }
 
-    // Fallback recommendations if local geocoding returns empty
-    if (places.isEmpty) {
-      final pos1 = LatLng(center.latitude + 0.0008, center.longitude);
-      final pos2 = LatLng(center.latitude, center.longitude - 0.0008);
-
-      places.add({
-        'name': _getTxt('nearby_building_fallback', 'Gedung / Landskap Terdekat'),
-        'address': _getTxt('nearby_building_sub', 'Sekitar area lokasi pin aktif utama'),
-        'position': pos1,
-        'distance': Geolocator.distanceBetween(center.latitude, center.longitude, pos1.latitude, pos1.longitude),
-      });
-      places.add({
-        'name': _getTxt('nearby_street_fallback', 'Akses Jalan Utama Terdekat'),
-        'address': _getTxt('nearby_street_sub', 'Sekitar area pemukiman aktif terdekat'),
-        'position': pos2,
-        'distance': Geolocator.distanceBetween(center.latitude, center.longitude, pos2.latitude, pos2.longitude),
+    if (mounted) {
+      setState(() {
+        _nearbyLocations = places.take(12).toList(); // Show up to 12 rich results
+        _isLoadingNearby = false;
       });
     }
-
-    setState(() {
-      _nearbyLocations = places;
-      _isLoadingNearby = false;
-    });
   }
 
   void _onPositionChanged(MapCamera camera, bool hasGesture) {
