@@ -386,7 +386,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.rate_review_rounded, color: cyanColor, size: 22),
+              Icon(Icons.rate_review_rounded, color: navyColor, size: 22),
               const SizedBox(width: 10),
               Text(
                 isEn ? 'Your Review' : 'Ulasan Anda',
@@ -2667,12 +2667,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: !isDropOff 
-                          ? (isPaid ? navyColor.withValues(alpha: 0.6) : navyColor) 
+                          ? navyColor 
                           : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: !isDropOff 
-                            ? (isPaid ? navyColor.withValues(alpha: 0.6) : navyColor) 
+                            ? navyColor 
                             : Colors.grey.shade300,
                       ),
                     ),
@@ -2701,12 +2701,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       color: isDropOff 
-                          ? (isPaid ? navyColor.withValues(alpha: 0.6) : navyColor) 
+                          ? navyColor 
                           : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: isDropOff 
-                            ? (isPaid ? navyColor.withValues(alpha: 0.6) : navyColor) 
+                            ? navyColor 
                             : Colors.grey.shade300,
                       ),
                     ),
