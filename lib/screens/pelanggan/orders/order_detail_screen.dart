@@ -5289,6 +5289,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     // If waiting for customer to confirm receipt of the clean laundry (marked finished by store employee)
     if (isWaitingCustomer) {
+      final bool isCashOrCod = dbMetodeBayar == 'CASH' || dbMetodeBayar == 'COD';
+      final bool disableConfirmSelesai = isCashOrCod && !isPaid;
+
       return Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         decoration: BoxDecoration(
@@ -5305,29 +5308,82 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ],
         ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2E7D32),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (disableConfirmSelesai) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isEn
+                            ? 'Awaiting store/courier to mark payment as Paid.'
+                            : 'Menunggu karyawan menandai pembayaran lunas.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              elevation: 4,
-              shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
-            ),
-            onPressed: _confirmOrderSelesai,
-            icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
-            label: Text(
-              isEn ? 'Mark Order as Completed' : 'Tandai Pesanan Selesai',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            ],
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: disableConfirmSelesai
+                      ? Colors.grey.shade300
+                      : const Color(0xFF2E7D32),
+                  foregroundColor: disableConfirmSelesai
+                      ? Colors.grey.shade500
+                      : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: disableConfirmSelesai ? 0 : 4,
+                  shadowColor: disableConfirmSelesai
+                      ? Colors.transparent
+                      : const Color(0xFF2E7D32).withValues(alpha: 0.4),
+                ),
+                onPressed: disableConfirmSelesai ? null : _confirmOrderSelesai,
+                icon: Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 20,
+                  color: disableConfirmSelesai
+                      ? Colors.grey.shade500
+                      : Colors.white,
+                ),
+                label: Text(
+                  isEn ? 'Mark Order as Completed' : 'Tandai Pesanan Selesai',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: disableConfirmSelesai
+                        ? Colors.grey.shade500
+                        : Colors.white,
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       );
     }
