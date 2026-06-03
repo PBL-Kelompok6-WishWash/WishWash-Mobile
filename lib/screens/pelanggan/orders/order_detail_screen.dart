@@ -345,6 +345,133 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
+  Future<void> _cancelOrder() async {
+    final bool isEn = TranslationService.currentLang == 'en';
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          elevation: 8,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.red.shade100, width: 2),
+                  ),
+                  child: Icon(
+                    Icons.cancel_rounded,
+                    color: Colors.red.shade700,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  isEn ? 'Cancel Order?' : 'Batalkan Pesanan?',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isEn
+                      ? 'Are you sure you want to cancel this laundry order?'
+                      : 'Apakah Anda yakin ingin membatalkan pesanan laundry ini?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          isEn ? 'No' : 'Tidak',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          try {
+                            final updatedOrder = await OrderService.updateOrder(
+                              _currentOrder['id_order'],
+                              {'status': 'batal'},
+                            );
+                            setState(() {
+                              _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                            });
+                            if (mounted) {
+                              _showSuccessAutoDismissDialog(
+                                isEn
+                                    ? 'Order successfully cancelled!'
+                                    : 'Pesanan berhasil dibatalkan!',
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              _showErrorAutoDismissDialog(
+                                isEn
+                                    ? 'Failed to cancel order: $e'
+                                    : 'Gagal membatalkan pesanan: $e',
+                              );
+                            }
+                          }
+                        },
+                        child: Text(
+                          isEn ? 'Yes, Cancel' : 'Ya, Batalkan',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _navigateToRatingScreen() async {
     final updatedOrder = await Navigator.push(
       context,
@@ -5257,44 +5384,63 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               SizedBox(
                 width: 180,
                 height: 48,
-                child: isAlreadyConfirmedCash
-                    ? ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700,
-                          foregroundColor: Colors.white,
-                          elevation: 2,
-                          shadowColor: Colors.red.shade700.withValues(
-                            alpha: 0.3,
-                          ),
+                child: isNotWeighed
+                    ? OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.red.shade600, width: 1.5),
+                          foregroundColor: Colors.red.shade600,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
                         ),
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => Dialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
+                        onPressed: _cancelOrder,
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        label: Text(
+                          isEn ? 'Cancel Order' : 'Batalkan',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      )
+                    : isAlreadyConfirmedCash
+                        ? ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              foregroundColor: Colors.white,
+                              elevation: 2,
+                              shadowColor: Colors.red.shade700.withValues(
+                                alpha: 0.3,
                               ),
-                              child: Container(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red.shade50,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.change_circle_rounded,
-                                        color: Colors.red.shade700,
-                                        size: 40,
-                                      ),
-                                    ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                            ),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.change_circle_rounded,
+                                            color: Colors.red.shade700,
+                                            size: 40,
+                                          ),
+                                        ),
                                     const SizedBox(height: 20),
                                     Text(
                                       isEn ? 'Change Method?' : 'Ganti Metode?',
