@@ -703,9 +703,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
       }
     }
 
-    // Shift activeIndex to 1 if it is 0 and we have more states, so 'Pesanan Diterima' shows checked and stage 2 has active dot
+    // If the order has status 'Pesanan Diterima', keep the active dot at index 0 (Diterima)
     if (activeIndex == 0 && refStatuses.length > 1) {
-      activeIndex = 1;
+      activeIndex = 0;
     }
 
     final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || 
