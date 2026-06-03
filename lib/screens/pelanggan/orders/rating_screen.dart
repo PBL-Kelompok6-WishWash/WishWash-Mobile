@@ -19,10 +19,10 @@ class _RatingScreenState extends State<RatingScreen> {
   final Color cyanColor = const Color(0xFF42C6D4);
   final Color bgGrey = const Color(0xFFF8FBFC);
 
-  int bintangOverall = 5;
-  int bintangLayanan = 5;
-  int bintangKurir = 5;
-  int bintangKecepatan = 5;
+  int bintangOverall = 0;
+  int bintangLayanan = 0;
+  int bintangKurir = 0;
+  int bintangKecepatan = 0;
   final TextEditingController ulasanController = TextEditingController();
   bool isSubmitting = false;
 
@@ -113,12 +113,21 @@ class _RatingScreenState extends State<RatingScreen> {
       },
     );
   }
-
   Future<void> _submitRating() async {
+    final isEn = TranslationService.currentLang == 'en';
+    if (bintangOverall == 0 || bintangLayanan == 0 || bintangKurir == 0 || bintangKecepatan == 0) {
+      _showErrorAutoDismissDialog(
+        isEn
+            ? 'Please give a star rating for all categories!'
+            : 'Silakan berikan ulasan bintang untuk semua kategori!',
+      );
+      return;
+    }
+
     setState(() {
       isSubmitting = true;
     });
-    final isEn = TranslationService.currentLang == 'en';
+
     try {
       await PenilaianService.rateOrder(
         orderId: widget.order['id_order'],
@@ -204,19 +213,21 @@ class _RatingScreenState extends State<RatingScreen> {
             ),
             if (!isLarge)
               Text(
-                currentValue == 5
-                    ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
-                    : currentValue == 4
-                        ? (isEn ? 'Good' : 'Bagus')
-                        : currentValue == 3
-                            ? (isEn ? 'Average' : 'Cukup')
-                            : currentValue == 2
-                                ? (isEn ? 'Poor' : 'Kurang')
-                                : (isEn ? 'Very Bad' : 'Sangat Kurang'),
+                currentValue == 0
+                    ? (isEn ? 'Tap to rate' : 'Pilih rating')
+                    : currentValue == 5
+                        ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
+                        : currentValue == 4
+                            ? (isEn ? 'Good' : 'Bagus')
+                            : currentValue == 3
+                                ? (isEn ? 'Average' : 'Cukup')
+                                : currentValue == 2
+                                    ? (isEn ? 'Poor' : 'Kurang')
+                                    : (isEn ? 'Very Bad' : 'Sangat Kurang'),
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
-                  color: cyanColor,
+                  color: currentValue == 0 ? Colors.grey.shade500 : cyanColor,
                 ),
               ),
           ],
@@ -510,20 +521,22 @@ class _RatingScreenState extends State<RatingScreen> {
                                 isLarge: true,
                               ),
                               const SizedBox(height: 12),
-                              Text(
-                                bintangOverall == 5
-                                    ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
-                                    : bintangOverall == 4
-                                        ? (isEn ? 'Good' : 'Bagus')
-                                        : bintangOverall == 3
-                                            ? (isEn ? 'Average' : 'Cukup')
-                                            : bintangOverall == 2
-                                                ? (isEn ? 'Poor' : 'Kurang')
-                                                : (isEn ? 'Very Bad' : 'Sangat Kurang'),
+                               Text(
+                                bintangOverall == 0
+                                    ? (isEn ? 'Choose star rating above' : 'Pilih jumlah bintang di atas')
+                                    : bintangOverall == 5
+                                        ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
+                                        : bintangOverall == 4
+                                            ? (isEn ? 'Good' : 'Bagus')
+                                            : bintangOverall == 3
+                                                ? (isEn ? 'Average' : 'Cukup')
+                                                : bintangOverall == 2
+                                                    ? (isEn ? 'Poor' : 'Kurang')
+                                                    : (isEn ? 'Very Bad' : 'Sangat Kurang'),
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
-                                  color: cyanColor,
+                                  color: bintangOverall == 0 ? Colors.grey.shade500 : cyanColor,
                                 ),
                               )
                             ],
