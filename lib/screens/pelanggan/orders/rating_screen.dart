@@ -42,23 +42,43 @@ class _RatingScreenState extends State<RatingScreen> {
           elevation: 0,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey.shade100, width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 40),
-                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded, 
+                      color: Color(0xFF2E7D32), 
+                      size: 36,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     message,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -86,23 +106,44 @@ class _RatingScreenState extends State<RatingScreen> {
           elevation: 0,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+                border: Border.all(color: Colors.grey.shade100, width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 40),
-                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline_rounded, 
+                      color: Color(0xFFD32F2F), 
+                      size: 36,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     message,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A1A),
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.bold,
+                      height: 1.4,
                     ),
                   ),
                 ],
