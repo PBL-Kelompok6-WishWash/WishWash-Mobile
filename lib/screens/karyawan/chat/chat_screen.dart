@@ -193,7 +193,7 @@ class KaryawanChatScreen extends StatelessWidget {
                   radius: 26,
                   backgroundColor: const Color(0xFFEBF8FA),
                   child: Text(
-                    name.split(' ').map((e) => e[0]).take(2).join('').toUpperCase(),
+                    name.trim().split(' ').where((w) => w.isNotEmpty).map((e) => e[0]).take(2).join('').toUpperCase(),
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,

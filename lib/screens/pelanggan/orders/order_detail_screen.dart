@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:mobile/screens/pelanggan/chat/roomchat_admin.dart';
 import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/rating_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/pelanggan_tracking_screen.dart';
@@ -4585,10 +4589,71 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ],
                 ),
               ),
-              // WhatsApp Chat button
+              // Room Chat button
               if (hasPhone)
                 GestureDetector(
-                  onTap: openWhatsApp,
+                  onTap: () async {
+                    try {
+                      final prefs = await SharedPreferences.getInstance();
+                      final token = prefs.getString('jwt_token');
+                      if (token == null) {
+                        _showErrorAutoDismissDialog(
+                          isEn ? 'Please login first' : 'Silakan login terlebih dahulu',
+                        );
+                        return;
+                      }
+
+                      // Tampilkan loading dialog
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+
+                      final response = await http.get(
+                        Uri.parse('${Constants.baseUrl}/chat/room/order/${_currentOrder['id_order']}'),
+                        headers: {
+                          'Authorization': 'Bearer $token',
+                          'Content-Type': 'application/json',
+                        },
+                      );
+
+                      // Tutup loading dialog
+                      if (mounted) {
+                        Navigator.pop(context);
+                      }
+
+                      if (response.statusCode == 200) {
+                        final resData = jsonDecode(response.body);
+                        final int roomChatID = resData['data']['id_room_chat'];
+
+                        if (mounted) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RoomChatAdminScreen(
+                                roomChatID: roomChatID,
+                                courierName: name,
+                                platNomor: plate,
+                              ),
+                            ),
+                          );
+                        }
+                      } else {
+                        _showErrorAutoDismissDialog(
+                          isEn ? 'Failed to connect to chat room' : 'Gagal terhubung ke ruang chat',
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        // Tutup loading dialog jika error dan masih terbuka
+                        Navigator.pop(context);
+                      }
+                      _showErrorAutoDismissDialog('Error: $e');
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
