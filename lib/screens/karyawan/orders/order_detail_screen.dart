@@ -244,8 +244,42 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       activeIndex = 0;
     }
 
+    // Check if the latest status in history is "Selesai" and if it was updated by a Karyawan
+    final historyList = order['RiwayatStatusDetail'];
+    bool isCompletedByKaryawanOnly = false;
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      List<dynamic> sortedHistory = List.from(historyList);
+      sortedHistory.sort((a, b) {
+        final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+        final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+        return idA.compareTo(idB);
+      });
+      final latest = sortedHistory.last;
+      final refStatus = latest['ReferensiStatus'];
+      String latestStatusName = '';
+      if (refStatus != null && refStatus is Map) {
+        latestStatusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+      } else {
+        latestStatusName = (latest['nama_status'] ?? '').toString().toLowerCase();
+      }
+
+      if (latestStatusName.contains('selesai') ||
+          latestStatusName.contains('completed') ||
+          latestStatusName.contains('success')) {
+        final idKaryawan = latest['id_karyawan'] ?? latest['KaryawanID'];
+        if (idKaryawan != null && (idKaryawan as num).toInt() > 0) {
+          isCompletedByKaryawanOnly = true;
+        }
+      }
+    }
+
     final bool isSelesai =
-        lowerCurrent.contains('selesai') || lowerCurrent.contains('completed');
+        (lowerCurrent.contains('selesai') ||
+        lowerCurrent.contains('completed') ||
+        lowerCurrent.contains('batal') ||
+        lowerCurrent.contains('tolak') ||
+        lowerCurrent.contains('reject')) &&
+        !isCompletedByKaryawanOnly;
 
     return {
       'nama_status': TranslationService.translateStatus(currentStatus),
@@ -253,6 +287,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       'active_index': activeIndex,
       'statuses': refStatuses,
       'is_selesai': isSelesai,
+      'is_waiting_customer_confirm': isCompletedByKaryawanOnly,
     };
   }
 
@@ -1234,17 +1269,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         ? _currentOrder['kode_order'].toString()
         : 'WW-${_currentOrder['id_order']}';
 
+    final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final layanan = _currentOrder['Layanan'] ?? {};
     final String rawServiceName = layanan['nama_layanan'] ?? 'Layanan Laundry';
     final double kuantitas =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
-    final String qtyStr = kuantitas == 0.0
-        ? (TranslationService.currentLang == 'en'
-              ? ' (Pending Weight)'
-              : ' (Menunggu Timbang)')
-        : ' ($kuantitas kg)';
-    final serviceName =
-        '${TranslationService.translateService(rawServiceName)}$qtyStr';
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String qtyStr = kuantitas > 0.0
+        ? '$kuantitas kg'
+        : (rawStatus.contains('diterima') || rawStatus.contains('received')
+            ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
+            : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
+                ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
+                : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
+    final serviceName = TranslationService.translateService(rawServiceName);
     final baseColor = _getServiceColor(rawServiceName);
     final orderColor = _getDarkenedTextColor(baseColor);
 
@@ -1289,7 +1328,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final estDate = _getEstSelesaiDate(_currentOrder);
     final orderDate = _formatDate(_currentOrder['tgl_pesanan']);
 
-    final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final String currentStatus = statusInfo['nama_status'];
 
     final pelanggan = _currentOrder['Pelanggan'] ?? {};
@@ -1389,6 +1427,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           order: _currentOrder,
                           orderId: orderId,
                           serviceName: serviceName,
+                          qtyStr: qtyStr,
                           price: priceStr,
                           estDate: estDate,
                           statusInfo: statusInfo,
@@ -1473,6 +1512,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required Map<String, dynamic> order,
     required String orderId,
     required String serviceName,
+    required String qtyStr,
     required String price,
     required String estDate,
     required Map<String, dynamic> statusInfo,
@@ -1568,14 +1608,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           const SizedBox(height: 12),
           Text(
             isCancelled
-                ? (isEn
-                      ? '${serviceName.split('(')[0].trim()} (Cancelled)'
-                      : '${serviceName.split('(')[0].trim()} (Dibatalkan)')
+                ? (isEn ? '$serviceName (Cancelled)' : '$serviceName (Dibatalkan)')
                 : serviceName,
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
               color: isCancelled ? Colors.red.shade900 : orderColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            qtyStr,
+            style: GoogleFonts.poppins(
+              fontSize: 12.5,
+              color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (!isCancelled) ...[
@@ -3408,6 +3455,64 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Footer lengket berisi Tombol Update Status & Pembayaran
   Widget _buildStickyActionFooter() {
+    final statusInfo = _getCurrentStatusInfo(_currentOrder);
+    final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
+
+    if (isWaitingCustomer) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      TranslationService.currentLang == 'en'
+                          ? 'Waiting for customer to mark order as completed.'
+                          : 'Menunggu pelanggan menandai pesanan selesai.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final status = _getOrderStatus(_currentOrder).toLowerCase();
     final statusPembayaran = _getPaymentStatus(_currentOrder);
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
@@ -3447,139 +3552,133 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
     if (status == 'siap diantar' && !isDropOff) {
-      if (!_isDeliveryStarted) {
-        actionBtnText = TranslationService.currentLang == 'en'
-            ? 'Deliver Now'
-            : 'Antar Sekarang';
-        customAction = () {
-          if (!canDeliver) {
-            String warningMsg = '';
-            if (!isPaymentConfirmed) {
-              warningMsg = TranslationService.currentLang == 'en'
-                  ? 'The customer has not selected a payment method (Cash/QRIS) yet in their app.'
-                  : 'Pelanggan belum memilih metode pembayaran (Cash/QRIS) di aplikasi mereka.';
-            } else if (paymentMethod == 'QRIS' && paymentStatus != 'Lunas') {
-              warningMsg = TranslationService.currentLang == 'en'
-                  ? 'The customer selected QRIS payment, but the payment status is not LUNAS yet.'
-                  : 'Pelanggan memilih metode pembayaran QRIS, tetapi status pembayaran belum LUNAS.';
-            }
-
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) {
-                final isEn = TranslationService.currentLang == 'en';
-                return Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
-                  child: Container(
-                    padding: const EdgeInsets.all(28),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: navyColor.withValues(alpha: 0.15),
-                          blurRadius: 30,
-                          spreadRadius: 0,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Icon Header
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFF3E0),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.warning_amber_rounded,
-                            color: Color(0xFFE65100),
-                            size: 36,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // Title
-                        Text(
-                          isEn
-                              ? 'Payment Unconfirmed'
-                              : 'Pembayaran Belum Siap',
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: navyColor,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        // Content
-                        Text(
-                          warningMsg,
-                          textAlign: TextAlign.center,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        // Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: navyColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 0,
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              isEn ? 'Understood' : 'Mengerti',
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-            return;
+      actionBtnText = TranslationService.currentLang == 'en'
+          ? 'View Delivery Route'
+          : 'Lihat Rute Pengantaran';
+      customAction = () async {
+        if (!canDeliver) {
+          String warningMsg = '';
+          if (!isPaymentConfirmed) {
+            warningMsg = TranslationService.currentLang == 'en'
+                ? 'The customer has not selected a payment method (Cash/QRIS) yet in their app.'
+                : 'Pelanggan belum memilih metode pembayaran (Cash/QRIS) di aplikasi mereka.';
+          } else if (paymentMethod == 'QRIS' && paymentStatus != 'Lunas') {
+            warningMsg = TranslationService.currentLang == 'en'
+                ? 'The customer selected QRIS payment, but the payment status is not LUNAS yet.'
+                : 'Pelanggan memilih metode pembayaran QRIS, tetapi status pembayaran belum LUNAS.';
           }
 
-          _showConfirmationDialog(
-            title: TranslationService.currentLang == 'en'
-                ? 'Start Delivery?'
-                : 'Mulai Pengantaran?',
-            content: TranslationService.currentLang == 'en'
-                ? 'Are you sure you want to start delivering this order now?'
-                : 'Apakah Anda yakin ingin mulai mengantarkan pesanan ini sekarang?',
-            onConfirm: () {
-              setState(() {
-                _isDeliveryStarted = true;
-              });
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) {
+              final isEn = TranslationService.currentLang == 'en';
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: navyColor.withValues(alpha: 0.15),
+                        blurRadius: 30,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFFF3E0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFE65100),
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        isEn
+                            ? 'Payment Unconfirmed'
+                            : 'Pembayaran Belum Siap',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        warningMsg,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: navyColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            isEn ? 'Understood' : 'Mengerti',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           );
-        };
-      } else {
-        actionBtnText = '';
-      }
+          return;
+        }
+
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                KaryawanTrackingScreen(order: _currentOrder),
+          ),
+        );
+        if (result != null &&
+            result is Map<String, dynamic> &&
+            mounted) {
+          setState(() {
+            _currentOrder = result;
+          });
+          widget.onOrderUpdated(_currentOrder);
+        }
+      };
     } else if (currentStatusIdx != -1 &&
         currentStatusIdx < refStatuses.length - 1) {
       final nextRef = refStatuses[currentStatusIdx + 1];
@@ -3602,28 +3701,26 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       } else if (status.contains('jemput') ||
           status.contains('pickup') ||
           status.contains('penjemputan')) {
-        if (!_isPickupStarted) {
-          actionBtnText = TranslationService.currentLang == 'en'
-              ? 'Pick Up Now'
-              : 'Jemput Sekarang';
-          customAction = () {
-            _showConfirmationDialog(
-              title: TranslationService.currentLang == 'en'
-                  ? 'Start Pickup?'
-                  : 'Mulai Penjemputan?',
-              content: TranslationService.currentLang == 'en'
-                  ? 'Are you sure you want to start picking up this order now?'
-                  : 'Apakah Anda yakin ingin mulai menjemput pesanan ini sekarang?',
-              onConfirm: () {
-                setState(() {
-                  _isPickupStarted = true;
-                });
-              },
-            );
-          };
-        } else {
-          actionBtnText = '';
-        }
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'View Pickup Route'
+            : 'Lihat Rute Penjemputan';
+        customAction = () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  KaryawanTrackingScreen(order: _currentOrder),
+            ),
+          );
+          if (result != null &&
+              result is Map<String, dynamic> &&
+              mounted) {
+            setState(() {
+              _currentOrder = result;
+            });
+            widget.onOrderUpdated(_currentOrder);
+          }
+        };
       } else if (lowerNext.contains('jemput') ||
           lowerNext.contains('pickup') ||
           lowerNext.contains('penjemputan')) {
@@ -3890,7 +3987,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       (status == 'siap diantar' ||
                               status == 'penjemputan' ||
                               nextStatus == 'penjemputan')
-                          ? (isDropOff ? Icons.check_circle_outline_rounded : Icons.local_shipping_outlined)
+                          ? (isDropOff ? Icons.check_circle_outline_rounded : Icons.route_outlined)
                           : Icons.check_circle_outline_rounded,
                       size: 20,
                     ),

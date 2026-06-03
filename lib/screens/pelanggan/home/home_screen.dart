@@ -667,10 +667,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 );
   }
 
-  // --- REVISI UTAMA: PROMO SLIDER ---
+   // --- REVISI UTAMA: PROMO SLIDER ---
   Widget _buildPromoSlider() {
+    final bool isTablet = MediaQuery.of(context).size.width >= 600;
     return SizedBox(
-      height: 180,
+      height: isTablet ? 240 : 180,
       child: PageView(
         controller: _promoController,
         onPageChanged: (index) => setState(() => _currentPromoIndex = index),
@@ -706,6 +707,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     String imagePath,
     Color textColor, // Tambah parameter warna teks
   ) {
+    final bool isTablet = MediaQuery.of(context).size.width >= 600;
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 8,
@@ -727,11 +729,11 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         children: [
           // Gambar di pojok kanan bawah
           Positioned(
-            right: -10,
+            right: isTablet ? 10 : -10,
             bottom: 0,
             child: SizedBox(
-              width: 140,
-              height: 140,
+              width: isTablet ? 200 : 140,
+              height: isTablet ? 200 : 140,
               child: Image.asset(
                 imagePath,
                 fit: BoxFit.contain,
@@ -745,7 +747,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           ),
           // Teks di sisi kiri
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(isTablet ? 32 : 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -753,7 +755,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: isTablet ? 24 : 18,
                     fontWeight: FontWeight.w900,
                     color: textColor, // Menggunakan warna adaptif
                   ),
@@ -762,10 +764,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 11,
-                    color: textColor.withOpacity(
-                      0.7,
-                    ), // Mengikuti warna teks utama
+                    fontSize: isTablet ? 14 : 11,
+                    color: textColor.withOpacity(0.7),
                     height: 1.4,
                   ),
                 ),
@@ -1347,10 +1347,12 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
+                      crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 3 : 2,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: MediaQuery.of(context).size.width < 360 ? 1.75 : 2.1,
+                      childAspectRatio: MediaQuery.of(context).size.width >= 600
+                          ? 2.3
+                          : (MediaQuery.of(context).size.width < 360 ? 1.75 : 2.1),
                     ),
                     itemCount: _services.length,
                     itemBuilder: (context, index) {
@@ -1562,7 +1564,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 242,
+          height: MediaQuery.of(context).size.width >= 600 ? 295 : 282,
           child: PageView.builder(
             controller: _activeOrderController,
             itemCount: _activeOrders.length,
@@ -1614,13 +1616,18 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     final estDate = _getEstSelesaiDate(order);
     final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
     
-    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-    final String qtyStr = kuantitas == 0.0
-        ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
-        : ' ($kuantitas kg)';
-    final price = _formatRupiah(totalBayar);
-
     final statusInfo = _getCurrentStatusInfo(order);
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String qtyStr = kuantitas > 0.0
+        ? '$kuantitas kg'
+        : (rawStatus.contains('diterima') || rawStatus.contains('received')
+            ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
+            : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
+                ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
+                : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
+    final price = _formatRupiah(totalBayar);
 
     return Align(
       alignment: Alignment.topCenter,
@@ -1681,11 +1688,20 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           const SizedBox(height: 12),
           // Jenis Layanan
           Text(
-            '${TranslationService.translateService(serviceName)}$qtyStr',
+            TranslationService.translateService(serviceName),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w900,
               color: orderColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            qtyStr,
+            style: TextStyle(
+              fontSize: 12,
+              color: orderColor.withOpacity(0.7),
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),

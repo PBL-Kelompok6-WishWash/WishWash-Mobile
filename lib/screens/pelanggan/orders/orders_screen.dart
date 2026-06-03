@@ -7,6 +7,7 @@ import 'package:mobile/screens/pelanggan/profile/profile_screen.dart';
 import 'package:mobile/screens/pelanggan/home/notifikasi.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/rating_screen.dart';
 import 'package:mobile/screens/pelanggan/create_order/create_order_screen.dart';
 import 'package:mobile/services/order_service.dart';
 
@@ -453,21 +454,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final String activeText = TranslationService.currentLang == 'en' ? 'Active' : 'Aktif';
     final String historyText = TranslationService.currentLang == 'en' ? 'History' : 'Riwayat';
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 15,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: LayoutBuilder(
+          child: LayoutBuilder(
         builder: (context, constraints) {
           final double tabWidth = constraints.maxWidth / 2;
           return Stack(
@@ -538,6 +542,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           );
         },
       ),
+    ),
+    ),
     );
   }
 
@@ -764,10 +770,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-      itemCount: activeOrders.length,
-      itemBuilder: (context, index) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+          itemCount: activeOrders.length,
+          itemBuilder: (context, index) {
         final order = activeOrders[index];
         final String orderId = order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
             ? order['kode_order'].toString()
@@ -809,6 +818,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         );
       },
+    ),
+    ),
     );
   }
 
@@ -828,10 +839,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-      itemCount: completedOrders.length,
-      itemBuilder: (context, index) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+          itemCount: completedOrders.length,
+          itemBuilder: (context, index) {
         final order = completedOrders[index];
         final String orderId = order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
             ? order['kode_order'].toString()
@@ -880,6 +894,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         );
       },
+    ),
+    ),
     );
   }
 
@@ -896,9 +912,18 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final orderColor = _getDarkenedTextColor(baseColor);
 
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-    final String qtyStr = kuantitas == 0.0
-        ? (TranslationService.currentLang == 'en' ? ' (Pending Weight)' : ' (Menunggu Timbang)')
-        : ' ($kuantitas kg)';
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('cancel') || rawStatus.contains('tolak') || rawStatus.contains('reject');
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String qtyStr = kuantitas > 0.0
+        ? '$kuantitas kg'
+        : (isCancelled
+            ? ''
+            : (rawStatus.contains('diterima') || rawStatus.contains('received')
+                ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
+                : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
+                    ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
+                    : (isEn ? 'Pending Weight' : 'Menunggu Timbang'))));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -946,13 +971,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            '${TranslationService.translateService(serviceName)}$qtyStr',
+            TranslationService.translateService(serviceName),
             style: GoogleFonts.poppins(
               fontSize: 15,
               fontWeight: FontWeight.bold,
               color: orderColor,
             ),
           ),
+          if (qtyStr.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              qtyStr,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -1092,7 +1128,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     final statusInfo = _getCurrentStatusInfo(order);
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
-    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('tolak') || rawStatus.contains('reject');
+    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('cancel') || rawStatus.contains('tolak') || rawStatus.contains('reject');
+
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String qtyStr = kuantitas > 0.0
+        ? '$kuantitas kg'
+        : (isCancelled
+            ? ''
+            : (rawStatus.contains('diterima') || rawStatus.contains('received')
+                ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
+                : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
+                    ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
+                    : (isEn ? 'Pending Weight' : 'Menunggu Timbang'))));
 
     return GestureDetector(
       onTap: () async {
@@ -1167,6 +1215,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
               color: isCancelled ? Colors.red.shade900 : orderColor,
             ),
           ),
+          if (qtyStr.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              qtyStr,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.7),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           SizedBox(height: isCancelled ? 8 : 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1257,27 +1316,75 @@ class _OrdersScreenState extends State<OrdersScreen> {
             children: [
               if (!isCancelled) ...[
                 Expanded(
-                  child: SizedBox(
-                    height: 40,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: orderColor,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  child: order['Penilaian'] != null
+                      ? Container(
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${order['Penilaian']['bintang']}.0',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                TranslationService.currentLang == 'en' ? 'Rated' : 'Dinilai',
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.amber.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : SizedBox(
+                          height: 40,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RatingScreen(order: order),
+                                ),
+                              );
+                              _fetchOrders();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: orderColor,
+                              elevation: 1,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              TranslationService.currentLang == 'en' ? 'Write Review' : 'Beri Ulasan',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        TranslationService.currentLang == 'en' ? 'Write Review' : 'Beri Ulasan',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
                 const SizedBox(width: 12),
               ],

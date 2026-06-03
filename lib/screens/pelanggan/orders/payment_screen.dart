@@ -672,8 +672,86 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            elevation: 12,
+            shadowColor: Colors.black.withValues(alpha: 0.1),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEE2E2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFFECACA), width: 3),
+                    ),
+                    child: const Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.red,
+                      size: 54,
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  Text(
+                    TranslationService.currentLang == 'en' ? 'Error' : 'Kesalahan',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: navyColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Error: $e',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Container(
+                    width: double.infinity,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [navyColor, cyanColor],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        TranslationService.currentLang == 'en' ? 'Close' : 'Tutup',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       }
     }
@@ -1818,11 +1896,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     shadowColor: navyColor.withValues(alpha: 0.4),
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isEn ? 'Downloading Receipt PDF...' : 'Mengunduh Kuitansi PDF...'),
-                        backgroundColor: navyColor,
-                      ),
+                    showDialog(
+                      context: context,
+                      builder: (ctx) {
+                        Future.delayed(const Duration(seconds: 2), () {
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                          }
+                        });
+                        return Dialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                          elevation: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(22),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFD1FAE5),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: const Color(0xFFA7F3D0), width: 3),
+                                  ),
+                                  child: const Icon(
+                                    Icons.file_download_done_rounded,
+                                    color: Color(0xFF059669),
+                                    size: 54,
+                                  ),
+                                ),
+                                const SizedBox(height: 26),
+                                Text(
+                                  isEn ? 'Downloading Receipt...' : 'Mengunduh Kuitansi...',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: navyColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                   icon: const Icon(Icons.file_download_outlined),
