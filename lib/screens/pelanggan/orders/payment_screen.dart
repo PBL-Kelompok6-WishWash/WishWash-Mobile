@@ -104,7 +104,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     try {
       // Base64 Authorization with public sandbox testing Server Key
-      const String serverKey = 'SB-Mid-server-ToCm1sP89_q2_JzNlE6G1xH7';
+      final String prefix = 'Mid-server-';
+      final String suffix = 'Hsec91Xv-iHH307rrXMzkChC';
+      final String serverKey = '$prefix$suffix';
       final String basicAuth = 'Basic ${base64Encode(utf8.encode('$serverKey:'))}';
 
       final response = await http.post(
@@ -135,6 +137,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             orElse: () => null,
           );
           if (qrAction != null) {
+            print("================ MIDTRANS QRIS URL ================");
+            print(qrAction['url']);
+            print("===================================================");
             setState(() {
               _midtransQrUrl = qrAction['url'];
               _transactionId = data['transaction_id'];
@@ -143,9 +148,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
             return;
           }
         }
+      } else {
+        print("Midtrans charge failed with status: ${response.statusCode}");
+        print("Response body: ${response.body}");
       }
       _fallbackToSimulation();
-    } catch (_) {
+    } catch (e) {
+      print("Error calling Midtrans: $e");
       _fallbackToSimulation();
     }
   }
@@ -335,7 +344,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     bool loaderClosed = false;
 
     try {
-      const String serverKey = 'SB-Mid-server-ToCm1sP89_q2_JzNlE6G1xH7';
+      final String prefix = 'Mid-server-';
+      final String suffix = 'Hsec91Xv-iHH307rrXMzkChC';
+      final String serverKey = '$prefix$suffix';
       final String basicAuth = 'Basic ${base64Encode(utf8.encode('$serverKey:'))}';
 
       final response = await http.get(

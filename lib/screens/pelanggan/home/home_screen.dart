@@ -264,7 +264,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     return sortedList;
   }
 
-  String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false}) {
+  String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false, bool isDropOff = false}) {
     final status = rawStatus.toLowerCase().trim();
     final isEn = lang == 'en';
     
@@ -290,7 +290,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       return isEn ? 'Iron' : 'Setrika';
     }
     if (status.contains('antar') || status.contains('ready') || status.contains('siap diantar')) {
-      return isEn ? 'Ready' : 'Kirim';
+      return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
     if (status.contains('selesai') || status.contains('completed') || status.contains('success') || status.contains('done') || status.contains('batal') || status.contains('cancel') || status.contains('tolak') || status.contains('reject')) {
       if (isCancelled) {
@@ -379,7 +379,32 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       activeIndex = 0;
     }
 
-    final bool isSelesai = rawStatus.toLowerCase().contains('selesai') || rawStatus.toLowerCase().contains('completed') || rawStatus.toLowerCase().contains('success');
+    // Check if the latest status in history is "Selesai" and if it was updated by a Karyawan
+    bool isCompletedByKaryawanOnly = false;
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      final latest = sortedHistory.last;
+      final refStatusObj = latest['ReferensiStatus'];
+      String latestStatusName = '';
+      if (refStatusObj != null && refStatusObj is Map) {
+        latestStatusName = (refStatusObj['nama_status'] ?? '').toString().toLowerCase();
+      } else {
+        latestStatusName = (latest['nama_status'] ?? '').toString().toLowerCase();
+      }
+
+      if (latestStatusName.contains('selesai') ||
+          latestStatusName.contains('completed') ||
+          latestStatusName.contains('success')) {
+        final idKaryawan = latest['id_karyawan'] ?? latest['KaryawanID'];
+        if (idKaryawan != null && (idKaryawan as num).toInt() > 0) {
+          isCompletedByKaryawanOnly = true;
+        }
+      }
+    }
+
+    final bool isSelesai = (rawStatus.toLowerCase().contains('selesai') || 
+                           rawStatus.toLowerCase().contains('completed') || 
+                           rawStatus.toLowerCase().contains('success')) &&
+                           !isCompletedByKaryawanOnly;
 
     return {
       'nama_status': translatedStatus,
@@ -387,6 +412,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       'active_index': activeIndex,
       'statuses': refStatuses,
       'is_selesai': isSelesai,
+      'is_waiting_customer_confirm': isCompletedByKaryawanOnly,
     };
   }
 
@@ -479,7 +505,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 65),
+                padding: const EdgeInsets.only(bottom: 140),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1720,7 +1746,13 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final String shortLabel = _getShortStatusLabel(rawName, lang, isCancelled: isCancelled);
+              final bool isDropOff = order['tipe_logistik'] == 'Drop-off';
+              final String shortLabel = _getShortStatusLabel(
+                rawName,
+                lang,
+                isCancelled: isCancelled,
+                isDropOff: isDropOff,
+              );
               
               final bool isCurrent = i == activeIdx && !isSelesai;
               final bool isDone = (i < activeIdx) || (isSelesai && i == refStatuses.length - 1) || (i == 0 && activeIdx > 0);

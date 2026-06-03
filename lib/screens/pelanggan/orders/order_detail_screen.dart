@@ -30,7 +30,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   bool _isProgressExpanded = true;
 
   // Interactive Payment & Checkout state
-  String _selectedPaymentMethod = 'QRIS';
+  String? _selectedPaymentMethod;
   final TextEditingController _promoController = TextEditingController();
   double _appliedPromoDiscount = 0.0;
   bool _isPromoApplied = false;
@@ -132,6 +132,144 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _confirmOrderSelesai() async {
+    final bool isEn = TranslationService.currentLang == 'en';
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF2E7D32),
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  isEn ? 'Confirm Completed?' : 'Konfirmasi Selesai?',
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isEn
+                      ? 'Are you sure you want to mark this order as completed?'
+                      : 'Apakah Anda yakin ingin menandai pesanan ini telah selesai?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          isEn ? 'Cancel' : 'Batal',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          try {
+                            final updatedOrder = await OrderService.updateOrder(
+                              _currentOrder['id_order'],
+                              {'status': 'selesai'},
+                            );
+                            setState(() {
+                              _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                            });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isEn
+                                        ? 'Order successfully completed!'
+                                        : 'Pesanan berhasil diselesaikan!',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.green.shade700,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isEn
+                                        ? 'Failed to complete order: $e'
+                                        : 'Gagal menyelesaikan pesanan: $e',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Text(
+                          isEn ? 'Yes, Complete' : 'Ya, Selesai',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   List<Map<String, dynamic>> _getSortedReferenceStatuses(
@@ -335,12 +473,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       activeIndex = 0;
     }
 
+    // Check if the latest status in history is "Selesai" and if it was updated by a Karyawan
+    final historyList = order['RiwayatStatusDetail'];
+    bool isCompletedByKaryawanOnly = false;
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      List<dynamic> sortedHistory = List.from(historyList);
+      sortedHistory.sort((a, b) {
+        final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+        final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+        return idA.compareTo(idB);
+      });
+      final latest = sortedHistory.last;
+      final refStatus = latest['ReferensiStatus'];
+      String latestStatusName = '';
+      if (refStatus != null && refStatus is Map) {
+        latestStatusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+      } else {
+        latestStatusName = (latest['nama_status'] ?? '').toString().toLowerCase();
+      }
+
+      if (latestStatusName.contains('selesai') ||
+          latestStatusName.contains('completed') ||
+          latestStatusName.contains('success')) {
+        final idKaryawan = latest['id_karyawan'] ?? latest['KaryawanID'];
+        if (idKaryawan != null && (idKaryawan as num).toInt() > 0) {
+          isCompletedByKaryawanOnly = true;
+        }
+      }
+    }
+
     final bool isSelesai =
-        lowerCurrent.contains('selesai') ||
+        (lowerCurrent.contains('selesai') ||
         lowerCurrent.contains('completed') ||
         lowerCurrent.contains('batal') ||
         lowerCurrent.contains('tolak') ||
-        lowerCurrent.contains('reject');
+        lowerCurrent.contains('reject')) &&
+        !isCompletedByKaryawanOnly;
 
     return {
       'nama_status': TranslationService.translateStatus(currentStatus),
@@ -348,6 +516,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       'active_index': activeIndex,
       'statuses': refStatuses,
       'is_selesai': isSelesai,
+      'is_waiting_customer_confirm': isCompletedByKaryawanOnly,
     };
   }
 
@@ -3179,7 +3348,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return InkWell(
       onTap: () {
         setState(() {
-          _selectedPaymentMethod = methodId;
+          if (_selectedPaymentMethod == methodId) {
+            _selectedPaymentMethod = null;
+          } else {
+            _selectedPaymentMethod = methodId;
+          }
         });
       },
       borderRadius: BorderRadius.circular(14),
@@ -4626,16 +4799,71 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (isCancelled) {
       return const SizedBox.shrink();
     }
-    // If PAID, we do not need the redundant sticky footer since we already have the download invoice modal button on the screen
-    if (isPaid) {
-      return const SizedBox.shrink();
-    }
+
+    final statusInfo = _getCurrentStatusInfo(_currentOrder);
+    final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
+    final String currentStatus = _getOrderStatus(_currentOrder);
+    final String lowerCurrent = currentStatus.toLowerCase().trim();
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool isReadyForDelivery = lowerCurrent.contains('antar') || lowerCurrent.contains('ambil') || lowerCurrent.contains('ready');
 
     final pembayaran = _currentOrder['Pembayaran'];
     final String dbMetodeBayar =
         pembayaran != null && pembayaran['metode_bayar'] != null
         ? pembayaran['metode_bayar'].toString().toUpperCase()
         : '';
+    final bool isPaymentMethodConfirmed = dbMetodeBayar.isNotEmpty && dbMetodeBayar != 'BELUM DIBAYAR';
+
+    // If waiting for customer to confirm receipt of the clean laundry (marked finished by store employee)
+    if (isWaitingCustomer) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2E7D32),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              shadowColor: const Color(0xFF2E7D32).withValues(alpha: 0.4),
+            ),
+            onPressed: _confirmOrderSelesai,
+            icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+            label: Text(
+              isEn ? 'Mark Order as Completed' : 'Tandai Pesanan Selesai',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // If PAID, we do not need the redundant sticky footer since we already have the download invoice modal button on the screen
+    if (isPaid) {
+      return const SizedBox.shrink();
+    }
+
     final bool isAlreadyConfirmedCash = dbMetodeBayar == 'CASH';
 
     // If NOT PAID, show interactive Pay Now (QRIS) or Confirm COD button
@@ -4643,6 +4871,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final bool isNotWeighed = kuantitasVal == 0.0;
+    final bool isButtonDisabled = isNotWeighed || _selectedPaymentMethod == null;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -4663,6 +4892,39 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (isDropOff && isReadyForDelivery && isPaymentMethodConfirmed && !isPaid) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.storefront_rounded,
+                    color: Colors.amber.shade900,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'Please pick up your laundry at our store outlet.'
+                          : 'Silakan ambil cucian Anda di outlet toko.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (isNotWeighed) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -4908,22 +5170,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       )
                     : ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isNotWeighed
+                          backgroundColor: isButtonDisabled
                               ? Colors.grey.shade300
                               : (isQRIS ? navyColor : Colors.green.shade700),
-                          foregroundColor: isNotWeighed
+                          foregroundColor: isButtonDisabled
                               ? Colors.grey.shade500
                               : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          elevation: isNotWeighed ? 0 : 4,
-                          shadowColor: isNotWeighed
+                          elevation: isButtonDisabled ? 0 : 4,
+                          shadowColor: isButtonDisabled
                               ? Colors.transparent
                               : (isQRIS ? navyColor : Colors.green.shade700)
                                     .withValues(alpha: 0.4),
                         ),
-                        onPressed: isNotWeighed
+                        onPressed: isButtonDisabled
                             ? null
                             : () {
                                 if (isQRIS) {
@@ -5330,7 +5592,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ? Icons.qr_code_scanner_rounded
                               : Icons.payments_rounded,
                           size: 16,
-                          color: isNotWeighed
+                          color: isButtonDisabled
                               ? Colors.grey.shade500
                               : Colors.white,
                         ),
@@ -5341,7 +5603,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color: isNotWeighed
+                            color: isButtonDisabled
                                 ? Colors.grey.shade500
                                 : Colors.white,
                           ),

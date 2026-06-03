@@ -597,8 +597,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   Future<void> _updateStatus(String newStatus) async {
-    final translatedStatus = TranslationService.translateStatus(newStatus);
     final isEn = TranslationService.currentLang == 'en';
+    final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
+    final bool isDropOff = logistikType == 'Drop-off';
+
+    String translatedStatus = TranslationService.translateStatus(newStatus);
+    if (isDropOff && (newStatus.toLowerCase().contains('antar') || newStatus.toLowerCase().contains('siap diantar'))) {
+      translatedStatus = isEn ? 'Ready for Pickup' : 'Siap Diambil';
+    }
+
     _showConfirmationDialog(
       title: isEn ? 'Confirm Status Change' : 'Konfirmasi Perubahan Status',
       content: isEn
@@ -3406,7 +3413,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
     final double kuantitas =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
-    final bool showTandaiLunas = isBelumLunas && kuantitas > 0.0;
+
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String paymentMethod =
+        pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : '';
+    final String paymentStatus = _getPaymentStatus(_currentOrder);
+
+    final bool showTandaiLunas = isBelumLunas && kuantitas > 0.0 && (paymentMethod == 'CASH' || paymentMethod == 'COD');
 
     String actionBtnText = '';
     String nextStatus = '';
@@ -3422,13 +3437,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final String logistikType =
         _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
     final bool isDropOff = logistikType == 'Drop-off';
-
-    final pembayaran = _currentOrder['Pembayaran'];
-    final String paymentMethod =
-        pembayaran != null && pembayaran['metode_bayar'] != null
-        ? pembayaran['metode_bayar'].toString().toUpperCase()
-        : '';
-    final String paymentStatus = _getPaymentStatus(_currentOrder);
 
     final bool isPaymentConfirmed =
         pembayaran != null && paymentMethod.isNotEmpty;
@@ -3638,8 +3646,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             lowerNext.contains('success')) {
           if (!isBelumLunas) {
             actionBtnText = isEn
-                ? 'Mark Order as Completed'
-                : 'Tandai Pesanan Selesai';
+                ? (isDropOff ? 'Confirm Laundry Picked Up' : 'Mark Order as Completed')
+                : (isDropOff ? 'Konfirmasi Pesanan Sudah Diambil' : 'Tandai Pesanan Selesai');
           } else {
             actionBtnText = '';
           }
@@ -3647,8 +3655,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             lowerNext.contains('delivery') ||
             lowerNext.contains('siap diantar')) {
           actionBtnText = isEn
-              ? 'Process $currentLabel Completed ➔ Ready to Deliver'
-              : 'Proses $currentLabel Selesai ➔ Siap Diantar';
+              ? (isDropOff ? 'Process $currentLabel Completed' : 'Process $currentLabel Completed ➔ Ready to Deliver')
+              : (isDropOff ? 'Proses $currentLabel Selesai' : 'Proses $currentLabel Selesai ➔ Siap Diantar');
         } else {
           actionBtnText = isEn
               ? 'Process $currentLabel Completed ➔ Start $nextLabel'
@@ -3684,6 +3692,73 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (status == 'siap diantar' && isDropOff) ...[
+            if (!isPaymentConfirmed) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        TranslationService.currentLang == 'en'
+                            ? 'Waiting for customer to choose payment method (Cash/QRIS) in the app.'
+                            : 'Menunggu pelanggan memilih metode pembayaran (Cash/QRIS) di aplikasi.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        TranslationService.currentLang == 'en'
+                            ? 'Waiting for customer to come and pick up the laundry.'
+                            : 'Menunggu pelanggan datang untuk mengambil cucian.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
           if (status == 'siap diantar' && !isDropOff && !canDeliver) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -3812,10 +3887,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      status == 'siap diantar' ||
+                      (status == 'siap diantar' ||
                               status == 'penjemputan' ||
-                              nextStatus == 'penjemputan'
-                          ? Icons.local_shipping_outlined
+                              nextStatus == 'penjemputan')
+                          ? (isDropOff ? Icons.check_circle_outline_rounded : Icons.local_shipping_outlined)
                           : Icons.check_circle_outline_rounded,
                       size: 20,
                     ),
