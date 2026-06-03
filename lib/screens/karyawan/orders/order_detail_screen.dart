@@ -88,7 +88,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       }
     }
 
-    if (order['tipe_logistik'] == 'Drop-off') {
+    final bool hasPickup = (order['id_alamat_pengambilan'] != null && order['id_alamat_pengambilan'] != 0) ||
+        (order['AlamatPengambilan'] != null && order['AlamatPengambilan']['id_alamat'] != null && order['AlamatPengambilan']['id_alamat'] != 0);
+    if (!hasPickup) {
       sortedList.removeWhere((element) {
         final name = (element['nama_status'] ?? '').toString().toLowerCase();
         return name.contains('jemput') ||
@@ -3455,10 +3457,33 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Footer lengket berisi Tombol Update Status & Pembayaran
   Widget _buildStickyActionFooter() {
+    final status = _getOrderStatus(_currentOrder).toLowerCase();
+    final statusPembayaran = _getPaymentStatus(_currentOrder);
+    final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
+    final double kuantitas =
+        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String paymentMethod =
+        pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : '';
+    final String paymentStatus = _getPaymentStatus(_currentOrder);
+
+    final String logistikType =
+        _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
+    final bool isDropOff = logistikType == 'Drop-off';
+
+    final bool isDeliveringNow = (status == 'siap diantar' || status == 'kirim') && !isDropOff;
+    final bool showTandaiLunas = isBelumLunas &&
+        kuantitas > 0.0 &&
+        (paymentMethod == 'CASH' || paymentMethod == 'COD') &&
+        !isDeliveringNow;
+
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
 
-    if (isWaitingCustomer) {
+    if (isWaitingCustomer && !showTandaiLunas) {
       return Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         decoration: BoxDecoration(
@@ -3513,21 +3538,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       );
     }
 
-    final status = _getOrderStatus(_currentOrder).toLowerCase();
-    final statusPembayaran = _getPaymentStatus(_currentOrder);
-    final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
-    final double kuantitas =
-        (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
-
-    final pembayaran = _currentOrder['Pembayaran'];
-    final String paymentMethod =
-        pembayaran != null && pembayaran['metode_bayar'] != null
-        ? pembayaran['metode_bayar'].toString().toUpperCase()
-        : '';
-    final String paymentStatus = _getPaymentStatus(_currentOrder);
-
-    final bool showTandaiLunas = isBelumLunas && kuantitas > 0.0 && (paymentMethod == 'CASH' || paymentMethod == 'COD');
-
     String actionBtnText = '';
     String nextStatus = '';
     VoidCallback? customAction;
@@ -3539,9 +3549,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           status,
     );
 
-    final String logistikType =
-        _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+
 
     final bool isPaymentConfirmed =
         pembayaran != null && paymentMethod.isNotEmpty;
@@ -3789,6 +3797,39 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (isWaitingCustomer) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      TranslationService.currentLang == 'en'
+                          ? 'Waiting for customer to mark order as completed.'
+                          : 'Menunggu pelanggan menandai pesanan selesai.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (status == 'siap diantar' && isDropOff) ...[
             if (!isPaymentConfirmed) ...[
               Container(

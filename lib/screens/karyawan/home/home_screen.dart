@@ -98,7 +98,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         s.contains('baru');
   }
 
-  bool _isOutletOrder(String status, String logistikType) {
+  bool _isOutletOrder(String status, Map<String, dynamic> order) {
     final s = status.toLowerCase();
     if (s.contains('batal') ||
         s.contains('cancel') ||
@@ -109,7 +109,11 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     if (s == 'pesanan diterima') {
       return false;
     }
-    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
+    final logistikType = order['tipe_logistik']?.toString() ?? '';
+    final bool hasPickup = (order['id_alamat_pengambilan'] != null && order['id_alamat_pengambilan'] != 0) ||
+        (order['AlamatPengambilan'] != null && order['AlamatPengambilan']['id_alamat'] != null && order['AlamatPengambilan']['id_alamat'] != 0);
+    final bool isDropOff = logistikType == 'Drop-off' && !hasPickup;
+    if (isDropOff || logistikType == 'Self Pickup') {
       return s != 'selesai';
     }
     return s == 'proses timbang' ||
@@ -119,7 +123,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         s == 'proses setrika';
   }
 
-  bool _isLogistikOrder(String status, String logistikType) {
+  bool _isLogistikOrder(String status, Map<String, dynamic> order) {
     final s = status.toLowerCase();
     if (s.contains('batal') ||
         s.contains('cancel') ||
@@ -127,13 +131,20 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         s.contains('reject')) {
       return false;
     }
-    if (logistikType == 'Drop-off' || logistikType == 'Self Pickup') {
-      return false;
-    }
     if (s == 'pesanan diterima') {
       return false;
     }
-    return s == 'penjemputan' || s == 'siap diantar';
+    final bool hasPickup = (order['id_alamat_pengambilan'] != null && order['id_alamat_pengambilan'] != 0) ||
+        (order['AlamatPengambilan'] != null && order['AlamatPengambilan']['id_alamat'] != null && order['AlamatPengambilan']['id_alamat'] != 0);
+    final logistikType = order['tipe_logistik']?.toString() ?? '';
+    
+    if (s == 'penjemputan') {
+      return hasPickup;
+    }
+    if (s == 'siap diantar') {
+      return logistikType == 'Courier Delivery';
+    }
+    return false;
   }
 
   bool _isSelesaiOrder(String status) {
@@ -167,9 +178,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
         if (_isBaruOrder(status)) {
           countIncoming++;
-        } else if (_isOutletOrder(status, logistikType)) {
+        } else if (_isOutletOrder(status, map)) {
           countProses++;
-        } else if (_isLogistikOrder(status, logistikType)) {
+        } else if (_isLogistikOrder(status, map)) {
           countAntar++;
         } else if (_isSelesaiOrder(status)) {
           countSelesai++;

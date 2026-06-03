@@ -868,9 +868,23 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen> {
                                         Icon(Icons.timer_outlined, size: 14, color: navyColor),
                                         const SizedBox(width: 4),
                                         Text(
-                                          _routeDuration > 60
-                                              ? '${(_routeDuration / 60).round()} Mnt'
-                                              : '1 Mnt',
+                                          (() {
+                                            final int minutes = (_routeDuration / 60).round();
+                                            final bool isEn = TranslationService.currentLang == 'en';
+                                            final String hrStr = isEn ? 'Hr' : 'Jam';
+                                            final String minStr = isEn ? 'Min' : 'Mnt';
+                                            if (minutes > 60) {
+                                              final int hours = minutes ~/ 60;
+                                              final int remainingMinutes = minutes % 60;
+                                              if (remainingMinutes > 0) {
+                                                return '$hours $hrStr $remainingMinutes $minStr';
+                                              } else {
+                                                return '$hours $hrStr';
+                                              }
+                                            } else {
+                                              return '${minutes < 1 ? 1 : minutes} $minStr';
+                                            }
+                                          })(),
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
@@ -1249,11 +1263,11 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen> {
                         height: 52,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isPickup ? navyColor : Colors.green.shade700,
+                            backgroundColor: (!_isRouteActive || isPickup) ? navyColor : Colors.green.shade700,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             elevation: 4,
-                            shadowColor: (isPickup ? navyColor : Colors.green.shade700).withOpacity(0.3),
+                            shadowColor: ((!_isRouteActive || isPickup) ? navyColor : Colors.green.shade700).withOpacity(0.3),
                           ),
                           onPressed: _isUpdating
                               ? null

@@ -705,7 +705,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       }
     }
 
-    if (order['tipe_logistik'] == 'Drop-off') {
+    final bool hasPickup = (order['id_alamat_pengambilan'] != null && order['id_alamat_pengambilan'] != 0) ||
+        (order['AlamatPengambilan'] != null && order['AlamatPengambilan']['id_alamat'] != null && order['AlamatPengambilan']['id_alamat'] != 0);
+    if (!hasPickup) {
       sortedList.removeWhere((element) {
         final name = (element['nama_status'] ?? '').toString().toLowerCase();
         return name.contains('jemput') ||
@@ -2252,7 +2254,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required double hargaPerSatuan,
     required double biayaTambahan,
   }) {
-    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool hasPickup = (_currentOrder['id_alamat_pengambilan'] != null && _currentOrder['id_alamat_pengambilan'] != 0) ||
+        (_currentOrder['AlamatPengambilan'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != 0);
+    final bool isWalkIn = !hasPickup;
+    final bool isDropOffLogistik = _currentOrder['tipe_logistik'] == 'Drop-off';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyText = kuantitasVal == 0.0
@@ -2577,7 +2582,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 _buildDetailRow(
                   isEn ? 'Order Type' : 'Tipe Pemesanan',
-                  isDropOff
+                  isWalkIn
                       ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
                       : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
                   Icons.devices_rounded,
@@ -2590,7 +2595,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
                 const Divider(height: 20),
 
-                if (!isDropOff) ...[
+                if (!isWalkIn) ...[
                   // Pick up date is shown if not walk-in
                   _buildDetailRow(
                     isEn ? 'Pick Up Date' : 'Tanggal Penjemputan',
@@ -2610,7 +2615,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
                 _buildDetailRow(
                   isEn ? 'Logistics' : 'Tipe Logistik',
-                  isDropOff
+                  isDropOffLogistik
                       ? (isEn
                             ? 'Store Pickup (Drop-off)'
                             : 'Ambil Sendiri di Toko')
@@ -2633,7 +2638,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ],
                 const Divider(height: 20),
 
-                if (!isDropOff) ...[
+                if (!isDropOffLogistik) ...[
                   _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
                     addresses.isNotEmpty &&

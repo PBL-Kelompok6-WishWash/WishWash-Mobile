@@ -851,7 +851,9 @@ class _RatingScreenState extends State<RatingScreen> {
       }
     }
 
-    if (order['tipe_logistik'] == 'Drop-off') {
+    final bool hasPickup = (order['id_alamat_pengambilan'] != null && order['id_alamat_pengambilan'] != 0) ||
+        (order['AlamatPengambilan'] != null && order['AlamatPengambilan']['id_alamat'] != null && order['AlamatPengambilan']['id_alamat'] != 0);
+    if (!hasPickup) {
       sortedList.removeWhere((element) {
         final name = (element['nama_status'] ?? '').toString().toLowerCase();
         return name.contains('jemput') || name.contains('pickup') || name.contains('penjemputan');
