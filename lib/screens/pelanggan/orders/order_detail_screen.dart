@@ -4,6 +4,7 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/rating_screen.dart';
+import 'package:mobile/screens/pelanggan/orders/pelanggan_tracking_screen.dart';
 import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/order_service.dart';
@@ -46,6 +47,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     super.initState();
     _currentOrder = Map<String, dynamic>.from(widget.order);
     _loadAddresses();
+    _loadOrderDetail();
+  }
+
+  Future<void> _loadOrderDetail() async {
+    try {
+      final updated = await OrderService.getOrderById(_currentOrder['id_order']);
+      if (mounted) {
+        setState(() {
+          _currentOrder = Map<String, dynamic>.from(updated);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading order details: $e');
+    }
   }
 
   Future<void> _loadAddresses() async {
@@ -2562,9 +2577,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 _buildDetailRow(
                   isEn ? 'Order Type' : 'Tipe Pemesanan',
-                  !isDropOff
-                      ? (isEn ? 'Online (App)' : 'Online (Aplikasi)')
-                      : (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)'),
+                  isDropOff
+                      ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                      : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
                   Icons.devices_rounded,
                 ),
                 const Divider(height: 20),
@@ -2694,6 +2709,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final bool isPaid = paymentStatus == 'Lunas' && kuantitasVal > 0.0;
+
+    final String rawStatus = _getOrderStatus(_currentOrder).toLowerCase();
 
     final address = addresses.isNotEmpty
         ? addresses.firstWhere(
@@ -2944,19 +2961,77 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ),
                     ),
-                    // Tap to change address
-                    if (!isPaid)
-                      Positioned.fill(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(onTap: _chooseAddress),
+                    // Tap to change address or track courier
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            final statusLcl = rawStatus.toLowerCase();
+                            final bool canTrack = statusLcl.contains('jemput') ||
+                                statusLcl.contains('antar') ||
+                                statusLcl.contains('kirim');
+                            if (canTrack) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PelangganTrackingScreen(order: _currentOrder),
+                                ),
+                              ).then((_) => _loadOrderDetail());
+                            } else if (!isPaid) {
+                              _chooseAddress();
+                            }
+                          },
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
+
+            // "Lacak Kurir" button if order is in delivery/pickup phase
+            (() {
+              final statusLcl = rawStatus.toLowerCase();
+              final bool canTrack = statusLcl.contains('jemput') ||
+                  statusLcl.contains('antar') ||
+                  statusLcl.contains('kirim');
+              if (!canTrack) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: navyColor,
+                      foregroundColor: Colors.white,
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PelangganTrackingScreen(order: _currentOrder),
+                        ),
+                      ).then((_) => _loadOrderDetail());
+                    },
+                    icon: const Icon(Icons.map_rounded, size: 18),
+                    label: Text(
+                      isEn ? 'Track Courier Delivery' : 'Lacak Kurir Pengiriman',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            })(),
 
             // Address detail rows — consistent with laundry_order_screen
             Row(
@@ -5263,6 +5338,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final bool isQRIS = _selectedPaymentMethod == 'QRIS';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    
+    // Check if order is still completely new and pending confirmation (only in first stage "Pesanan Diterima")
+    final bool isOrderStillPendingAcceptance = lowerCurrent.contains('diterima');
+    
     final bool isNotWeighed = kuantitasVal == 0.0;
     final bool isButtonDisabled = isNotWeighed || _selectedPaymentMethod == null;
 
@@ -5318,7 +5397,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ),
           ],
-          if (isNotWeighed) ...[
+          if (isOrderStillPendingAcceptance) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
@@ -5350,36 +5429,101 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ],
               ),
             ),
-          ],
-          isNotWeighed
-              ? SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade700,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shadowColor: Colors.red.shade700.withValues(
-                        alpha: 0.3,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    onPressed: _cancelOrder,
-                    icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.white),
-                    label: Text(
-                      isEn ? 'Cancel Order' : 'Batalkan Pesanan',
+          ] else if (lowerCurrent.contains('jemput')) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade900,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'Awaiting courier pickup for your laundry.'
+                          : 'Menunggu penjemputan cucian oleh kurir.',
                       style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: Colors.white,
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                )
-              : Row(
+                ],
+              ),
+            ),
+          ] else if (isNotWeighed) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade900,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'Awaiting weighing process by store employee.'
+                          : 'Menunggu cucian ditimbang oleh outlet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (isOrderStillPendingAcceptance) ...[
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: Colors.red.shade700.withValues(
+                    alpha: 0.3,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: _cancelOrder,
+                icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.white),
+                label: Text(
+                  isEn ? 'Cancel Order' : 'Batalkan Pesanan',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            Row(
                   children: [
                     Expanded(
                       child: Column(
@@ -6002,6 +6146,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ],
           ),
+          ],
         ],
       ),
     );
