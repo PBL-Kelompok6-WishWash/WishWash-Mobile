@@ -5385,21 +5385,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 width: 180,
                 height: 48,
                 child: isNotWeighed
-                    ? OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.red.shade600, width: 1.5),
-                          foregroundColor: Colors.red.shade600,
+                    ? ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade700,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shadowColor: Colors.red.shade700.withValues(
+                            alpha: 0.3,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: _cancelOrder,
-                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.white),
                         label: Text(
                           isEn ? 'Cancel Order' : 'Batalkan',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
+                            color: Colors.white,
                           ),
                         ),
                       )
