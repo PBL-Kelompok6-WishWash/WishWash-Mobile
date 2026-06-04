@@ -172,7 +172,7 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
                                       
                                       String namaPelanggan = pelanggan != null ? pelanggan['nama_lengkap'] : 'Customer';
                                       String fotoPelanggan = pelanggan != null ? (pelanggan['foto_pelanggan'] ?? '') : '';
-                                      String statusTag = order != null ? 'Order #${order['id_order']}' : 'Chat';
+                                      String statusTag = '';
 
                                       final lastMsg = room['LastMessage'];
                                       String lastMsgText = 'Belum ada pesan';
@@ -312,22 +312,24 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
                               color: navyColor,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBF8FA),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              statusTag,
-                              style: GoogleFonts.poppins(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF42C6D4),
+                          if (statusTag.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEBF8FA),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                statusTag,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF42C6D4),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                       if (time.isNotEmpty)
