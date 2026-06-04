@@ -558,12 +558,12 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                                         ),
                                       ),
                                     ),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 16),
                                   // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
                                   _buildPromoSlider(),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 8),
                                   _buildDotIndicator(),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 12),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                                     child: Column(
@@ -1336,7 +1336,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _isLoadingServices
             ? const Center(
                 child: Padding(
@@ -1355,6 +1355,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     ),
                   )
                 : GridView.builder(
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
