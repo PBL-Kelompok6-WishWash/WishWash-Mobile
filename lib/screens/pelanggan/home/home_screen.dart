@@ -1336,7 +1336,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         _isLoadingServices
             ? const Center(
                 child: Padding(
@@ -1355,6 +1355,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     ),
                   )
                 : GridView.builder(
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
