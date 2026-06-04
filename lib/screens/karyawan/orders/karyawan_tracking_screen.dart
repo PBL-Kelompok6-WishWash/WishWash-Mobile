@@ -38,7 +38,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen> {
   void initState() {
     super.initState();
     final orderId = widget.order['id_order'] as int? ?? 0;
-    _isRouteActive = _activeTripOrderIds.contains(orderId);
+    _isRouteActive = _activeTripOrderIds.contains(orderId) || (widget.order['is_courier_on_way'] == true);
     _fetchRoutePoints();
   }
 
@@ -279,14 +279,28 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       elevation: 0,
                     ),
-                    onPressed: () {
+                     onPressed: () async {
                       Navigator.pop(context);
                       final orderId = widget.order['id_order'] as int? ?? 0;
                       _activeTripOrderIds.add(orderId);
                       setState(() {
                         _isRouteActive = true;
                         _showStartAlert = true;
+                        _isUpdating = true;
                       });
+
+                      try {
+                        await OrderService.updateOrder(orderId, {'is_courier_on_way': true});
+                      } catch (e) {
+                        debugPrint("Error setting is_courier_on_way: $e");
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            _isUpdating = false;
+                          });
+                        }
+                      }
+
                       Future.delayed(const Duration(seconds: 3), () {
                         if (mounted) {
                           setState(() {
@@ -474,7 +488,10 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen> {
     try {
       final updatedOrder = await OrderService.updateOrder(
         widget.order['id_order'],
-        {'status': nextStatus},
+        {
+          'status': nextStatus,
+          'is_courier_on_way': false,
+        },
       );
       if (mounted) {
         _activeTripOrderIds.remove(widget.order['id_order']);

@@ -632,8 +632,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildHeaderSection() {
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      padding: EdgeInsets.fromLTRB(24, statusBarHeight + 10, 24, 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

@@ -78,75 +78,75 @@ class ProfileScreenState extends State<ProfileScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
         return Scaffold(
           backgroundColor: bgGrey,
           extendBody: true,
-          body: Stack(
-            children: [
-              // Background Gradient at the top
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: 350,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
-                    ),
-                  ),
-                ),
-              ),
-              
-              SafeArea(
-                child: Column(
-                  children: [
-                    // --- HEADER & APPBAR ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      child: SizedBox(
-                        height: 48,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          body: isLoading
+              ? const Center(child: CircularProgressIndicator(color: cyanColor))
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 350 + statusBarHeight,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top: statusBarHeight + 10,
+                          bottom: 100,
+                        ),
+                        child: Column(
                           children: [
-                            const SizedBox(width: 48), // Ganti tombol back dengan spasi agar teks tetap di tengah
-                            Text(
-                              TranslationService.translate('profile'),
-                              style: GoogleFonts.poppins(
-                                color: navyColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              child: SizedBox(
+                                height: 48,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const SizedBox(width: 48),
+                                    Text(
+                                      TranslationService.translate('profile'),
+                                      style: GoogleFonts.poppins(
+                                        color: navyColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 48),
+                                  ],
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 48), // Spacer
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Column(
+                                children: [
+                                  _buildProfileCard(navyColor, cyanColor),
+                                  const SizedBox(height: 24),
+                                  _buildMenuListCard(navyColor, cyanColor),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                
-                // --- KONTEN HALAMAN ---
-                Expanded(
-                  child: isLoading 
-                    ? const Center(child: CircularProgressIndicator(color: cyanColor))
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 100), // padding bawah untuk navbar & fab
-                        children: [
-                          // Profile Card
-                          _buildProfileCard(navyColor, cyanColor),
-                          const SizedBox(height: 24),
-                          
-                          // Menu List Card
-                          _buildMenuListCard(navyColor, cyanColor),
-                        ],
-                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
       // FAB & BottomNavbar
       bottomNavigationBar: widget.showNavbar ? BottomNavbar(
         currentIndex: 4, // Index 4 adalah untuk Profile

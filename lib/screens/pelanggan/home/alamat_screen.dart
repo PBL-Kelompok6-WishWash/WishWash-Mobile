@@ -84,19 +84,14 @@ class _AlamatScreenState extends State<AlamatScreen> {
       double? lon;
       String referenceAddress = '';
 
-      // 1. Try to get coordinates from primary address
-      final primary = _alamatList.firstWhere((a) => a['is_primary'] == true, orElse: () => null);
-      if (primary != null && primary['latitude'] != null && primary['longitude'] != null) {
-        lat = double.tryParse(primary['latitude'].toString());
-        lon = double.tryParse(primary['longitude'].toString());
-        referenceAddress = primary['alamat_lengkap'] ?? '';
-      }
-
-      // 2. If no primary, fetch current GPS
-      if (lat == null || lon == null) {
+      // 1. Try to fetch current GPS location first
+      try {
         bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
         if (serviceEnabled) {
           LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
           if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
             Position position = await Geolocator.getCurrentPosition(
               locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
@@ -104,6 +99,18 @@ class _AlamatScreenState extends State<AlamatScreen> {
             lat = position.latitude;
             lon = position.longitude;
           }
+        }
+      } catch (e) {
+        debugPrint("Geolocator failed in AlamatScreen: $e");
+      }
+
+      // 2. Fallback to coordinates from primary address
+      if (lat == null || lon == null) {
+        final primary = _alamatList.firstWhere((a) => a['is_primary'] == true, orElse: () => null);
+        if (primary != null && primary['latitude'] != null && primary['longitude'] != null) {
+          lat = double.tryParse(primary['latitude'].toString());
+          lon = double.tryParse(primary['longitude'].toString());
+          referenceAddress = primary['alamat_lengkap'] ?? '';
         }
       }
 

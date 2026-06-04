@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/services/order_service.dart';
+import 'package:mobile/utils/constants.dart';
+import 'dart:convert';
 
 class RiwayatPendapatanScreen extends StatefulWidget {
   const RiwayatPendapatanScreen({super.key});
@@ -14,116 +17,331 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
   final Color cyanColor = const Color(0xFF42C6D4);
   int _activeFilterIndex = 0; // 0: Semua, 1: Tunai, 2: Digital
 
-  // High-fidelity laundry revenue per completed order mock data
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      "id": "TX-90214",
-      "method_type": "digital",
-      "title": "Order #WW-H78F2",
-      "subtitle": "Cecil Clarissa • Cuci & Setrika",
-      "time": "Hari ini, 15:30",
-      "amount": 48000.0,
-      "payment_method": "QRIS",
-    },
-    {
-      "id": "TX-90188",
-      "method_type": "cash",
-      "title": "Order #WW-K92B1",
-      "subtitle": "Abilah Budi • Setrika Saja",
-      "time": "Hari ini, 11:15",
-      "amount": 25000.0,
-      "payment_method": "Tunai",
-    },
-    {
-      "id": "TX-89812",
-      "method_type": "digital",
-      "title": "Order #WW-T33G4",
-      "subtitle": "Clarissa Ica • Cuci Kering Lipat",
-      "time": "Kemarin, 14:20",
-      "amount": 24000.0,
-      "payment_method": "E-Wallet",
-    },
-    {
-      "id": "TX-89640",
-      "method_type": "digital",
-      "title": "Order #WW-P11A9",
-      "subtitle": "Devi Ajeng • Cuci Kering Lipat",
-      "time": "22 Mei 2026, 09:10",
-      "amount": 40000.0,
-      "payment_method": "QRIS",
-    },
-    {
-      "id": "TX-89510",
-      "method_type": "cash",
-      "title": "Order #WW-L88P3",
-      "subtitle": "Budi Santoso • Cuci & Setrika",
-      "time": "21 Mei 2026, 16:45",
-      "amount": 32000.0,
-      "payment_method": "Tunai",
-    },
-    {
-      "id": "TX-89320",
-      "method_type": "digital",
-      "title": "Order #WW-N02Y1",
-      "subtitle": "Andi Wijaya • Setrika Saja",
-      "time": "20 Mei 2026, 13:00",
-      "amount": 15000.0,
-      "payment_method": "Mandiri Transfer",
-    },
-    {
-      "id": "TX-89102",
-      "method_type": "digital",
-      "title": "Order #WW-F88H2",
-      "subtitle": "Riana Dewi • Express Cuci & Setrika",
-      "time": "18 Mei 2026, 10:15",
-      "amount": 65000.0,
-      "payment_method": "OVO",
-    },
-    {
-      "id": "TX-88981",
-      "method_type": "cash",
-      "title": "Order #WW-Q11W9",
-      "subtitle": "Hadi Prasetyo • Cuci Karpet Bedcover",
-      "time": "16 Mei 2026, 14:30",
-      "amount": 120000.0,
-      "payment_method": "Tunai",
-    },
-    {
-      "id": "TX-88742",
-      "method_type": "digital",
-      "title": "Order #WW-J32K8",
-      "subtitle": "Siska Amalia • Dry Cleaning",
-      "time": "15 Mei 2026, 11:00",
-      "amount": 85000.0,
-      "payment_method": "Gopay",
-    },
-    {
-      "id": "TX-88510",
-      "method_type": "digital",
-      "title": "Order #WW-Z99M1",
-      "subtitle": "Reza Pahlevi • Cuci & Setrika",
-      "time": "12 Mei 2026, 16:20",
-      "amount": 45000.0,
-      "payment_method": "ShopeePay",
-    },
-    {
-      "id": "TX-88122",
-      "method_type": "cash",
-      "title": "Order #WW-X55C4",
-      "subtitle": "Mira Lestari • Setrika Saja",
-      "time": "10 Mei 2026, 09:45",
-      "amount": 20000.0,
-      "payment_method": "Tunai",
-    },
-  ];
+  List<dynamic> _realTransactions = [];
+  double _accumulatedRevenue = 0.0;
+  bool _isLoading = true;
 
-  List<Map<String, dynamic>> get _filteredTransactions {
-    if (_activeFilterIndex == 1) {
-      return _transactions.where((tx) => tx['method_type'] == 'cash').toList();
-    } else if (_activeFilterIndex == 2) {
-      return _transactions.where((tx) => tx['method_type'] == 'digital').toList();
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRevenueData();
+  }
+
+  Future<void> _fetchRevenueData() async {
+    try {
+      final response = await OrderService.getRevenueSummary(
+        month: _selectedMonth,
+        year: _selectedYear,
+      );
+      if (response['success'] == true) {
+        setState(() {
+          _accumulatedRevenue = (response['monthly_revenue'] as num?)?.toDouble() ?? 0.0;
+          _realTransactions = response['transactions'] ?? [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching revenue data: $e");
+      setState(() {
+        _isLoading = false;
+      });
     }
-    return _transactions;
+  }
+
+  String _getMonthYearLabel(bool isEn) {
+    final monthsId = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final monthsEn = [
+      'January', 'February', 'March', 'April', 'May', 'June', 
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final String monthName = isEn ? monthsEn[_selectedMonth - 1] : monthsId[_selectedMonth - 1];
+    return isEn ? 'REVENUE FOR $monthName $_selectedYear' : 'PENDAPATAN $monthName $_selectedYear';
+  }
+
+  void _showMonthYearPicker() {
+    final monthsId = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    final monthsEn = [
+      'January', 'February', 'March', 'April', 'May', 'June', 
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final isEn = TranslationService.currentLang == 'en';
+    final currentMonths = isEn ? monthsEn : monthsId;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        int tempMonth = _selectedMonth;
+        int tempYear = _selectedYear;
+        
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              height: 340,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isEn ? 'Select Month & Year' : 'Pilih Bulan & Tahun',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                     child: Row(
+                       children: [
+                         // Month Picker
+                         Expanded(
+                           child: ListWheelScrollView.useDelegate(
+                             itemExtent: 40,
+                             perspective: 0.005,
+                             diameterRatio: 1.2,
+                             physics: const FixedExtentScrollPhysics(),
+                             controller: FixedExtentScrollController(initialItem: tempMonth - 1),
+                             onSelectedItemChanged: (index) {
+                               setModalState(() {
+                                 tempMonth = index + 1;
+                               });
+                             },
+                             childDelegate: ListWheelChildBuilderDelegate(
+                               childCount: 12,
+                               builder: (context, index) {
+                                 final isSel = tempMonth == index + 1;
+                                 return Center(
+                                   child: Text(
+                                     currentMonths[index],
+                                     style: GoogleFonts.poppins(
+                                       fontSize: 16,
+                                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                       color: isSel ? navyColor : Colors.grey.shade400,
+                                     ),
+                                   ),
+                                 );
+                               },
+                             ),
+                           ),
+                         ),
+                         // Year Picker
+                         Expanded(
+                           child: ListWheelScrollView.useDelegate(
+                             itemExtent: 40,
+                             perspective: 0.005,
+                             diameterRatio: 1.2,
+                             physics: const FixedExtentScrollPhysics(),
+                             controller: FixedExtentScrollController(
+                               initialItem: tempYear - (DateTime.now().year - 5),
+                             ),
+                             onSelectedItemChanged: (index) {
+                               setModalState(() {
+                                 tempYear = (DateTime.now().year - 5) + index;
+                               });
+                             },
+                             childDelegate: ListWheelChildBuilderDelegate(
+                               childCount: 10,
+                               builder: (context, index) {
+                                 final yearVal = (DateTime.now().year - 5) + index;
+                                 final isSel = tempYear == yearVal;
+                                 return Center(
+                                   child: Text(
+                                     "$yearVal",
+                                     style: GoogleFonts.poppins(
+                                       fontSize: 16,
+                                       fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                                       color: isSel ? navyColor : Colors.grey.shade400,
+                                     ),
+                                   ),
+                                 );
+                               },
+                             ),
+                           ),
+                         ),
+                       ],
+                     ),
+                   ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: navyColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {
+                          _selectedMonth = tempMonth;
+                          _selectedYear = tempYear;
+                          _isLoading = true;
+                        });
+                        _fetchRevenueData();
+                      },
+                      child: Text(
+                        isEn ? 'Apply' : 'Terapkan',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                         ),
+                       ),
+                     ),
+                   ),
+                 ],
+               ),
+             );
+           },
+         );
+       },
+     );
+   }
+
+  List<dynamic> get _filteredTransactions {
+    if (_activeFilterIndex == 1) {
+      return _realTransactions.where((tx) => tx['method_type'] == 'cash').toList();
+    } else if (_activeFilterIndex == 2) {
+      return _realTransactions.where((tx) => tx['method_type'] == 'digital').toList();
+    }
+    return _realTransactions;
+  }
+
+  Widget _buildCustomerAvatar(String name, String photo) {
+    final String initials = _getInitials(name);
+    
+    Widget avatarWidget;
+    if (photo.startsWith('http://') || photo.startsWith('https://')) {
+      avatarWidget = Image.network(
+        photo,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(initials),
+      );
+    } else if (photo.startsWith('data:image')) {
+      try {
+        final base64Content = photo.split(',').last;
+        final bytes = base64Decode(base64Content);
+        avatarWidget = Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(initials),
+        );
+      } catch (_) {
+        avatarWidget = _buildDefaultAvatar(initials);
+      }
+    } else if (photo.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      avatarWidget = Image.network(
+        '$staticHost$photo',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(initials),
+      );
+    } else if (photo.isNotEmpty) {
+      avatarWidget = Image.asset(
+        photo,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(initials),
+      );
+    } else {
+      avatarWidget = _buildDefaultAvatar(initials);
+    }
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(child: avatarWidget),
+    );
+  }
+
+  Widget _buildDefaultAvatar(String initials) {
+    return Container(
+      color: cyanColor.withOpacity(0.2),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GoogleFonts.poppins(
+          color: navyColor,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'P';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
+  String _formatTransactionTime(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      
+      final String hour = dt.hour.toString().padLeft(2, '0');
+      final String minute = dt.minute.toString().padLeft(2, '0');
+      
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return TranslationService.currentLang == 'en' ? 'Today, $hour:$minute' : 'Hari ini, $hour:$minute';
+      } else if (dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day) {
+        return TranslationService.currentLang == 'en' ? 'Yesterday, $hour:$minute' : 'Kemarin, $hour:$minute';
+      } else {
+        final monthsId = [
+          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        final monthsEn = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        final monthName = TranslationService.currentLang == 'en' ? monthsEn[dt.month - 1] : monthsId[dt.month - 1];
+        return '${dt.day} $monthName ${dt.year}, $hour:$minute';
+      }
+    } catch (_) {
+      return isoString;
+    }
   }
 
   String _formatRupiah(double value) {
@@ -207,16 +425,41 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
                       const SizedBox(height: 16),
 
                       // --- TRANSACTION LIST ---
-                      _filteredTransactions.isEmpty
-                          ? _buildEmptyState(isEn)
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _filteredTransactions.length,
-                              itemBuilder: (context, index) {
-                                final tx = _filteredTransactions[index];
-                                return _buildTransactionItem(tx);
+                      _isLoading
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 40),
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+                                ),
+                              ),
+                            )
+                          : AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0.05, 0.0),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
                               },
+                              child: _filteredTransactions.isEmpty
+                                  ? _buildEmptyState(isEn)
+                                  : ListView.builder(
+                                      key: ValueKey<int>(_activeFilterIndex),
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: _filteredTransactions.length,
+                                      itemBuilder: (context, index) {
+                                        final tx = _filteredTransactions[index];
+                                        return _buildTransactionItem(tx);
+                                      },
+                                    ),
                             ),
                     ],
                   ),
@@ -285,34 +528,54 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _getMonthYearLabel(isEn).toUpperCase(),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withOpacity(0.7),
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        (isEn ? 'TOTAL ACCUMULATED REVENUE' : 'TOTAL PENDAPATAN AKUMULASI').toUpperCase(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white.withOpacity(0.7),
-                          letterSpacing: 1.2,
+                      GestureDetector(
+                        onTap: _showMonthYearPicker,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_month_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    "Rp 4.850.000,00",
+                    _formatRupiah(_accumulatedRevenue),
                     style: GoogleFonts.poppins(
                       fontSize: 34,
                       fontWeight: FontWeight.w800,
@@ -330,52 +593,89 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
   }
 
   Widget _buildSegmentedFilters(bool isEn) {
-    return Container(
-      height: 46,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: navyColor.withOpacity(0.06), width: 1.2),
-      ),
-      child: Row(
-        children: List.generate(3, (index) {
-          final String label = index == 0
-              ? (isEn ? 'All' : 'Semua')
-              : index == 1
-                  ? (isEn ? 'Cash' : 'Tunai')
-                  : (isEn ? 'Digital' : 'Digital');
-          final isSelected = _activeFilterIndex == index;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _activeFilterIndex = index;
-                });
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isSelected ? navyColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  label,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected ? Colors.white : Colors.grey.shade500,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double totalWidth = constraints.maxWidth;
+        final double tabWidth = (totalWidth - 6) / 3; // 6 is padding (3 left + 3 right)
+        
+        return Container(
+          height: 46,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: navyColor.withOpacity(0.06), width: 1.2),
+          ),
+          child: Stack(
+            children: [
+              // Smooth sliding indicator background
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                left: 3 + (_activeFilterIndex * tabWidth),
+                top: 3,
+                bottom: 3,
+                width: tabWidth,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: navyColor,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: navyColor.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          );
-        }),
-      ),
+              // Tab labels
+              Row(
+                children: List.generate(3, (index) {
+                  final String label = index == 0
+                      ? (isEn ? 'All' : 'Semua')
+                      : index == 1
+                          ? (isEn ? 'Cash' : 'Tunai')
+                          : (isEn ? 'Digital' : 'Digital');
+                  final isSelected = _activeFilterIndex == index;
+                  return Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        setState(() {
+                          _activeFilterIndex = index;
+                        });
+                      },
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.grey.shade500,
+                          ),
+                          child: Text(label),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> tx) {
+  Widget _buildTransactionItem(dynamic tx) {
+    final double amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+    final String title = tx['title']?.toString() ?? '';
+    final String subtitle = tx['subtitle']?.toString() ?? '';
+    final String timeStr = _formatTransactionTime(tx['time']?.toString() ?? '');
+    final String method = tx['payment_method']?.toString() ?? '';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -393,25 +693,14 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.add_chart_rounded,
-              color: Color(0xFF2E7D32),
-              size: 20,
-            ),
-          ),
+          _buildCustomerAvatar(subtitle.split(' • ').first, tx['foto_pelanggan']?.toString() ?? ''),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tx['title'],
+                  title,
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -420,7 +709,7 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  tx['subtitle'],
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(
@@ -431,7 +720,7 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${tx['time']} • ${tx['payment_method']}',
+                  '$timeStr • $method',
                   style: GoogleFonts.poppins(
                     fontSize: 10,
                     color: Colors.grey.shade400,
@@ -443,7 +732,7 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            '+${_formatRupiah(tx['amount'])}',
+            '+${_formatRupiah(amount)}',
             style: GoogleFonts.poppins(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF2E7D32),

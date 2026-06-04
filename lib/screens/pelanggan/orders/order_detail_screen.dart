@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:barcode_widget/barcode_widget.dart';
@@ -16,6 +17,11 @@ import 'package:mobile/utils/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -1355,11 +1361,61 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 2. Employee card — shown in ALL states if karyawan is assigned
+                      // 2. Employee card or active Grab-style tracking card
                       if (order['Karyawan'] != null &&
-                          (order['Karyawan']['id_karyawan'] as int? ?? 0) >
-                              0) ...[
-                        _buildEmployeeCard(order: order, isEn: isEn),
+                          (order['Karyawan']['id_karyawan'] as int? ?? 0) > 0) ...[
+                        (() {
+                          final statusLcl = currentStatus.toLowerCase();
+                          final bool canTrack = statusLcl.contains('jemput') ||
+                              statusLcl.contains('antar') ||
+                              statusLcl.contains('kirim');
+                          
+                          final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
+                          if (canTrack && isCourierOnWay) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildGrabTrackingWidget(order: _currentOrder, isEn: isEn),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: navyColor,
+                                        foregroundColor: Colors.white,
+                                        elevation: 2,
+                                        shadowColor: navyColor.withOpacity(0.3),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => PelangganTrackingScreen(order: _currentOrder),
+                                          ),
+                                        ).then((_) => _loadOrderDetail());
+                                      },
+                                      icon: const Icon(Icons.map_rounded, size: 20),
+                                      label: Text(
+                                        isEn ? 'Track Courier' : 'Lacak Kurir',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          } else {
+                            return _buildEmployeeCard(order: order, isEn: isEn);
+                          }
+                        })(),
                         const SizedBox(height: 16),
                       ],
 
@@ -2079,6 +2135,532 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
+  Future<void> _downloadInvoicePDF(BuildContext context, Map<String, dynamic> order) async {
+    final bool isEn = TranslationService.currentLang == 'en';
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                isEn ? 'Generating PDF...' : 'Membuat PDF...',
+                style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final pdf = pw.Document();
+      
+      // Parse details
+      final String orderId =
+          order['kode_order'] != null && order['kode_order'].toString().isNotEmpty
+          ? order['kode_order'].toString()
+          : 'WW-${order['id_order']}';
+      final orderDate = _formatDate(order['created_at'] ?? order['tgl_pesanan']);
+      
+      final pelanggan = order['Pelanggan'] ?? {};
+      final customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
+      final customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
+      
+      final layanan = order['Layanan'] ?? {};
+      final String mainService = TranslationService.translateService(
+        layanan['nama_layanan'] ?? 'Layanan Laundry',
+      );
+      
+      final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+      final String weightText = kuantitas == 0.0
+          ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
+          : '$kuantitas kg';
+          
+      final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+      final double subtotalCucian = kuantitas * hargaPerSatuan;
+      
+      final paketLayanan = order['PaketLayanan'] ?? {};
+      final String packageName = paketLayanan['nama_paket'] ?? 'Reguler';
+      final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+      
+      final parfum = order['Parfum'] ?? {};
+      final String perfumeName = parfum['nama_parfum'] ?? 'Lavender Bliss';
+      
+      final String logistikType = order['tipe_logistik'] ?? 'Courier Delivery';
+      
+      final alamatPengambilan = order['AlamatPengambilan'] ?? {};
+      final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
+      
+      final alamatPenyerahan = order['AlamatPenyerahan'];
+      final String deliveryAddr =
+          (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+          ? alamatPenyerahan['alamat_lengkap'].toString()
+          : (isEn ? 'Not specified yet' : 'Belum ditentukan');
+          
+      final String patokanLokasi =
+          order['keterangan_lokasi'] != null &&
+              order['keterangan_lokasi'].toString().trim().isNotEmpty
+          ? order['keterangan_lokasi'].toString().trim()
+          : '-';
+          
+      final karyawan = order['Karyawan'];
+      final String employeeName =
+          karyawan != null && karyawan['nama_karyawan'] != null
+          ? karyawan['nama_karyawan'].toString()
+          : (isEn ? 'Assigning Courier...' : 'Menunggu Kurir...');
+          
+      final pembayaran = order['Pembayaran'];
+      final String paymentMethod =
+          pembayaran != null && pembayaran['metode_bayar'] != null
+          ? pembayaran['metode_bayar'].toString()
+          : (isEn ? 'Unpaid Yet' : 'Belum Dibayar');
+          
+      final String paymentStatusLabel =
+          pembayaran != null && pembayaran['status_pembayaran'] != null
+          ? (pembayaran['status_pembayaran'] == 'Lunas'
+                ? (isEn ? 'Paid' : 'Lunas')
+                : (isEn ? 'Unpaid' : 'Belum Lunas'))
+          : (isEn ? 'Unpaid' : 'Belum Lunas');
+          
+      final String paymentRef =
+          pembayaran != null &&
+              pembayaran['referensi_bayar'] != null &&
+              pembayaran['referensi_bayar'].toString().trim().isNotEmpty
+          ? pembayaran['referensi_bayar'].toString().trim()
+          : '-';
+          
+      final String? catatan = order['catatan_order'];
+      
+      // Calculate Promo
+      final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
+      double promoDiscount = 0.0;
+      String promoCode = '';
+      if (promoOrders.isNotEmpty) {
+        final promoOrderObj = promoOrders.first;
+        final promo = promoOrderObj['Promo'] ?? {};
+        if (promo.isNotEmpty) {
+          promoCode = promo['kode_promo'] ?? '';
+          final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
+          final double nominalPotongan =
+              (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+          final double maksimalPotongan =
+              (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
+          if (tipePromo.toLowerCase().contains('persen')) {
+            promoDiscount = subtotalCucian * (nominalPotongan / 100);
+            if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
+              promoDiscount = maksimalPotongan;
+            }
+          } else {
+            promoDiscount = nominalPotongan;
+          }
+        }
+      }
+      
+      final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+      final double totalTagihan = kuantitas > 0.0
+          ? (computedTotal > 0.0 ? computedTotal : 0.0)
+          : 0.0;
+      final priceStr = _formatRupiah(totalTagihan);
+      
+      final String estDateText = _getEstSelesaiDate(order);
+      
+      final String rawStatus = _getOrderStatus(order).toLowerCase();
+      final bool isFinished =
+          rawStatus.contains('selesai') ||
+          rawStatus.contains('completed') ||
+          rawStatus.contains('success');
+      String finishedTimeText = '-';
+      if (isFinished) {
+        final historyList = order['RiwayatStatusDetail'];
+        if (historyList != null &&
+            historyList is List &&
+            historyList.isNotEmpty) {
+          List<dynamic> sortedHistory = List.from(historyList);
+          sortedHistory.sort(
+            (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
+              b['id_riwayat_status_detail'] as num? ?? 0,
+            ),
+          );
+          final rawTime =
+              sortedHistory.last['waktu_update'] ??
+              sortedHistory.last['WaktuUpdate'];
+          if (rawTime != null) {
+            finishedTimeText = _formatDate(rawTime.toString());
+          }
+        }
+      }
+
+      // Add a page to the PDF
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            // Local row builder inside pdf layout
+            final pdfRow = (String label, String value) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(label, style: pw.TextStyle(color: PdfColors.grey700, fontSize: 10)),
+                    pw.SizedBox(width: 20),
+                    pw.Expanded(
+                      child: pw.Text(
+                        value,
+                        textAlign: pw.TextAlign.right,
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            };
+
+            final pdfPriceRow = (String label, String price, {String? detail}) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(label, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        if (detail != null)
+                          pw.Text(detail, style: pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                      ],
+                    ),
+                    pw.Text(price, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                  ],
+                ),
+              );
+            };
+
+            return pw.Container(
+              padding: const pw.EdgeInsets.all(20),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Center(
+                    child: pw.Text(
+                      'WISHWASH LAUNDRY',
+                      style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Center(
+                    child: pw.Text(
+                      isEn ? 'Transaction Receipt' : 'Resi Transaksi',
+                      style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Divider(),
+                  pw.SizedBox(height: 10),
+                  
+                  pdfRow(isEn ? 'Order ID' : 'Order ID', orderId),
+                  pdfRow(isEn ? 'Order Date' : 'Tanggal Pesanan', orderDate),
+                  pdfRow(isEn ? 'Customer' : 'Pelanggan', customerName),
+                  pdfRow(isEn ? 'Phone Number' : 'No. Telepon', customerPhone),
+                  pdfRow(isEn ? 'Service Type' : 'Jenis Layanan', mainService),
+                  pdfRow(isEn ? 'Estimated Finish' : 'Estimasi Selesai', estDateText),
+                  if (isFinished)
+                    pdfRow(isEn ? 'Finished Date & Time' : 'Tanggal & Waktu Selesai', finishedTimeText),
+                  pdfRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
+                  pdfRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
+                  if (logistikType != 'Drop-off')
+                    pdfRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
+                  pdfRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
+                  if (patokanLokasi != '-')
+                    pdfRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
+                  pdfRow(
+                    isEn ? 'Order Type' : 'Tipe Pemesanan',
+                    logistikType.toLowerCase().contains('drop')
+                        ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                        : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                  ),
+                  pdfRow(
+                    isEn ? 'Logistics Method' : 'Metode Logistik',
+                    logistikType.toLowerCase().contains('drop')
+                        ? 'Drop-off'
+                        : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
+                  ),
+                  pdfRow(isEn ? 'Employee / Courier' : 'Karyawan', employeeName),
+                  pdfRow(isEn ? 'Payment Method' : 'Metode Pembayaran', paymentMethod),
+                  pdfRow(isEn ? 'Payment Status' : 'Status Pembayaran', paymentStatusLabel),
+                  if (paymentRef != '-')
+                    pdfRow(isEn ? 'Transaction Ref' : 'Ref. Transaksi', paymentRef),
+                  if (catatan != null && catatan.trim().isNotEmpty)
+                    pdfRow(isEn ? 'Note / Instruction' : 'Catatan Khusus', catatan),
+
+                  pw.SizedBox(height: 10),
+                  pw.Divider(thickness: 1),
+                  pw.SizedBox(height: 10),
+
+                  pdfPriceRow(
+                    isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
+                    _formatRupiah(subtotalCucian),
+                    detail: kuantitas > 0.0
+                        ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
+                        : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+                  ),
+                  pdfPriceRow(
+                    isEn ? 'Package Surcharge' : 'Biaya Paket',
+                    _formatRupiah(biayaTambahan),
+                    detail: packageName,
+                  ),
+                  pdfPriceRow(
+                    promoCode.isNotEmpty
+                        ? (isEn ? 'Promo Discount ($promoCode)' : 'Diskon Promo ($promoCode)')
+                        : (isEn ? 'Promo Discount' : 'Diskon Promo'),
+                    promoDiscount > 0.0 ? '- ${_formatRupiah(promoDiscount)}' : _formatRupiah(0.0),
+                  ),
+
+                  pw.SizedBox(height: 10),
+                  pw.Divider(),
+                  pw.SizedBox(height: 10),
+
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        isEn ? 'TOTAL AMOUNT' : 'TOTAL BAYAR',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12),
+                      ),
+                      pw.Text(
+                        priceStr,
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  
+                  pw.SizedBox(height: 20),
+                  pw.Center(
+                    child: pw.Column(
+                      children: [
+                        pw.SizedBox(
+                          width: 280,
+                          height: 85,
+                          child: pw.BarcodeWidget(
+                            barcode: pw.Barcode.code128(),
+                            data: 'Order#$orderId',
+                            drawText: false,
+                          ),
+                        ),
+                        pw.SizedBox(height: 6),
+                        pw.Text(
+                          isEn
+                              ? '*Show this receipt when picking up your order'
+                              : '*Tunjukkan kuitansi ini saat pengambilan cucian Anda',
+                          style: pw.TextStyle(
+                            color: PdfColors.grey700,
+                            fontSize: 8,
+                            fontStyle: pw.FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Divider(thickness: 1),
+                  pw.SizedBox(height: 10),
+                  pw.Center(
+                    child: pw.Text(
+                      isEn
+                          ? 'TERMS & CONDITIONS:\n1. Claims for complaints must be submitted within 24h after receiving clothes.\n2. Clothes not picked up within 30 days are beyond the responsibility of management.'
+                          : 'SYARAT & KETENTUAN:\n1. Klaim keluhan wajib diajukan maks. 24 jam setelah pakaian diterima.\n2. Pakaian yang tidak diambil dalam 30 hari di luar tanggung jawab manajemen.',
+                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+      // Save PDF to documents/downloads directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        try {
+          directory = await getDownloadsDirectory();
+        } catch (_) {}
+      }
+      directory ??= await getApplicationDocumentsDirectory();
+
+      // Clean up older PDF files for this order to prevent cache/storage clutter
+      try {
+        final List<FileSystemEntity> files = directory.listSync();
+        for (var f in files) {
+          if (f is File && f.path.contains('invoice_WW-$orderId')) {
+            await f.delete();
+          }
+        }
+      } catch (_) {}
+
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+      final String path = '${directory.path}/invoice_WW-${orderId}_$timestamp.pdf';
+      final file = File(path);
+      await file.writeAsBytes(await pdf.save());
+
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show success popup dialog in the center
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (dialogCtx) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              backgroundColor: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF4CAF50),
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      isEn ? 'Download Success' : 'Berhasil Diunduh',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      isEn
+                          ? 'Invoice PDF has been successfully saved to:\n$path'
+                          : 'Nota PDF berhasil disimpan ke:\n$path',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: navyColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(dialogCtx);
+                              await Share.shareXFiles([XFile(path)], text: 'Invoice WW-$orderId');
+                            },
+                            icon: Icon(Icons.share_rounded, size: 16, color: navyColor),
+                            label: Text(
+                              isEn ? 'Share' : 'Bagikan',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: navyColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: navyColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              elevation: 0,
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(dialogCtx);
+                              await OpenFilex.open(path);
+                            },
+                            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                            label: Text(
+                              isEn ? 'Open' : 'Buka',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogCtx),
+                      child: Text(
+                        isEn ? 'Close' : 'Tutup',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }    } catch (e) {
+      // Close loading dialog
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+
+      // Show error SnackBar
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isEn ? 'Failed to download PDF: $e' : 'Gagal mengunduh PDF: $e',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _showInvoiceModal(
     BuildContext context,
     Map<String, dynamic> order,
@@ -2212,20 +2794,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
-                      _showSuccessAutoDismissDialog(
-                        isEn
-                            ? 'Downloading invoice WW-$orderId.pdf...'
-                            : 'Mengunduh nota WW-$orderId.pdf...',
-                      );
-                      Future.delayed(const Duration(seconds: 2), () {
-                        if (context.mounted) {
-                          _showSuccessAutoDismissDialog(
-                            isEn
-                                ? 'Invoice downloaded successfully!'
-                                : 'Nota berhasil diunduh!',
-                          );
-                        }
-                      });
+                      _downloadInvoicePDF(context, order);
                     },
                     icon: const Icon(Icons.download_rounded, size: 18),
                     label: Text(
@@ -2975,22 +3544,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () {
-                            final statusLcl = rawStatus.toLowerCase();
-                            final bool canTrack = statusLcl.contains('jemput') ||
-                                statusLcl.contains('antar') ||
-                                statusLcl.contains('kirim');
-                            if (canTrack) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PelangganTrackingScreen(order: _currentOrder),
-                                ),
-                              ).then((_) => _loadOrderDetail());
-                            } else if (!isPaid) {
-                              _chooseAddress();
-                            }
-                          },
+                          onTap: isPaid
+                              ? null
+                              : () {
+                                  _chooseAddress();
+                                },
                         ),
                       ),
                     ),
@@ -2999,48 +3557,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // "Lacak Kurir" button if order is in delivery/pickup phase
-            (() {
-              final statusLcl = rawStatus.toLowerCase();
-              final bool canTrack = statusLcl.contains('jemput') ||
-                  statusLcl.contains('antar') ||
-                  statusLcl.contains('kirim');
-              if (!canTrack) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 40,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: navyColor,
-                      foregroundColor: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PelangganTrackingScreen(order: _currentOrder),
-                        ),
-                      ).then((_) => _loadOrderDetail());
-                    },
-                    icon: const Icon(Icons.map_rounded, size: 18),
-                    label: Text(
-                      isEn ? 'Track Courier Delivery' : 'Lacak Kurir Pengiriman',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            })(),
 
             // Address detail rows — consistent with laundry_order_screen
             Row(
@@ -4701,6 +5217,284 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGrabTrackingWidget({
+    required Map<String, dynamic> order,
+    required bool isEn,
+  }) {
+    final statusLcl = _getOrderStatus(order).toLowerCase();
+    final bool isPickup = statusLcl.contains('jemput') || statusLcl.contains('diterima');
+    final isCourierOnWay = order['is_courier_on_way'] == true;
+    final karyawan = order['Karyawan'] as Map<String, dynamic>?;
+
+    if (karyawan == null) return const SizedBox.shrink();
+
+    final String name = (karyawan['nama_karyawan'] ?? '-').toString();
+    final String vehicle = (karyawan['jenis_kendaraan'] ?? 'Motor').toString();
+    final String plate = (karyawan['plat_nomor'] ?? '').toString();
+    final String rawFoto = (karyawan['foto_karyawan'] ?? '').toString();
+
+    final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+    String fotoUrl = '';
+    if (rawFoto.isNotEmpty) {
+      if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://')) {
+        fotoUrl = rawFoto;
+      } else if (rawFoto.startsWith('/')) {
+        fotoUrl = '$staticHost$rawFoto';
+      } else {
+        fotoUrl = '$staticHost/$rawFoto';
+      }
+    }
+    final bool hasFoto = fotoUrl.isNotEmpty;
+
+    // Determine avatar initials from name
+    final List<String> nameParts = name.trim().split(' ');
+    final String initials = nameParts.length >= 2
+        ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
+        : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
+              ? nameParts[0][0].toUpperCase()
+              : '?');
+
+    // Split vehicle plate
+    String vehicleDisplay = vehicle;
+    if (plate.isNotEmpty) {
+      vehicleDisplay += ' • $plate';
+    }
+
+    final String titleStatus = isPickup
+        ? (isEn ? "Driver's out to pick up item." : "Kurir sedang menjemput cucian Anda.")
+        : (isEn ? "Driver's out to deliver item." : "Kurir sedang mengantarkan cucian Anda.");
+
+    final String etaText = isEn ? "10-15 mins" : "10-15 Menit";
+
+
+
+    // Active Tracking (Courier on way) -> Grab Style Card
+    return Column(
+      children: [
+        // Top Card: Progress & ETA
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          etaText,
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          titleStatus,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: cyanColor.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(Icons.delivery_dining_rounded, color: cyanColor, size: 28),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Animated Line (Grab Style)
+              Row(
+                children: [
+                  Icon(Icons.motorcycle_rounded, color: Colors.green.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        // Animated green progress bar
+                        TweenAnimationBuilder<double>(
+                          tween: Tween<double>(begin: 0.0, end: 0.7),
+                          duration: const Duration(seconds: 4),
+                          builder: (context, val, _) {
+                            return FractionallySizedBox(
+                              widthFactor: val,
+                              child: Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.green.shade400, Colors.green.shade700],
+                                  ),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.home_rounded, color: Colors.grey.shade400, size: 20),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Bottom Card: Courier details
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0C4B8E).withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: hasFoto
+                    ? ClipOval(
+                        child: Image.network(
+                          fotoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => Center(
+                            child: Text(
+                              initials,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          initials,
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+              ),
+              const SizedBox(width: 14),
+              // Courier Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: navyColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.star_rounded, color: Colors.amber.shade600, size: 14),
+                        const SizedBox(width: 2),
+                        Text(
+                          '4.8',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      vehicleDisplay,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 

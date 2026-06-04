@@ -57,7 +57,7 @@ class LaundryLayout extends StatelessWidget {
               child: Container(color: Colors.transparent),
             ),
           ),
-          SafeArea(child: child),
+          child,
           if (bottomNav != null)
             Positioned(
               left: 0,

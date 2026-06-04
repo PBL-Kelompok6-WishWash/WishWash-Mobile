@@ -28,59 +28,137 @@ class _ScannerScreenState extends State<ScannerScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                'Resi Terverifikasi!',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: const Color(0xFF4CAF50)),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Data Pesanan:\n$scannedCode\n\nApakah laundry sudah diserahkan ke pelanggan?',
-                    style: GoogleFonts.poppins(fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
+          builder: (dialogCtx) {
+            final String cleanCode = scannedCode.replaceAll('Order#', '').trim();
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: Colors.white,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE8F5E9),
+                        shape: BoxShape.circle,
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context, scannedCode);
-                      },
-                      child: Text('Pesanan Diterima', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        side: BorderSide(color: Colors.grey.shade300),
+                      child: const Icon(
+                        Icons.verified_rounded,
+                        color: Color(0xFF4CAF50),
+                        size: 48,
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        setState(() {
-                          _isScanned = false;
-                        });
-                      },
-                      child: Text('Batal', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey.shade700)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 18),
+                    Text(
+                      'Resi Terverifikasi',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0C4B8E),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'KODE ORDER',
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade500,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            cleanCode,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0C4B8E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Apakah laundry sudah diserahkan ke pelanggan dan siap ditandai selesai?',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: BorderSide(color: Colors.grey.shade300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              setState(() {
+                                _isScanned = false;
+                              });
+                            },
+                            child: Text(
+                              'Batal',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4CAF50),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              Navigator.pop(context, scannedCode);
+                            },
+                            child: Text(
+                              'Serahkan',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -88,6 +166,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
         break;
       }
     }
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 
   @override
@@ -115,7 +199,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
                 }
               },
             ),
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: () async {
+              try {
+                debugPrint("Toggling torch...");
+                await cameraController.toggleTorch();
+                debugPrint("Torch toggled! Current state: ${cameraController.value.torchState}");
+              } catch (e, stackTrace) {
+                debugPrint("Failed to toggle torch: $e\n$stackTrace");
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Gagal menyalakan flash: $e"),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
+            },
           ),
           IconButton(
             icon: ValueListenableBuilder(
@@ -158,14 +258,38 @@ class _ScannerScreenState extends State<ScannerScreen> {
           Positioned(
             bottom: 50,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              margin: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.black.withOpacity(0.75),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Text(
-                'Arahkan garis kamera ke barcode resi',
-                style: GoogleFonts.poppins(color: Colors.white),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: Color(0xFF42C6D4),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Arahkan kamera ke barcode resi pelanggan',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

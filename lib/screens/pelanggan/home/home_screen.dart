@@ -475,162 +475,171 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
         return Scaffold(
           extendBody: true,
           backgroundColor: const Color(0xFFF8FBFC),
           body: Stack(
-        children: [
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 350,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+            children: [
+              Positioned.fill(
+                child: RefreshIndicator(
+                  color: const Color(0xFF0C4B8E),
+                  backgroundColor: Colors.white,
+                  onRefresh: () async {
+                    await Future.wait([
+                      _fetchProfileData(),
+                      _fetchServicesData(),
+                    ]);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 350 + statusBarHeight,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Color(0xFFBCEFF2), Color(0xFFF8FBFC)],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: statusBarHeight + 20,
+                            bottom: 140,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                child: _buildHeader(),
+                              ),
+                              const SizedBox(height: 24),
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Column(
+                                    children: [
+                                     Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.03),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(16),
+                                            splashColor: const Color(0xFF0C4B8E).withValues(alpha: 0.12),
+                                            highlightColor: const Color(0xFF0C4B8E).withValues(alpha: 0.06),
+                                            onTap: () {
+                                              setState(() {
+                                                _isLocationMenuOpen = !_isLocationMenuOpen;
+                                              });
+                                            },
+                                            child: _buildLocationCard(context),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 24),
+                                  // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
+                                  _buildPromoSlider(),
+                                  const SizedBox(height: 12),
+                                  _buildDotIndicator(),
+                                  const SizedBox(height: 24),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(24),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.04),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
+                                          ),
+                                          child: _buildServicesSection(),
+                                        ),
+                                        if (_isLoadingActiveOrders || _activeOrders.isNotEmpty) ...[
+                                          const SizedBox(height: 20),
+                                          Container(
+                                            padding: const EdgeInsets.all(20),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(24),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.04),
+                                                  blurRadius: 12,
+                                                  offset: const Offset(0, 6),
+                                                ),
+                                              ],
+                                            ),
+                                            child: _buildOrderStatusSection(),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              AnimatedPositioned(
+                                duration: const Duration(milliseconds: 350),
+                                curve: Curves.easeInOutBack,
+                                top: _isLocationMenuOpen ? 64 : 35,
+                                left: 20,
+                                right: 20,
+                                child: AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 250),
+                                  opacity: _isLocationMenuOpen ? 1.0 : 0.0,
+                                  child: IgnorePointer(
+                                    ignoring: !_isLocationMenuOpen,
+                                    child: _buildExpandedLocationCard(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          SafeArea(
-            child: RefreshIndicator(
-              color: const Color(0xFF0C4B8E),
-              backgroundColor: Colors.white,
-              onRefresh: () async {
-                await Future.wait([
-                  _fetchProfileData(),
-                  _fetchServicesData(),
-                ]);
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 140),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: _buildHeader(),
-                    ),
-                    const SizedBox(height: 24),
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Column(
-                          children: [
-                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.03),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    splashColor: const Color(0xFF0C4B8E).withValues(alpha: 0.12),
-                                    highlightColor: const Color(0xFF0C4B8E).withValues(alpha: 0.06),
-                                    onTap: () {
-                                      setState(() {
-                                        _isLocationMenuOpen = !_isLocationMenuOpen;
-                                      });
-                                    },
-                                    child: _buildLocationCard(context),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 24),
-                          // Slider diletakkan di luar padding horizontal utama agar bisa 'bleeding' ke pinggir
-                          _buildPromoSlider(),
-                          const SizedBox(height: 12),
-                          _buildDotIndicator(),
-                          const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                            child: Column(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(24),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.04),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ],
-                                  ),
-                                  child: _buildServicesSection(),
-                                ),
-                                if (_isLoadingActiveOrders || _activeOrders.isNotEmpty) ...[
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.04),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 6),
-                                        ),
-                                      ],
-                                    ),
-                                    child: _buildOrderStatusSection(),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeInOutBack,
-                        top: _isLocationMenuOpen ? 64 : 35,
-                        left: 20,
-                        right: 20,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 250),
-                          opacity: _isLocationMenuOpen ? 1.0 : 0.0,
-                          child: IgnorePointer(
-                            ignoring: !_isLocationMenuOpen,
-                            child: _buildExpandedLocationCard(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+              if (_isNotificationVisible)
+                Positioned(
+                  top: statusBarHeight + 20,
+                  left: 20,
+                  right: 20,
+                  child: _buildOrderSuccessBanner(),
+                ),
+            ],
           ),
-        ),
-          if (_isNotificationVisible)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 20,
-              left: 20,
-              right: 20,
-              child: _buildOrderSuccessBanner(),
-            ),
-        ],
-      ),
       bottomNavigationBar: widget.showNavbar ? BottomNavbar(
         currentIndex: 0,
         onTap: (index) {

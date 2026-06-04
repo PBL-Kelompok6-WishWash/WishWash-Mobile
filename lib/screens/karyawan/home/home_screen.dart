@@ -32,6 +32,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   List<dynamic> _realOrders = [];
   bool _isLoadingOrders = true;
   double _todayRevenue = 0.0;
+  String _percentageTrend = '0%';
 
   @override
   void initState() {
@@ -169,13 +170,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       int countProses = 0;
       int countAntar = 0;
       int countSelesai = 0;
-      double revenue = 0.0;
-      final now = DateTime.now();
 
       for (var map in listMaps) {
         final status = _getOrderStatus(map);
-        final logistikType = map['tipe_logistik']?.toString() ?? '';
-
         if (_isBaruOrder(status)) {
           countIncoming++;
         } else if (_isOutletOrder(status, map)) {
@@ -184,52 +181,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           countAntar++;
         } else if (_isSelesaiOrder(status)) {
           countSelesai++;
-        }
-
-        // Calculate today's revenue from completed payments
-        if (_isSelesaiOrder(status)) {
-          bool isToday = false;
-          final historyList = map['RiwayatStatusDetail'];
-          if (historyList != null &&
-              historyList is List &&
-              historyList.isNotEmpty) {
-            List<dynamic> sortedHistory = List.from(historyList);
-            sortedHistory.sort(
-              (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
-                b['id_riwayat_status_detail'] as num? ?? 0,
-              ),
-            );
-            final rawTime =
-                sortedHistory.last['waktu_update'] ??
-                sortedHistory.last['WaktuUpdate'];
-            if (rawTime != null) {
-              try {
-                final dt = DateTime.parse(rawTime.toString()).toLocal();
-                if (dt.year == now.year &&
-                    dt.month == now.month &&
-                    dt.day == now.day) {
-                  isToday = true;
-                }
-              } catch (_) {}
-            }
-          } else {
-            final rawTime = map['tgl_pesanan'];
-            if (rawTime != null) {
-              try {
-                final dt = DateTime.parse(rawTime.toString()).toLocal();
-                if (dt.year == now.year &&
-                    dt.month == now.month &&
-                    dt.day == now.day) {
-                  isToday = true;
-                }
-              } catch (_) {}
-            }
-          }
-
-          if (isToday) {
-            final double val = (map['total_bayar'] as num?)?.toDouble() ?? 0.0;
-            revenue += val;
-          }
         }
       }
 
@@ -240,6 +191,18 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         return tB.compareTo(tA);
       });
 
+      double revenue = 0.0;
+      String trend = '0%';
+      try {
+        final revenueData = await OrderService.getRevenueSummary();
+        if (revenueData['success'] == true) {
+          revenue = (revenueData['today_revenue'] as num?)?.toDouble() ?? 0.0;
+          trend = revenueData['percentage_trend']?.toString() ?? '0%';
+        }
+      } catch (revErr) {
+        debugPrint("Error fetching revenue summary on dashboard: $revErr");
+      }
+
       if (mounted) {
         setState(() {
           _realOrders = listMaps;
@@ -248,6 +211,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           antarCount = countAntar;
           selesaiCount = countSelesai;
           _todayRevenue = revenue;
+          _percentageTrend = trend;
           _isLoadingOrders = false;
         });
       }
@@ -460,60 +424,61 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   child: Container(color: Colors.transparent),
                 ),
               ),
-              SafeArea(
-                child: RefreshIndicator(
-                  onRefresh: _onRefresh,
-                  color: const Color(0xFF0C4B8E),
-                  backgroundColor: Colors.white,
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 800),
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 8),
+              RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: const Color(0xFF0C4B8E),
+                backgroundColor: Colors.white,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(
+                        24.0,
+                        MediaQuery.of(context).padding.top + 8,
+                        24.0,
+                        24.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // --- HEADER PRIBADI ---
+                          _buildHeader(navyColor),
+                          const SizedBox(height: 30),
 
-                            // --- HEADER PRIBADI ---
-                            _buildHeader(navyColor),
-                            const SizedBox(height: 30),
+                          // --- HERO INCOME CARD (PREMIUM) ---
+                          _buildIncomeCard(navyColor, cyanColor, lightCyan),
+                          const SizedBox(height: 30),
 
-                            // --- HERO INCOME CARD (PREMIUM) ---
-                            _buildIncomeCard(navyColor, cyanColor, lightCyan),
-                            const SizedBox(height: 30),
-
-                            // --- GRID STATUS 2x2 ---
-                            Text(
-                              TranslationService.translate('monitor_orders'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: navyColor,
-                              ),
+                          // --- GRID STATUS 2x2 ---
+                          Text(
+                            TranslationService.translate('monitor_orders'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
                             ),
-                            const SizedBox(height: 16),
-                            _buildStatusGrid(context),
-                            const SizedBox(height: 30),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildStatusGrid(context),
+                          const SizedBox(height: 30),
 
-                            // --- AKTIVITAS TERKINI ---
-                            Text(
-                              TranslationService.translate('recent_activities'),
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: navyColor,
-                              ),
+                          // --- AKTIVITAS TERKINI ---
+                          Text(
+                            TranslationService.translate('recent_activities'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
                             ),
-                            const SizedBox(height: 16),
-                            _buildRecentActivities(navyColor, cyanColor),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildRecentActivities(navyColor, cyanColor),
 
-                            const SizedBox(
-                              height: 100,
-                            ), // Spacing agar tidak tertutup Bottom Nav
-                          ],
-                        ),
+                          const SizedBox(
+                            height: 100,
+                          ), // Spacing agar tidak tertutup Bottom Nav
+                        ],
                       ),
                     ),
                   ),
@@ -826,14 +791,18 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.trending_up_rounded,
-                          color: Color(0xFFBCEFF2),
+                        Icon(
+                          _percentageTrend.startsWith('-')
+                              ? Icons.trending_down_rounded
+                              : Icons.trending_up_rounded,
+                          color: const Color(0xFFBCEFF2),
                           size: 16,
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          TranslationService.translate('revenue_trending'),
+                          TranslationService.currentLang == 'en'
+                              ? '$_percentageTrend from yesterday'
+                              : '$_percentageTrend dari kemarin',
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: const Color(0xFFBCEFF2),

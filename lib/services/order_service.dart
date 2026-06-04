@@ -91,4 +91,30 @@ class OrderService {
       throw Exception(data['error'] ?? 'Gagal mengambil detail pesanan');
     }
   }
+
+  static Future<Map<String, dynamic>> getRevenueSummary({int? month, int? year}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token == null) throw Exception('No token found');
+
+    String url = '$baseUrl/revenue';
+    if (month != null && year != null) {
+      url += '?month=$month&year=$year';
+    }
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      return data;
+    } else {
+      throw Exception(data['error'] ?? 'Gagal mengambil data pendapatan');
+    }
+  }
 }

@@ -75,7 +75,12 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
         return isLoading
             ? Center(child: CircularProgressIndicator(color: cyanColor))
             : ListView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 100),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  MediaQuery.of(context).padding.top + 20,
+                  24,
+                  150,
+                ),
                 children: [
                   // Header
                   Center(

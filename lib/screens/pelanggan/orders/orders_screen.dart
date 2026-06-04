@@ -287,17 +287,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
         return Scaffold(
           backgroundColor: bgGrey,
           extendBody: true,
           body: Stack(
             children: [
-              // Background Gradient at the top (DESAIN YANG SAMA PERSIS)
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 350,
+                height: 350 + statusBarHeight,
                 child: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
@@ -308,107 +308,103 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   ),
                 ),
               ),
-
-              SafeArea(
-                child: Column(
-                  children: [
-                    // --- HEADER & APPBAR (Dengan Back Button dihapus untuk kesimetrisan menu utama) ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      child: SizedBox(
-                        height: 48,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const SizedBox(width: 48), // Symmetrical spacing matching notification icon width
-                            Text(
-                              TranslationService.translate('orders'),
-                              style: GoogleFonts.poppins(
-                                color: navyColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
+              NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(20, statusBarHeight + 10, 20, 10),
+                        child: SizedBox(
+                          height: 48,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const SizedBox(width: 48),
+                              Text(
+                                TranslationService.translate('orders'),
+                                style: GoogleFonts.poppins(
+                                  color: navyColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
                               ),
-                            ),
-                            _buildNotificationIcon(),
-                          ],
+                              _buildNotificationIcon(),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-
-                // --- PIL PIL TAB SELECTOR ---
-                _buildTabSelector(navyColor, cyanColor),
-
-                // --- CONTENT LIST ---
-                Expanded(
-                  child: _isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(navyColor),
-                          ),
-                        )
-                      : _errorMessage != null
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    _errorMessage!,
-                                    textAlign: TextAlign.center,
-                                    style: GoogleFonts.poppins(color: navyColor, fontSize: 14),
+                    SliverToBoxAdapter(
+                      child: _buildTabSelector(navyColor, cyanColor),
+                    ),
+                  ];
+                },
+                body: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(navyColor),
+                        ),
+                      )
+                    : _errorMessage != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(color: navyColor, fontSize: 14),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _fetchOrders,
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: Text(TranslationService.currentLang == 'en' ? 'Retry' : 'Coba Lagi'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: navyColor,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
-                                  const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: _fetchOrders,
-                                    icon: const Icon(Icons.refresh_rounded),
-                                    label: Text(TranslationService.currentLang == 'en' ? 'Retry' : 'Coba Lagi'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: navyColor,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _fetchOrders,
-                              color: navyColor,
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 350),
-                                switchInCurve: Curves.easeInOutCubic,
-                                switchOutCurve: Curves.easeInOutCubic,
-                                transitionBuilder: (Widget child, Animation<double> animation) {
-                                  final offsetAnimation = Tween<Offset>(
-                                    begin: const Offset(0.06, 0.0),
-                                    end: Offset.zero,
-                                  ).animate(animation);
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: offsetAnimation,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: _selectedTab == 0
-                                    ? SizedBox(
-                                        key: const ValueKey('active_orders_tab'),
-                                        child: _buildActiveOrders(navyColor),
-                                      )
-                                    : SizedBox(
-                                        key: const ValueKey('completed_orders_tab'),
-                                        child: _buildCompletedOrders(navyColor),
-                                      ),
-                              ),
+                                ),
+                              ],
                             ),
-                ),
-              ],
-            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _fetchOrders,
+                            color: navyColor,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 350),
+                              switchInCurve: Curves.easeInOutCubic,
+                              switchOutCurve: Curves.easeInOutCubic,
+                              transitionBuilder: (Widget child, Animation<double> animation) {
+                                final offsetAnimation = Tween<Offset>(
+                                  begin: const Offset(0.06, 0.0),
+                                  end: Offset.zero,
+                                ).animate(animation);
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: offsetAnimation,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: _selectedTab == 0
+                                  ? SizedBox(
+                                      key: const ValueKey('active_orders_tab'),
+                                      child: _buildActiveOrders(navyColor),
+                                    )
+                                  : SizedBox(
+                                      key: const ValueKey('completed_orders_tab'),
+                                      child: _buildCompletedOrders(navyColor),
+                                    ),
+                            ),
+                          ),
+              ),
+            ],
           ),
-        ],
-      ),
       // FAB & BottomNavbar
       bottomNavigationBar: widget.showNavbar
           ? BottomNavbar(
