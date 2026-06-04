@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/karyawan/customer/tambah_pelanggan_screen.dart';
 import 'package:mobile/screens/karyawan/create_order/create_order_screen.dart';
 import 'package:mobile/services/translation_service.dart';
@@ -26,6 +31,9 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
   double _oldLeft = 0;
   bool _isFirstBuild = true;
 
+  Timer? _unreadTimer;
+  bool _hasUnreadChat = false;
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +52,46 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
         weight: 50.0,
       ),
     ]).animate(_controller);
+
+    _checkUnreadChats();
+    _unreadTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      _checkUnreadChats();
+    });
+  }
+
+  Future<void> _checkUnreadChats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/rooms'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> rooms = data['data'] ?? [];
+        bool unreadFound = false;
+        for (var room in rooms) {
+          final int count = room['unread_count'] ?? 0;
+          if (count > 0) {
+            unreadFound = true;
+            break;
+          }
+        }
+        if (mounted && _hasUnreadChat != unreadFound) {
+          setState(() {
+            _hasUnreadChat = unreadFound;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking unread chats in employee navbar: $e");
+    }
   }
 
   @override
@@ -67,6 +115,7 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
 
   @override
   void dispose() {
+    _unreadTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -207,6 +256,7 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
                         onTap: widget.onTap,
                         activeColor: activeColor,
                         inactiveColor: inactiveColor,
+                        hasBadge: _hasUnreadChat,
                       ),
                       _buildNavItem(
                         icon: Icons.person_outline_rounded,
@@ -238,6 +288,7 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
     required Function(int) onTap,
     required Color activeColor,
     required Color inactiveColor,
+    bool hasBadge = false,
   }) {
     final bool isSelected = currentIndex == index;
     final Color color = isSelected ? activeColor : inactiveColor;
@@ -256,7 +307,25 @@ class _NavbarKaryawanState extends State<NavbarKaryawan> with SingleTickerProvid
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 12),
-              Icon(isSelected ? activeIcon : icon, color: color, size: 26),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(isSelected ? activeIcon : icon, color: color, size: 26),
+                  if (hasBadge)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 label,

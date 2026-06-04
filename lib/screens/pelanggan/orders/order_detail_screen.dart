@@ -6,7 +6,7 @@ import 'package:mobile/services/translation_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:mobile/screens/pelanggan/chat/roomchat_admin.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
 import 'package:mobile/screens/pelanggan/orders/payment_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/rating_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/pelanggan_tracking_screen.dart';
@@ -5149,10 +5149,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RoomChatAdminScreen(
+                              builder: (context) => RoomChatDetailScreen(
                                 roomChatID: roomChatID,
-                                courierName: name,
-                                platNomor: plate,
+                                targetName: name,
+                                targetPhoto: rawFoto,
+                                subtitle: [
+                                  if (vehicle.isNotEmpty) vehicle,
+                                  if (plate.isNotEmpty) plate,
+                                ].join(' \u2022 '),
+                                orderToTrack: _currentOrder,
                               ),
                             ),
                           );

@@ -834,6 +834,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
       childAspectRatio: childAspectRatio,
+      padding: EdgeInsets.zero,
       children: [
         GridMonitorCard(
           title: TranslationService.translate('order_incoming'),
@@ -924,6 +925,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: displayCount,
       itemBuilder: (context, index) {
         final order = _realOrders[index];

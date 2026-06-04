@@ -26,6 +26,9 @@ class AuthService {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('jwt_token', responseData['token']);
         await prefs.setInt('id_role', responseData['id_role']);
+        if (responseData['id_user'] != null) {
+          await prefs.setInt('id_user', responseData['id_user']);
+        }
         
         // 💡 SIMPAN NAMA ASLI DI SINI (Sesuai role yang dikirim Golang)
         if (responseData['display_name'] != null) {
@@ -101,6 +104,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('jwt_token');
     await prefs.remove('id_role');
+    await prefs.remove('id_user');
     await prefs.remove('display_name');
   }
 }

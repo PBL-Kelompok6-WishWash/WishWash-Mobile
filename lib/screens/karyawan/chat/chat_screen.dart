@@ -1,15 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mobile/screens/karyawan/chat/roomchat.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/utils/constants.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
 import 'package:mobile/services/translation_service.dart';
 
-class KaryawanChatScreen extends StatelessWidget {
+class KaryawanChatScreen extends StatefulWidget {
   const KaryawanChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const Color navyColor = Color(0xFF0C4B8E);
+  State<KaryawanChatScreen> createState() => _KaryawanChatScreenState();
+}
 
+class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
+  final Color navyColor = const Color(0xFF0C4B8E);
+  List<dynamic> chatRooms = [];
+  bool isLoading = true;
+  String searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchChatRooms();
+  }
+
+  Future<void> fetchChatRooms() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/rooms'), 
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          chatRooms = data['data'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Gagal load room chat karyawan: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       color: Colors.transparent,
       child: Column(
@@ -59,89 +114,104 @@ class KaryawanChatScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 30, 24, 100),
-                children: [
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: TranslationService.currentLang == 'en' ? 'Search chat...' : 'Cari pesan...',
-                        hintStyle: GoogleFonts.poppins(
-                          color: Colors.grey.shade400,
-                          fontSize: 14,
-                        ),
-                        prefixIcon: const Icon(Icons.search, color: navyColor, size: 20),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : () {
+                      final filteredRooms = chatRooms.where((room) {
+                        final order = room['Order'];
+                        final pelanggan = order != null ? order['Pelanggan'] : null;
+                        final String name = pelanggan != null ? pelanggan['nama_lengkap'] : 'Customer';
+                        return name.toLowerCase().contains(searchQuery.toLowerCase());
+                      }).toList();
 
-                  // Pelanggan Section Title
-                  Row(
-                    children: [
-                      Text(
-                        TranslationService.currentLang == 'en' ? 'Customers' : 'Pelanggan',
-                        style: GoogleFonts.poppins(
-                          color: navyColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Container(
-                          height: 1.5,
-                          color: navyColor.withValues(alpha: 0.2),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: TextField(
+                                onChanged: (value) {
+                                  setState(() {
+                                    searchQuery = value;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  hintText: TranslationService.currentLang == 'en' ? 'Search chat...' : 'Cari pesan...',
+                                  hintStyle: GoogleFonts.poppins(
+                                    color: Colors.grey.shade400,
+                                    fontSize: 14,
+                                  ),
+                                  prefixIcon: Icon(Icons.search, color: navyColor, size: 20),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: filteredRooms.isEmpty
+                                ? Center(child: Text(TranslationService.currentLang == 'en' ? "No active chats yet" : "Belum ada obrolan aktif", style: GoogleFonts.poppins()))
+                                : ListView.builder(
+                                    padding: const EdgeInsets.fromLTRB(24, 15, 24, 100),
+                                    itemCount: filteredRooms.length,
+                                    itemBuilder: (context, index) {
+                                      final room = filteredRooms[index];
+                                      final order = room['Order'];
+                                      final pelanggan = order != null ? order['Pelanggan'] : null;
+                                      
+                                      String namaPelanggan = pelanggan != null ? pelanggan['nama_lengkap'] : 'Customer';
+                                      String fotoPelanggan = pelanggan != null ? (pelanggan['foto_pelanggan'] ?? '') : '';
+                                      String statusTag = order != null ? 'Order #${order['id_order']}' : 'Chat';
 
-                  // Customer Cards
-                  _buildCustomerCard(
-                    context: context,
-                    name: 'Jibran Kagabuming',
-                    statusTag: 'Active Order',
-                    message: 'titidije, bos',
-                    time: '11:11 am',
-                    navyColor: navyColor,
-                    unreadCount: 2,
-                  ),
-                  _buildCustomerCard(
-                    context: context,
-                    name: 'Sugeng Saklar',
-                    statusTag: 'Regular',
-                    message: 'sdh di dpan qq',
-                    time: '11:11 am',
-                    navyColor: navyColor,
-                    unreadCount: 0,
-                  ),
-                  _buildCustomerCard(
-                    context: context,
-                    name: 'Dika Acikiwir',
-                    statusTag: 'VIP Customer',
-                    message: 'Y, ok',
-                    time: '11:11 am',
-                    navyColor: navyColor,
-                    unreadCount: 0,
-                  ),
-                ],
-              ),
+                                      final lastMsg = room['LastMessage'];
+                                      String lastMsgText = 'Belum ada pesan';
+                                      String lastMsgTime = '';
+                                      if (lastMsg != null) {
+                                        final String msgText = lastMsg['teks_pesan'] ?? '';
+                                        final String pathImg = lastMsg['path_gambar'] ?? '';
+                                        if (msgText.isNotEmpty) {
+                                          lastMsgText = msgText;
+                                        } else if (pathImg.isNotEmpty) {
+                                          lastMsgText = '📷 Foto';
+                                        }
+                                        
+                                        final String rawTime = lastMsg['waktu_kirim'] ?? '';
+                                        if (rawTime.isNotEmpty) {
+                                          try {
+                                            final dt = DateTime.parse(rawTime).toLocal();
+                                            lastMsgTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                                          } catch (_) {}
+                                        }
+                                      }
+
+                                      return _buildCustomerCard(
+                                        context: context,
+                                        roomID: room['id_room_chat'],
+                                        name: namaPelanggan,
+                                        statusTag: statusTag,
+                                        message: lastMsgText,
+                                        time: lastMsgTime,
+                                        navyColor: navyColor,
+                                        unreadCount: room['unread_count'] ?? 0,
+                                        fotoPelanggan: fotoPelanggan,
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      );
+                    }(),
             ),
           ),
         ],
@@ -149,25 +219,62 @@ class KaryawanChatScreen extends StatelessWidget {
     );
   }
 
-
-
   Widget _buildCustomerCard({
     required BuildContext context,
+    required int roomID,
     required String name,
     required String statusTag,
     required String message,
     required String time,
     required Color navyColor,
     required int unreadCount,
+    required String fotoPelanggan,
   }) {
+    Widget avatarWidget;
+    if (fotoPelanggan.isNotEmpty) {
+      Widget img;
+      if (fotoPelanggan.startsWith('http://') || fotoPelanggan.startsWith('https://')) {
+        img = Image.network(fotoPelanggan, fit: BoxFit.cover);
+      } else if (fotoPelanggan.startsWith('/uploads/')) {
+        final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+        img = Image.network('$staticHost$fotoPelanggan', fit: BoxFit.cover);
+      } else {
+        img = Image.asset(fotoPelanggan, fit: BoxFit.cover);
+      }
+      avatarWidget = Container(
+        width: 52,
+        height: 52,
+        decoration: const BoxDecoration(shape: BoxShape.circle),
+        child: ClipOval(child: img),
+      );
+    } else {
+      avatarWidget = CircleAvatar(
+        radius: 26,
+        backgroundColor: const Color(0xFFEBF8FA),
+        child: Text(
+          name.trim().split(' ').where((w) => w.isNotEmpty).map((e) => e[0]).take(2).join('').toUpperCase(),
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF0C4B8E),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const RoomChatScreenKaryawan(),
+            builder: (context) => RoomChatDetailScreen(
+              roomChatID: roomID,
+              targetName: name,
+              targetPhoto: fotoPelanggan,
+              subtitle: statusTag,
+            ),
           ),
-        );
+        ).then((_) => fetchChatRooms());
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -186,36 +293,7 @@ class KaryawanChatScreen extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Custom beautiful Initials-based Avatar with online status indicator
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: const Color(0xFFEBF8FA),
-                  child: Text(
-                    name.trim().split(' ').where((w) => w.isNotEmpty).map((e) => e[0]).take(2).join('').toUpperCase(),
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF0C4B8E),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 2,
-                  right: 2,
-                  child: Container(
-                    width: 11,
-                    height: 11,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50), // Active green indicator
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            avatarWidget,
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -252,19 +330,20 @@ class KaryawanChatScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Text(
-                        time,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.grey.shade400,
-                          fontWeight: FontWeight.w500,
+                      if (time.isNotEmpty)
+                        Text(
+                          time,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: unreadCount > 0 ? navyColor : Colors.grey.shade400,
+                            fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w500,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
                         child: Text(
@@ -272,28 +351,30 @@ class KaryawanChatScreen extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.poppins(
-                            fontSize: 12.5,
+                            fontSize: 12.5, 
                             color: unreadCount > 0 ? navyColor : Colors.grey.shade500,
                             fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
                       ),
-                      if (unreadCount > 0)
+                      if (unreadCount > 0) ...[
+                        const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF42C6D4),
-                            borderRadius: BorderRadius.circular(10),
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF42C6D4),
+                            shape: BoxShape.circle,
                           ),
                           child: Text(
                             unreadCount.toString(),
                             style: GoogleFonts.poppins(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
                               color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ],

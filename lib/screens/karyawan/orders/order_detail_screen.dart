@@ -6,6 +6,10 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/services/order_service.dart';
 import 'package:mobile/screens/karyawan/orders/karyawan_tracking_screen.dart';
 import 'package:mobile/utils/constants.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -3439,20 +3443,115 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     );
   }
 
+  void _showErrorAutoDismissDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 40),
+                  const SizedBox(height: 12),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // --- PEMBUATAN CHAT DIALOG SEMENTARA ---
 
-  void _openCustomerChat(String name) {
+  Future<void> _openCustomerChat(String name) async {
     final bool isEn = TranslationService.currentLang == 'en';
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEn ? 'Opening chat with $name...' : 'Membuka chat dengan $name...',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: navyColor,
-        duration: const Duration(seconds: 2),
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
       ),
     );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) {
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/room/order/${_currentOrder['id_order']}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      if (response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        final int roomChatID = resData['data']['id_room_chat'];
+        
+        final pelanggan = _currentOrder['Pelanggan'] ?? {};
+        final String rawFoto = (pelanggan['foto_pelanggan'] ?? '').toString();
+        final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['no_hp'] ?? '').toString();
+
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RoomChatDetailScreen(
+                roomChatID: roomChatID,
+                targetName: name,
+                targetPhoto: rawFoto,
+                subtitle: customerPhone,
+              ),
+            ),
+          );
+        }
+      } else {
+        _showErrorAutoDismissDialog(
+          isEn ? 'Failed to connect to chat room' : 'Gagal terhubung ke ruang chat',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+      }
+      _showErrorAutoDismissDialog('Error: $e');
+    }
   }
 
   // Footer lengket berisi Tombol Update Status & Pembayaran
