@@ -128,12 +128,15 @@ class _ChatScreenState extends State<ChatScreen> {
                                 String namaKurir = isAdmin ? 'Admin WishWash' : karyawan['nama_karyawan'];
                                 String platNomor = isAdmin ? '-' : karyawan['plat_nomor'];
 
+                                final String orderCode = order != null ? (order['kode_order'] ?? 'WW-${order['id_order']}') : '';
+                                String displayName = orderCode.isNotEmpty ? '$namaKurir (#$orderCode)' : namaKurir;
+
                                 return _buildCourierCard(
                                   context: context,
                                   roomID: room['id_room_chat'],
-                                  name: namaKurir,
+                                  name: displayName,
                                   platNomor: platNomor,
-                                  message: 'Klik untuk masuk ke ruang obrolan...',
+                                  message: 'Klik untuk obrolan pesanan #$orderCode...',
                                   time: '',
                                   navyColor: navyColor,
                                   unreadCount: 0,
