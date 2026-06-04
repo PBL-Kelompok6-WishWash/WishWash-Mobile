@@ -18,6 +18,7 @@ import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/home/detail_promo.dart';
 import 'package:mobile/services/promo_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(
@@ -65,6 +66,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   bool _isLoadingActiveOrders = true;
   List<dynamic> _promos = [];
   bool _isLoadingPromos = true;
+  List<String> _claimedPromoIds = [];
 
   @override
   void initState() {
@@ -79,6 +81,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         }
       });
     }
+    _loadClaimedPromos();
     _fetchProfileData();
     _fetchServicesData();
     _fetchActiveOrders();
@@ -94,10 +97,42 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   }
 
   void reloadProfileAndServices() {
+    _loadClaimedPromos();
     _fetchProfileData();
     _fetchServicesData();
     _fetchActiveOrders();
     _fetchPromosData();
+  }
+
+  Future<void> _loadClaimedPromos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _claimedPromoIds = prefs.getStringList('claimed_promo_ids') ?? [];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading claimed promos: $e");
+    }
+  }
+
+  Future<void> _claimPromo(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getStringList('claimed_promo_ids') ?? [];
+      if (!current.contains(id)) {
+        current.add(id);
+        await prefs.setStringList('claimed_promo_ids', current);
+        if (mounted) {
+          setState(() {
+            _claimedPromoIds = current;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error claiming promo: $e");
+    }
   }
 
   Future<void> _fetchServicesData() async {
@@ -127,9 +162,23 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       final promosData = await PromoService.getPromos();
       if (mounted) {
         setState(() {
+          final now = DateTime.now();
           _promos = promosData.where((p) {
             final status = p['status_promo']?.toString() ?? 'Aktif';
-            return status.toLowerCase() == 'aktif';
+            if (status.toLowerCase() != 'aktif') return false;
+
+            final tglBerakhirStr = p['tgl_berakhir']?.toString();
+            if (tglBerakhirStr != null && tglBerakhirStr.isNotEmpty) {
+              try {
+                final tglBerakhir = DateTime.parse(tglBerakhirStr);
+                if (tglBerakhir.isBefore(now)) {
+                  return false;
+                }
+              } catch (e) {
+                debugPrint("Error parsing tgl_berakhir: $e");
+              }
+            }
+            return true;
           }).toList();
           _isLoadingPromos = false;
         });
@@ -779,6 +828,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     final String title = promo['nama_promo'] ?? '';
     final String subtitle = promo['deskripsi'] ?? '';
     final String rawImage = promo['gambar_promo'] ?? '';
+    final String promoId = promo['id_promo']?.toString() ?? '';
+    final bool isClaimed = _claimedPromoIds.contains(promoId);
 
     Widget imageWidget;
     if (rawImage.isNotEmpty) {
@@ -793,100 +844,117 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       imageWidget = Image.asset(defaultImagePath, fit: BoxFit.contain);
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: isTablet ? 10 : -10,
-            bottom: 0,
-            child: SizedBox(
-              width: isTablet ? 200 : 140,
-              height: isTablet ? 200 : 140,
-              child: imageWidget,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailPromoScreen(
+              promoData: promo,
             ),
           ),
-          Padding(
-            padding: EdgeInsets.all(isTablet ? 32 : 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: isTablet ? 24 : 18,
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: isTablet ? 10 : -10,
+              bottom: 0,
+              child: SizedBox(
+                width: isTablet ? 200 : 140,
+                height: isTablet ? 200 : 140,
+                child: imageWidget,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(isTablet ? 32 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: isTablet ? 24 : 18,
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: isTablet ? 14 : 11,
-                    color: textColor.withOpacity(0.7),
-                    height: 1.4,
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: isTablet ? 14 : 11,
+                      color: textColor.withOpacity(0.7),
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: btnColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
+                  if (!isClaimed) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: btnColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => DetailPromoScreen(
-                            promoData: promo,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          _claimPromo(promoId);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                TranslationService.currentLang == 'en'
+                                    ? 'Promo claimed successfully!'
+                                    : 'Promo berhasil diklaim!',
+                              ),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: btnColor,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          minimumSize: const Size(100, 36),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: btnColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      minimumSize: const Size(100, 36),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        child: Text(
+                          title.toLowerCase().contains('free') || title.toLowerCase().contains('gratis') 
+                              ? 'Check Now' 
+                              : 'Claim Now',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      title.toLowerCase().contains('free') || title.toLowerCase().contains('gratis') 
-                          ? 'Check Now' 
-                          : 'Claim Now',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                  ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1965,6 +2033,26 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             ),
           ),
           const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? themeColor : Colors.grey.shade600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: Text(

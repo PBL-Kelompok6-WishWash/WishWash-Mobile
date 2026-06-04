@@ -14,6 +14,7 @@ import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/order_service.dart';
 import 'package:mobile/utils/constants.dart';
+import 'package:mobile/services/promo_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -52,12 +53,78 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   List<dynamic> addresses = [];
   bool isLoadingAddresses = true;
 
+  List<dynamic> _claimedPromos = [];
+  bool _isLoadingPromos = true;
+
   @override
   void initState() {
     super.initState();
     _currentOrder = Map<String, dynamic>.from(widget.order);
     _loadAddresses();
     _loadOrderDetail();
+    _loadPromos();
+  }
+
+  Future<void> _loadPromos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final claimedIds = prefs.getStringList('claimed_promo_ids') ?? [];
+      final promosData = await PromoService.getPromos();
+      final now = DateTime.now();
+      
+      final filtered = promosData.where((p) {
+        final String promoId = p['id_promo']?.toString() ?? '';
+        if (!claimedIds.contains(promoId)) return false;
+
+        final status = p['status_promo']?.toString() ?? 'Aktif';
+        if (status.toLowerCase() != 'aktif') return false;
+
+        final tglBerakhirStr = p['tgl_berakhir']?.toString();
+        if (tglBerakhirStr != null && tglBerakhirStr.isNotEmpty) {
+          try {
+            final tglBerakhir = DateTime.parse(tglBerakhirStr);
+            if (tglBerakhir.isBefore(now)) return false;
+          } catch (_) {}
+        }
+        return true;
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _claimedPromos = filtered;
+          _isLoadingPromos = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading promos for order details: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingPromos = false;
+        });
+      }
+    }
+  }
+
+  bool _isPromoEligible(Map<String, dynamic> promo, double subtotalCucian) {
+    final double minimalOrder = (promo['minimal_order'] as num?)?.toDouble() ?? 0.0;
+    return subtotalCucian >= minimalOrder;
+  }
+
+  double _calculatePromoDiscount(Map<String, dynamic> promo, double subtotalCucian) {
+    final String tipePromo = promo['tipe_promo']?.toString() ?? 'Nominal';
+    final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+    final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
+    double discount = 0.0;
+    if (tipePromo.toLowerCase().contains('persen')) {
+      discount = subtotalCucian * (nominalPotongan / 100);
+      if (maksimalPotongan > 0.0 && discount > maksimalPotongan) {
+        discount = maksimalPotongan;
+      }
+    } else {
+      discount = nominalPotongan;
+    }
+    return discount > subtotalCucian ? subtotalCucian : discount;
   }
 
   Future<void> _loadOrderDetail() async {
@@ -1057,23 +1124,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final code = _promoController.text.trim().toUpperCase();
     if (code.isEmpty) return;
 
+    final promo = _claimedPromos.firstWhere(
+      (p) => (p['kode_promo']?.toString().toUpperCase() == code),
+      orElse: () => null,
+    );
+
     setState(() {
-      if (code == 'WISHWASH50') {
-        _appliedPromoDiscount = subtotalCucian * 0.50;
-        _isPromoApplied = true;
-        _promoError = '';
-        _appliedPromoCode = code;
-      } else if (code == 'HELLOWW') {
-        _appliedPromoDiscount = subtotalCucian > 10000 ? 10000 : subtotalCucian;
-        _isPromoApplied = true;
-        _promoError = '';
-        _appliedPromoCode = code;
+      if (promo != null) {
+        if (_isPromoEligible(promo, subtotalCucian)) {
+          _appliedPromoDiscount = _calculatePromoDiscount(promo, subtotalCucian);
+          _isPromoApplied = true;
+          _promoError = '';
+          _appliedPromoCode = promo['kode_promo'] ?? '';
+        } else {
+          _appliedPromoDiscount = 0.0;
+          _isPromoApplied = false;
+          _promoError = TranslationService.currentLang == 'en'
+              ? 'Your order does not meet the promo requirements!'
+              : 'pesanan anda tidak memenuhi syarat promo';
+          _appliedPromoCode = '';
+        }
       } else {
         _appliedPromoDiscount = 0.0;
         _isPromoApplied = false;
         _promoError = TranslationService.currentLang == 'en'
-            ? 'Invalid Promo Code!'
-            : 'Kode Promo Tidak Valid!';
+            ? 'Invalid or unclaimed promo code!'
+            : 'Kode promo tidak valid atau belum diklaim!';
         _appliedPromoCode = '';
       }
     });
@@ -1548,40 +1624,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             final bool isEn = TranslationService.currentLang == 'en';
-            final List<Map<String, dynamic>> availablePromos = [
-              {
-                'code': 'WISHWASH50',
-                'title': isEn
-                    ? '50% Discount (Save Max Rp 20k)'
-                    : 'Diskon 50% (Hemat s/d Rp 20.000)',
-                'desc': isEn
-                    ? 'Applicable to weight laundry laundry services'
-                    : 'Berlaku untuk semua jenis cuci timbang',
-                'discount': subtotalCucian * 0.50 > 20000.0
-                    ? 20000.0
-                    : subtotalCucian * 0.50,
-              },
-              {
-                'code': 'HELLOWW',
-                'title': isEn
-                    ? 'Flat Rp 10k Discount'
-                    : 'Potongan Langsung Rp 10.000',
-                'desc': isEn
-                    ? 'Welcome discount for new customers!'
-                    : 'Diskon selamat datang pelanggan baru!',
-                'discount': subtotalCucian > 10000.0 ? 10000.0 : subtotalCucian,
-              },
-              {
-                'code': 'FREEDELIV',
-                'title': isEn
-                    ? 'Free Delivery Surcharge'
-                    : 'Bebas Biaya Pengantaran Kurir',
-                'desc': isEn
-                    ? 'Deducts Rp 8k for reguler package courier delivery'
-                    : 'Potongan langsung Rp 8.000 untuk pengiriman paket reguler',
-                'discount': 8000.0,
-              },
-            ];
 
             return Padding(
               padding: EdgeInsets.only(
@@ -1738,132 +1780,160 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   const SizedBox(height: 20),
 
                   Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: availablePromos.length,
-                      itemBuilder: (context, index) {
-                        final promo = availablePromos[index];
-                        final String code = promo['code'];
-                        final bool isCurrent = _appliedPromoCode == code;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isCurrent
-                                  ? cyanColor
-                                  : Colors.grey.shade200,
-                              width: isCurrent ? 2 : 1,
+                    child: _isLoadingPromos
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator(),
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Banner(
-                              message: isEn ? 'OFFER' : 'PROMO',
-                              location: BannerLocation.topEnd,
-                              color: cyanColor,
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _appliedPromoDiscount = promo['discount'];
-                                    _isPromoApplied = true;
-                                    _appliedPromoCode = code;
-                                    _promoController.text = code;
-                                    _promoError = '';
-                                  });
-                                  setModalState(() {});
-                                  Navigator.pop(context);
-                                },
+                          )
+                        : _claimedPromos.isEmpty
+                            ? Center(
                                 child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          color: softTeal.withValues(
-                                            alpha: 0.4,
-                                          ),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.confirmation_num_rounded,
-                                          color: navyColor,
-                                          size: 24,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              promo['title'],
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: navyColor,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              promo['desc'],
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 10,
-                                                color: Colors.grey.shade500,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: bgGrey,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                'CODE: $code',
-                                                style: GoogleFonts.poppins(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: navyColor,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        isCurrent
-                                            ? Icons.radio_button_checked_rounded
-                                            : Icons.radio_button_off_rounded,
-                                        color: isCurrent
-                                            ? cyanColor
-                                            : Colors.grey.shade300,
-                                      ),
-                                    ],
+                                  padding: const EdgeInsets.symmetric(vertical: 24),
+                                  child: Text(
+                                    isEn ? 'No claimed promos available' : 'Tidak ada promo yang diklaim',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _claimedPromos.length,
+                                itemBuilder: (context, index) {
+                                  final promo = _claimedPromos[index];
+                                  final String code = promo['kode_promo'] ?? '';
+                                  final String title = promo['nama_promo'] ?? '';
+                                  final String desc = promo['deskripsi'] ?? '';
+                                  final bool eligible = _isPromoEligible(promo, subtotalCucian);
+                                  final bool isCurrent = _appliedPromoCode == code;
+
+                                  final Color itemNavy = eligible ? navyColor : Colors.grey.shade400;
+                                  final Color itemCyan = eligible ? cyanColor : Colors.grey.shade300;
+                                  final Color itemBg = eligible ? Colors.white : Colors.grey.shade100;
+                                  final Color itemBorder = eligible
+                                      ? (isCurrent ? cyanColor : Colors.grey.shade200)
+                                      : Colors.grey.shade300;
+
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    decoration: BoxDecoration(
+                                      color: itemBg,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: itemBorder,
+                                        width: isCurrent && eligible ? 2 : 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.02),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Banner(
+                                        message: isEn ? 'OFFER' : 'PROMO',
+                                        location: BannerLocation.topEnd,
+                                        color: itemCyan,
+                                        child: InkWell(
+                                          onTap: eligible
+                                              ? () {
+                                                  setState(() {
+                                                    _appliedPromoDiscount = _calculatePromoDiscount(promo, subtotalCucian);
+                                                    _isPromoApplied = true;
+                                                    _appliedPromoCode = code;
+                                                    _promoController.text = code;
+                                                    _promoError = '';
+                                                  });
+                                                  setModalState(() {});
+                                                  Navigator.pop(context);
+                                                }
+                                              : null,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(16),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: eligible
+                                                        ? softTeal.withOpacity(0.4)
+                                                        : Colors.grey.shade200,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: Icon(
+                                                    Icons.confirmation_num_rounded,
+                                                    color: itemNavy,
+                                                    size: 24,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 14),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        title,
+                                                        style: GoogleFonts.poppins(
+                                                          fontSize: 12,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: itemNavy,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        desc,
+                                                        style: GoogleFonts.poppins(
+                                                          fontSize: 10,
+                                                          color: eligible ? Colors.grey.shade500 : Colors.grey.shade400,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 6),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: eligible ? bgGrey : Colors.grey.shade200,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: Text(
+                                                          'CODE: $code',
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 9,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: itemNavy,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  isCurrent && eligible
+                                                      ? Icons.radio_button_checked_rounded
+                                                      : Icons.radio_button_off_rounded,
+                                                  color: isCurrent && eligible
+                                                      ? cyanColor
+                                                      : Colors.grey.shade300,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -7129,6 +7199,15 @@ class DeliveryMapPainter extends CustomPainter {
         size.width * 0.8,
         size.height * 0.5,
         size.width * 0.8,
+        size.height * 0.8,
+      )
+      ..lineTo(size.width, size.height * 0.8);
+    canvas.drawPath(routePath, paintAccentRoad);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
         size.height * 0.8,
       )
       ..lineTo(size.width, size.height * 0.8);

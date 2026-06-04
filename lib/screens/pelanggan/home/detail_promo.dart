@@ -3,12 +3,69 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile/utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class DetailPromoScreen extends StatelessWidget {
+class DetailPromoScreen extends StatefulWidget {
   // Terima data dinamis dari database/API lewat constructor
   final Map<String, dynamic> promoData;
 
   const DetailPromoScreen({super.key, required this.promoData});
+
+  @override
+  State<DetailPromoScreen> createState() => _DetailPromoScreenState();
+}
+
+class _DetailPromoScreenState extends State<DetailPromoScreen> {
+  bool _isClaimed = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkClaimedStatus();
+  }
+
+  Future<void> _checkClaimedStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final claimedList = prefs.getStringList('claimed_promo_ids') ?? [];
+      final String promoId = widget.promoData['id_promo']?.toString() ?? '';
+      if (mounted) {
+        setState(() {
+          _isClaimed = claimedList.contains(promoId);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _claimPromo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final claimedList = prefs.getStringList('claimed_promo_ids') ?? [];
+      final String promoId = widget.promoData['id_promo']?.toString() ?? '';
+      if (!claimedList.contains(promoId)) {
+        claimedList.add(promoId);
+        await prefs.setStringList('claimed_promo_ids', claimedList);
+        if (mounted) {
+          setState(() {
+            _isClaimed = true;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Promo berhasil diklaim!')),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error claiming promo in details: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,34 +78,34 @@ class DetailPromoScreen extends StatelessWidget {
     const Color promoBoxAccent = Color(0xFF4FC6C9); // Cyan teks & border kotak promo
 
     // Parsing data dari database promo
-    String couponCode = promoData['kode_promo'] ?? '';
-    String description = promoData['deskripsi'] ?? '';
-    String paymentMethod = promoData['payment_method'] ?? 'QRIS, Cash';
-    String promoId = promoData['id_promo']?.toString() ?? '';
+    String couponCode = widget.promoData['kode_promo'] ?? '';
+    String description = widget.promoData['deskripsi'] ?? '';
+    String paymentMethod = widget.promoData['payment_method'] ?? 'QRIS, Cash';
+    String promoId = widget.promoData['id_promo']?.toString() ?? '';
     
     // Format Diskon berdasarkan jenisnya
     String discountText = "";
-    if (promoData['tipe_promo']?.toString().toLowerCase() == 'persentase') {
-      discountText = "${(promoData['nominal_potongan'] as num?)?.toInt() ?? 0}%";
+    if (widget.promoData['tipe_promo']?.toString().toLowerCase() == 'persentase') {
+      discountText = "${(widget.promoData['nominal_potongan'] as num?)?.toInt() ?? 0}%";
     } else {
-      discountText = "Rp ${NumberFormat('#,###', 'id_ID').format((promoData['nominal_potongan'] as num?)?.toDouble() ?? 0.0)}";
+      discountText = "Rp ${NumberFormat('#,###', 'id_ID').format((widget.promoData['nominal_potongan'] as num?)?.toDouble() ?? 0.0)}";
     }
 
     // Format mata uang untuk min order
-    String minOrder = promoData['minimal_order'] != null
-        ? "Rp ${NumberFormat('#,###', 'id_ID').format((promoData['minimal_order'] as num).toDouble())}"
+    String minOrder = widget.promoData['minimal_order'] != null
+        ? "Rp ${NumberFormat('#,###', 'id_ID').format((widget.promoData['minimal_order'] as num).toDouble())}"
         : "Rp 0";
 
     // Format Tanggal (start_date & end_date)
     String formatPeriod() {
-      if (promoData['tgl_mulai'] == null || promoData['tgl_berakhir'] == null) return "-";
+      if (widget.promoData['tgl_mulai'] == null || widget.promoData['tgl_berakhir'] == null) return "-";
       try {
-        DateTime start = DateTime.parse(promoData['tgl_mulai']);
-        DateTime end = DateTime.parse(promoData['tgl_berakhir']);
+        DateTime start = DateTime.parse(widget.promoData['tgl_mulai']);
+        DateTime end = DateTime.parse(widget.promoData['tgl_berakhir']);
         var formatter = DateFormat('dd MMM yyyy', 'id_ID');
         return "${formatter.format(start)} - ${formatter.format(end)}";
       } catch (e) {
-        return "${promoData['tgl_mulai']} - ${promoData['tgl_berakhir']}";
+        return "${widget.promoData['tgl_mulai']} - ${widget.promoData['tgl_berakhir']}";
       }
     }
 
@@ -83,16 +140,16 @@ class DetailPromoScreen extends StatelessWidget {
                 Container(
                   height: 130,
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment. topCenter, // Mulai dari sisi atas
-                    end: Alignment.bottomCenter, // Berakhir di sisi bawah
-                    colors: [
-                      cyanAccent, // Warna cyan tua di sisi kiri
-                      Colors.white, // Warna putih di sisi kanan, menyatu dengan background
-                    ],
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter, // Mulai dari sisi atas
+                      end: Alignment.bottomCenter, // Berakhir di sisi bawah
+                      colors: [
+                        cyanAccent, // Warna cyan tua di sisi kiri
+                        Colors.white, // Warna putih di sisi kanan, menyatu dengan background
+                      ],
+                    ),
                   ),
-                ),
                 ),
                 // Banner Pink Utama
                 Padding(
@@ -115,7 +172,7 @@ class DetailPromoScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          promoData['nama_promo'] ?? "Free Pickup Available",
+                          widget.promoData['nama_promo'] ?? "Free Pickup Available",
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -124,7 +181,7 @@ class DetailPromoScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          promoData['deskripsi'] ?? "",
+                          widget.promoData['deskripsi'] ?? "",
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
@@ -136,13 +193,13 @@ class DetailPromoScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Ilustrasi Skuter 3D (Pastikan kamu udah masukin gambarnya ke folder assets!)
+                // Ilustrasi Skuter 3D
                 Positioned(
                   right: -5,
                   bottom: -15,
                   child: Builder(
                     builder: (context) {
-                      final String imgPath = promoData['gambar_promo'] ?? '';
+                      final String imgPath = widget.promoData['gambar_promo'] ?? '';
                       if (imgPath.isNotEmpty) {
                         final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
                         final String url = imgPath.startsWith('http') ? imgPath : '$staticHost$imgPath';
@@ -190,66 +247,109 @@ class DetailPromoScreen extends StatelessWidget {
             Divider(color: Colors.grey.shade200, thickness: 1.5),
             const SizedBox(height: 8),
 
-            // --- KOTAK KODE PROMO ---
+            // --- KOTAK KODE PROMO / TOMBOL KLAIM ---
             Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                decoration: BoxDecoration(
-                  color: promoBoxBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: promoBoxAccent.withOpacity(0.5)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Kode Promo",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12, 
-                            color: promoBoxAccent, 
-                            fontWeight: FontWeight.w600
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _isClaimed
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          decoration: BoxDecoration(
+                            color: promoBoxBg,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: promoBoxAccent.withOpacity(0.5)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Kode Promo",
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 12, 
+                                      color: promoBoxAccent, 
+                                      fontWeight: FontWeight.w600
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    couponCode,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 18, 
+                                      color: navyColor, 
+                                      fontWeight: FontWeight.bold
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: couponCode));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Kode promo berhasil disalin!')),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  "SALIN",
+                                  style: GoogleFonts.poppins(
+                                    color: promoBoxAccent, 
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                        )
+                      : Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: promoBoxAccent.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _claimPromo,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: promoBoxAccent,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.confirmation_number_rounded, color: Colors.white),
+                                const SizedBox(width: 10),
+                                Text(
+                                  "KLAIM VOUCHER SEKARANG",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          couponCode,
-                          style: GoogleFonts.poppins(
-                            fontSize: 18, 
-                            color: navyColor, 
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: couponCode));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kode promo berhasil disalin!')),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        "SALIN",
-                        style: GoogleFonts.poppins(
-                          color: promoBoxAccent, 
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
-                  ],
-                ),
-              ),
             ),
             
             // Memberikan sedikit ruang di bawah layar
@@ -272,6 +372,24 @@ class DetailPromoScreen extends StatelessWidget {
             style: GoogleFonts.poppins(
               fontSize: 13, 
               color: color, 
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 13, 
+              color: color, 
+              fontWeight: FontWeight.w400,
+              height: 1.4, // Biar teks deskripsi panjang (S&K) tetep rapi dibacanya
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}             color: color, 
               fontWeight: FontWeight.bold,
             ),
           ),
