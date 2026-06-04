@@ -75,6 +75,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           }
         }
       }
+      debugPrint("Loaded User ID from storage: $idUser, Role ID: $roleId");
       if (idUser != null) {
         setState(() {
           currentUserID = idUser!;
@@ -85,7 +86,9 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           currentUserRoleID = roleId;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("Error loading User ID: $e");
+    }
   }
 
   int? _decodeUserIdFromToken(String token) {
@@ -354,7 +357,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
-                        bool isMe = msg['id_user'] == currentUserID;
+                        bool isMe = (msg['id_user'] as num?)?.toInt() == currentUserID;
 
                         // Date Divider logic
                         bool showDateDivider = false;

@@ -46,8 +46,31 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        final List<dynamic> rooms = data['data'] ?? [];
+        
+        // Sort rooms by LastMessage.waktu_kirim descending (newest first)
+        rooms.sort((a, b) {
+          final lastMsgA = a['LastMessage'];
+          final lastMsgB = b['LastMessage'];
+          if (lastMsgA == null && lastMsgB == null) return 0;
+          if (lastMsgA == null) return 1;
+          if (lastMsgB == null) return -1;
+          final String timeStrA = lastMsgA['waktu_kirim'] ?? '';
+          final String timeStrB = lastMsgB['waktu_kirim'] ?? '';
+          if (timeStrA.isEmpty && timeStrB.isEmpty) return 0;
+          if (timeStrA.isEmpty) return 1;
+          if (timeStrB.isEmpty) return -1;
+          try {
+            final DateTime dtA = DateTime.parse(timeStrA);
+            final DateTime dtB = DateTime.parse(timeStrB);
+            return dtB.compareTo(dtA);
+          } catch (_) {
+            return 0;
+          }
+        });
+
         setState(() {
-          chatRooms = data['data'] ?? [];
+          chatRooms = rooms;
           isLoading = false;
         });
       } else {
