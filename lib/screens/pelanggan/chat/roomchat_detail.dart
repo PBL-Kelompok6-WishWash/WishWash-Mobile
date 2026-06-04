@@ -686,10 +686,13 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
       final String status = _getOrderStatusForTracker(order);
       final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
       final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
+      final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+      final String qtyStr = kuantitas > 0 ? '${kuantitas.toStringAsFixed(1)} kg' : 'Pending Weight';
       
       final String trackerMessage = 
           '📦 $searchPattern\n'
           '🔹 Service: $serviceName\n'
+          '🔹 Weight: $qtyStr\n'
           '🔹 Status: $status\n'
           '🔹 Total: $priceStr\n'
           '🔹 Order ID: ${order['id_order']}';
@@ -710,6 +713,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
       final lines = text.split('\n');
       String code = '';
       String service = '';
+      String weight = '';
       String status = '';
       String total = '';
       String orderId = '';
@@ -720,6 +724,8 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           code = line.substring(idx + '[Order Tracker]'.length).trim();
         } else if (line.contains('Service:')) {
           service = line.substring(line.indexOf('Service:') + 'Service:'.length).trim();
+        } else if (line.contains('Weight:')) {
+          weight = line.substring(line.indexOf('Weight:') + 'Weight:'.length).trim();
         } else if (line.contains('Status:')) {
           status = line.substring(line.indexOf('Status:') + 'Status:'.length).trim();
         } else if (line.contains('Total:')) {
@@ -731,6 +737,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
       return {
         'code': code,
         'service': service,
+        'weight': weight,
         'status': status,
         'total': total,
         'orderId': orderId,
@@ -743,6 +750,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   Widget _buildTrackerCard(Map<String, String> trackerInfo, bool isMe, String timeText, bool isRead) {
     final String code = trackerInfo['code'] ?? '';
     final String service = trackerInfo['service'] ?? '';
+    final String weight = trackerInfo['weight'] ?? '';
     final String status = trackerInfo['status'] ?? '';
     final String total = trackerInfo['total'] ?? '';
     final String orderIdStr = trackerInfo['orderId'] ?? '';
@@ -843,6 +851,10 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                   Divider(color: Colors.grey.shade100, height: 1),
                   const SizedBox(height: 10),
                   _buildTrackerDetailRow(TranslationService.currentLang == 'en' ? 'Service' : 'Layanan', service),
+                  if (weight.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    _buildTrackerDetailRow(TranslationService.currentLang == 'en' ? 'Weight' : 'Berat', weight),
+                  ],
                   const SizedBox(height: 6),
                   _buildTrackerDetailRow('Total', total, isBoldValue: true),
                   const SizedBox(height: 8),
