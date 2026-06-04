@@ -17,6 +17,7 @@ import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/home/detail_promo.dart';
+import 'package:mobile/services/promo_service.dart';
 
 void main() {
   runApp(
@@ -62,6 +63,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   bool _isNotificationVisible = false;
   List<dynamic> _activeOrders = [];
   bool _isLoadingActiveOrders = true;
+  List<dynamic> _promos = [];
+  bool _isLoadingPromos = true;
 
   @override
   void initState() {
@@ -79,6 +82,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     _fetchProfileData();
     _fetchServicesData();
     _fetchActiveOrders();
+    _fetchPromosData();
   }
 
   void closeDropdown() {
@@ -93,6 +97,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     _fetchProfileData();
     _fetchServicesData();
     _fetchActiveOrders();
+    _fetchPromosData();
   }
 
   Future<void> _fetchServicesData() async {
@@ -112,6 +117,28 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       if (mounted) {
         setState(() {
           _isLoadingServices = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchPromosData() async {
+    try {
+      final promosData = await PromoService.getPromos();
+      if (mounted) {
+        setState(() {
+          _promos = promosData.where((p) {
+            final status = p['status_promo']?.toString() ?? 'Aktif';
+            return status.toLowerCase() == 'aktif';
+          }).toList();
+          _isLoadingPromos = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Gagal mengambil data promo: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingPromos = false;
         });
       }
     }
@@ -681,53 +708,96 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
    // --- REVISI UTAMA: PROMO SLIDER ---
   Widget _buildPromoSlider() {
     final bool isTablet = MediaQuery.of(context).size.width >= 600;
+    
+    if (_isLoadingPromos) {
+      return SizedBox(
+        height: isTablet ? 240 : 180,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    if (_promos.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Map<String, dynamic>> promoStyles = [
+      {
+        'bgColor': const Color(0xFFE3F9FD),
+        'btnColor': const Color(0xFF42C6D4),
+        'textColor': const Color(0xFF0C4B8E),
+        'imagePath': 'assets/images/promos/diskon.png',
+      },
+      {
+        'bgColor': const Color(0xFFFDEEF6),
+        'btnColor': const Color(0xFFE91E63),
+        'textColor': const Color(0xFF880E4F),
+        'imagePath': 'assets/images/promos/free_deliv.png',
+      },
+      {
+        'bgColor': const Color(0xFFE8F5E9),
+        'btnColor': const Color(0xFF4CAF50),
+        'textColor': const Color(0xFF1B5E20),
+        'imagePath': 'assets/images/promos/diskon.png',
+      },
+      {
+        'bgColor': const Color(0xFFFFF3E0),
+        'btnColor': const Color(0xFFFF9800),
+        'textColor': const Color(0xFFE65100),
+        'imagePath': 'assets/images/promos/free_deliv.png',
+      },
+    ];
+
     return SizedBox(
       height: isTablet ? 240 : 180,
-      child: PageView(
+      child: PageView.builder(
         controller: _promoController,
         onPageChanged: (index) => setState(() => _currentPromoIndex = index),
-        children: [
-          _buildPromoItem(
-            '20% Off Your First Order',
-            'Enjoy a special discount\non your first laundry service.',
-            const Color(0xFFE3F9FD),
-            const Color(0xFF42C6D4),
-            'assets/images/promos/diskon.png',
-            const Color(0xFF0C4B8E), // Teks biru untuk kartu biru
-          ),
-          _buildPromoItem(
-            'Free Pickup Available',
-            'Get your laundry picked up\nfor free in selected areas.',
-            const Color(0xFFFDEEF6),
-            const Color(0xFFE91E63),
-            'assets/images/promos/free_deliv.png',
-            const Color(
-              0xFF880E4F,
-            ), // Teks pink gelap agar nyambung dengan kartu pink
-          ),
-        ],
+        itemCount: _promos.length,
+        itemBuilder: (context, index) {
+          final promo = _promos[index];
+          final style = promoStyles[index % promoStyles.length];
+          return _buildPromoItem(
+            promo,
+            style['bgColor'] as Color,
+            style['btnColor'] as Color,
+            style['imagePath'] as String,
+            style['textColor'] as Color,
+          );
+        },
       ),
     );
   }
 
   Widget _buildPromoItem(
-    String title,
-    String subtitle,
+    Map<String, dynamic> promo,
     Color bgColor,
     Color btnColor,
-    String imagePath,
-    Color textColor, // Tambah parameter warna teks
+    String defaultImagePath,
+    Color textColor,
   ) {
     final bool isTablet = MediaQuery.of(context).size.width >= 600;
+    final String title = promo['nama_promo'] ?? '';
+    final String subtitle = promo['deskripsi'] ?? '';
+    final String rawImage = promo['gambar_promo'] ?? '';
+
+    Widget imageWidget;
+    if (rawImage.isNotEmpty) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      final String url = rawImage.startsWith('http') ? rawImage : '$staticHost$rawImage';
+      imageWidget = Image.network(
+        url,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.asset(defaultImagePath, fit: BoxFit.contain),
+      );
+    } else {
+      imageWidget = Image.asset(defaultImagePath, fit: BoxFit.contain);
+    }
+
     return Container(
-      margin: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 5,
-      ), // Vertical margin untuk ruang shadow
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(24),
-        // SHADOW TIPIS DI BAGIAN BAWAH
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -738,25 +808,15 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       ),
       child: Stack(
         children: [
-          // Gambar di pojok kanan bawah
           Positioned(
             right: isTablet ? 10 : -10,
             bottom: 0,
             child: SizedBox(
               width: isTablet ? 200 : 140,
               height: isTablet ? 200 : 140,
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  Icons.shopping_bag_outlined,
-                  size: 80,
-                  color: btnColor.withOpacity(0.2),
-                ),
-              ),
+              child: imageWidget,
             ),
           ),
-          // Teks di sisi kiri
           Padding(
             padding: EdgeInsets.all(isTablet ? 32 : 20),
             child: Column(
@@ -768,7 +828,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 18,
                     fontWeight: FontWeight.w900,
-                    color: textColor, // Menggunakan warna adaptif
+                    color: textColor,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -781,7 +841,6 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Tombol
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
@@ -799,19 +858,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => DetailPromoScreen(
-                            promoData: {
-                              'title': title,
-                              'coupon_code': title.contains('20%') ? 'WISHWASH20' : 'FREEPICKUP',
-                              'discount_type': title.contains('20%') ? 'percentage' : 'fixed',
-                              'discount_value': title.contains('20%') ? 20 : 0,
-                              'min_order_value': 50000,
-                              'max_discount_value': title.contains('20%') ? 20000 : 0,
-                              'start_date': '2026-05-19',
-                              'end_date': '2026-05-26',
-                              'description': title.contains('20%') 
-                                  ? 'Nikmati potongan setengah harga khusus untuk pesanan pertama kamu di aplikasi WishWash.' 
-                                  : 'Layanan antar jemput gratis tanpa biaya sepeser pun untuk area operasional terpilih.',
-                            },
+                            promoData: promo,
                           ),
                         ),
                       );
@@ -826,7 +873,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                       ),
                     ),
                     child: Text(
-                      title.contains('Free') ? 'Check Now' : 'Claim Now',
+                      title.toLowerCase().contains('free') || title.toLowerCase().contains('gratis') 
+                          ? 'Check Now' 
+                          : 'Claim Now',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -1258,9 +1307,10 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   }
 
   Widget _buildDotIndicator() {
+    if (_promos.isEmpty) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(2, (index) {
+      children: List.generate(_promos.length, (index) {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 2),

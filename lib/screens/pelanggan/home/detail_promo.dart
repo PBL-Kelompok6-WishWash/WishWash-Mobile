@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile/utils/constants.dart';
 
 class DetailPromoScreen extends StatelessWidget {
   // Terima data dinamis dari database/API lewat constructor
@@ -20,34 +21,34 @@ class DetailPromoScreen extends StatelessWidget {
     const Color promoBoxAccent = Color(0xFF4FC6C9); // Cyan teks & border kotak promo
 
     // Parsing data dari database promo
-    String couponCode = promoData['coupon_code'] ?? 'FREEPICKUP';
-    String description = promoData['description'] ?? 'Layanan antar jemput gratis tanpa biaya sepeser pun untuk area operasional terpilih';
+    String couponCode = promoData['kode_promo'] ?? '';
+    String description = promoData['deskripsi'] ?? '';
     String paymentMethod = promoData['payment_method'] ?? 'QRIS, Cash';
-    String promoId = promoData['promo_id'] ?? 'PR002';
+    String promoId = promoData['id_promo']?.toString() ?? '';
     
     // Format Diskon berdasarkan jenisnya
     String discountText = "";
-    if (promoData['discount_type'] == 'percentage') {
-      discountText = "${promoData['discount_value'] ?? '100'}%";
+    if (promoData['tipe_promo']?.toString().toLowerCase() == 'persentase') {
+      discountText = "${(promoData['nominal_potongan'] as num?)?.toInt() ?? 0}%";
     } else {
-      discountText = "Rp ${NumberFormat('#,###', 'id_ID').format(promoData['discount_value'] ?? 0)}";
+      discountText = "Rp ${NumberFormat('#,###', 'id_ID').format((promoData['nominal_potongan'] as num?)?.toDouble() ?? 0.0)}";
     }
 
     // Format mata uang untuk min order
-    String minOrder = promoData['min_order_value'] != null
-        ? "Rp ${NumberFormat('#,###', 'id_ID').format(promoData['min_order_value'])}"
-        : "Rp 50.000";
+    String minOrder = promoData['minimal_order'] != null
+        ? "Rp ${NumberFormat('#,###', 'id_ID').format((promoData['minimal_order'] as num).toDouble())}"
+        : "Rp 0";
 
     // Format Tanggal (start_date & end_date)
     String formatPeriod() {
-      if (promoData['start_date'] == null || promoData['end_date'] == null) return "19 Mei 2026 - 26 Mei 2026";
+      if (promoData['tgl_mulai'] == null || promoData['tgl_berakhir'] == null) return "-";
       try {
-        DateTime start = DateTime.parse(promoData['start_date']);
-        DateTime end = DateTime.parse(promoData['end_date']);
+        DateTime start = DateTime.parse(promoData['tgl_mulai']);
+        DateTime end = DateTime.parse(promoData['tgl_berakhir']);
         var formatter = DateFormat('dd MMM yyyy', 'id_ID');
         return "${formatter.format(start)} - ${formatter.format(end)}";
       } catch (e) {
-        return "${promoData['start_date']} - ${promoData['end_date']}";
+        return "${promoData['tgl_mulai']} - ${promoData['tgl_berakhir']}";
       }
     }
 
@@ -114,7 +115,7 @@ class DetailPromoScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Free Pickup Available",
+                          promoData['nama_promo'] ?? "Free Pickup Available",
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -123,7 +124,7 @@ class DetailPromoScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "Get your laundry picked up for free in\nselected areas. Fast and convenient.",
+                          promoData['deskripsi'] ?? "",
                           style: GoogleFonts.poppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
@@ -139,10 +140,30 @@ class DetailPromoScreen extends StatelessWidget {
                 Positioned(
                   right: -5,
                   bottom: -15,
-                  child: Image.asset(
-                    'assets/images/promos/free_deliv.png', // Ganti path ini sesuai dengan folder asset kamu ya Dev!
-                    width: 170,
-                    fit: BoxFit.contain,
+                  child: Builder(
+                    builder: (context) {
+                      final String imgPath = promoData['gambar_promo'] ?? '';
+                      if (imgPath.isNotEmpty) {
+                        final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+                        final String url = imgPath.startsWith('http') ? imgPath : '$staticHost$imgPath';
+                        return Image.network(
+                          url,
+                          width: 170,
+                          height: 120,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/images/promos/free_deliv.png',
+                            width: 170,
+                            fit: BoxFit.contain,
+                          ),
+                        );
+                      }
+                      return Image.asset(
+                        'assets/images/promos/free_deliv.png',
+                        width: 170,
+                        fit: BoxFit.contain,
+                      );
+                    },
                   ),
                 ),
               ],
