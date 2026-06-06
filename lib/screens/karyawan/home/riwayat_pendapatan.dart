@@ -317,31 +317,52 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
     if (isoString.isEmpty) return '';
     try {
       final dt = DateTime.parse(isoString).toLocal();
-      final now = DateTime.now();
-      final yesterday = now.subtract(const Duration(days: 1));
-      
       final String hour = dt.hour.toString().padLeft(2, '0');
       final String minute = dt.minute.toString().padLeft(2, '0');
-      
-      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
-        return TranslationService.currentLang == 'en' ? 'Today, $hour:$minute' : 'Hari ini, $hour:$minute';
-      } else if (dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day) {
-        return TranslationService.currentLang == 'en' ? 'Yesterday, $hour:$minute' : 'Kemarin, $hour:$minute';
-      } else {
-        final monthsId = [
-          'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-          'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-        ];
-        final monthsEn = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
-        final monthName = TranslationService.currentLang == 'en' ? monthsEn[dt.month - 1] : monthsId[dt.month - 1];
-        return '${dt.day} $monthName ${dt.year}, $hour:$minute';
-      }
+      return '$hour:$minute';
     } catch (_) {
       return isoString;
     }
+  }
+
+  Map<String, List<dynamic>> _groupTransactionsByDate(List<dynamic> transactions) {
+    final Map<String, List<dynamic>> grouped = {};
+    for (var tx in transactions) {
+      final String timeStr = tx['time']?.toString() ?? '';
+      if (timeStr.isEmpty) {
+        final key = TranslationService.currentLang == 'en' ? 'Unknown Date' : 'Tanggal Tidak Diketahui';
+        grouped.putIfAbsent(key, () => []).add(tx);
+        continue;
+      }
+      try {
+        final dt = DateTime.parse(timeStr).toLocal();
+        final now = DateTime.now();
+        final yesterday = now.subtract(const Duration(days: 1));
+        
+        String dateKey = '';
+        if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+          dateKey = TranslationService.currentLang == 'en' ? 'Today' : 'Hari ini';
+        } else if (dt.year == yesterday.year && dt.month == yesterday.month && dt.day == yesterday.day) {
+          dateKey = TranslationService.currentLang == 'en' ? 'Yesterday' : 'Kemarin';
+        } else {
+          final monthsId = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+          ];
+          final monthsEn = [
+            'January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ];
+          final monthName = TranslationService.currentLang == 'en' ? monthsEn[dt.month - 1] : monthsId[dt.month - 1];
+          dateKey = '${dt.day} $monthName ${dt.year}';
+        }
+        grouped.putIfAbsent(dateKey, () => []).add(tx);
+      } catch (_) {
+        final key = TranslationService.currentLang == 'en' ? 'Unknown Date' : 'Tanggal Tidak Diketahui';
+        grouped.putIfAbsent(key, () => []).add(tx);
+      }
+    }
+    return grouped;
   }
 
   String _formatRupiah(double value) {
@@ -450,15 +471,30 @@ class _RiwayatPendapatanScreenState extends State<RiwayatPendapatanScreen> {
                               },
                               child: _filteredTransactions.isEmpty
                                   ? _buildEmptyState(isEn)
-                                  : ListView.builder(
+                                  : Column(
                                       key: ValueKey<int>(_activeFilterIndex),
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      itemCount: _filteredTransactions.length,
-                                      itemBuilder: (context, index) {
-                                        final tx = _filteredTransactions[index];
-                                        return _buildTransactionItem(tx);
-                                      },
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        ..._groupTransactionsByDate(_filteredTransactions).entries.map((entry) {
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(top: 8.0, bottom: 8.0, left: 4.0),
+                                                child: Text(
+                                                  entry.key,
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: navyColor.withOpacity(0.6),
+                                                  ),
+                                                ),
+                                              ),
+                                              ...entry.value.map((tx) => _buildTransactionItem(tx)),
+                                            ],
+                                          );
+                                        }),
+                                      ],
                                     ),
                             ),
                     ],

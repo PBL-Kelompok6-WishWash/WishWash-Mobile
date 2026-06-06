@@ -48,6 +48,10 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   int currentUserID = 2; 
   int? currentUserRoleID;
 
+  String? _previewTrackerMessage;
+  Map<String, dynamic>? _previewOrder;
+  Map<String, dynamic>? _currentRoomOrder;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +62,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     await _loadUserID();
     await _loadChatHistory();
     _connectWebSocket();
-    _autoSendOrderTrackerIfNeeded();
+    _loadRoomOrderDetails();
   }
 
   Future<void> _loadUserID() async {
@@ -120,9 +124,32 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> historyMessages = data['data'] ?? [];
         setState(() {
-          _messages = data['data'] ?? [];
+          _messages = historyMessages;
         });
+
+        // Cek apakah orderToTrack perlu dilampirkan otomatis (belum pernah terkirim di chat)
+        if (widget.orderToTrack != null) {
+          final order = widget.orderToTrack!;
+          final orderId = order['id_order'];
+          final orderCode = order['kode_order'] ?? 'WW-$orderId';
+
+          bool alreadySent = false;
+          for (var msg in historyMessages) {
+            final String text = msg['teks_pesan'] ?? '';
+            if (text.contains('[Order Tracker]') &&
+                (text.contains('Order ID: $orderId') || text.contains(orderCode))) {
+              alreadySent = true;
+              break;
+            }
+          }
+
+          if (!alreadySent) {
+            _prepareOrderTrackerPreview(order);
+          }
+        }
+
         _scrollToBottom();
       }
     } catch (e) {
@@ -159,6 +186,16 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
 
   // 3. Fungsi Mengirim Pesan Instan
   void _sendMessage() {
+    if (_previewTrackerMessage != null && _channel != null) {
+      _channel!.sink.add(json.encode({
+        'teks_pesan': _previewTrackerMessage,
+      }));
+      setState(() {
+        _previewTrackerMessage = null;
+        _previewOrder = null;
+      });
+    }
+
     if (_messageController.text.trim().isNotEmpty && _channel != null) {
       final text = _messageController.text.trim();
       
@@ -185,9 +222,15 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+    // Jaminan scroll tambahan setelah render selesai sepenuhnya
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
         );
       }
@@ -200,6 +243,91 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRoomOrderDetails() async {
+    if (widget.orderToTrack != null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/rooms'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> rooms = data['data'] ?? [];
+        final room = rooms.firstWhere(
+          (r) => r['id_room_chat'] == widget.roomChatID,
+          orElse: () => null,
+        );
+        if (room != null && room['Order'] != null) {
+          setState(() {
+            _currentRoomOrder = room['Order'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Gagal load detail order room: $e");
+    }
+  }
+
+  void _attachOrderSummary() {
+    final order = widget.orderToTrack ?? _currentRoomOrder;
+    if (order != null) {
+      _prepareOrderTrackerPreview(order);
+      _toggleMenu();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            TranslationService.translate('no_order_details'),
+          ),
+        ),
+      );
+      _toggleMenu();
+    }
+  }
+
+  void _openFullScreenImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.broken_image, size: 100, color: Colors.white);
+                  },
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded, color: Colors.white, size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _toggleMenu() {
@@ -353,7 +481,12 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                   children: [
                     ListView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      padding: EdgeInsets.only(
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        bottom: _previewTrackerMessage != null ? 100 : 20,
+                      ),
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
                         final msg = _messages[index];
@@ -387,15 +520,21 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                               final yesterday = today.subtract(const Duration(days: 1));
                               final msgDate = DateTime(dt.year, dt.month, dt.day);
 
+                              final bool isEn = TranslationService.currentLang == 'en';
                               if (msgDate == today) {
-                                dateDividerText = 'Today';
+                                dateDividerText = isEn ? 'Today' : 'Hari ini';
                               } else if (msgDate == yesterday) {
-                                dateDividerText = 'Yesterday';
+                                dateDividerText = isEn ? 'Yesterday' : 'Kemarin';
                               } else {
-                                final months = [
+                                final monthsEn = [
                                   'January', 'February', 'March', 'April', 'May', 'June',
                                   'July', 'August', 'September', 'October', 'November', 'December'
                                 ];
+                                final monthsId = [
+                                  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                                ];
+                                final months = isEn ? monthsEn : monthsId;
                                 dateDividerText = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
                               }
                             }
@@ -424,7 +563,9 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                             alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                             child: Container(
                               margin: const EdgeInsets.symmetric(vertical: 5),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              padding: (msg['path_gambar'] != null && (msg['path_gambar'] as String).isNotEmpty && text.isEmpty)
+                                  ? const EdgeInsets.all(4)
+                                  : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
                                 color: isMe ? navyColor : const Color(0xFFEBF8FA),
                                 borderRadius: BorderRadius.only(
@@ -449,6 +590,68 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                                     } catch (_) {}
                                   }
 
+                                  if (hasGambar && !hasText) {
+                                    return Container(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 240,
+                                        maxHeight: 240,
+                                      ),
+                                      child: Stack(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () => _openFullScreenImage(
+                                              Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(12),
+                                              child: Image.network(
+                                                Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            bottom: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(0.4),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    timeText,
+                                                    style: GoogleFonts.poppins(
+                                                      color: Colors.white,
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  if (isMe) ...[
+                                                    const SizedBox(width: 4),
+                                                    Icon(
+                                                      Icons.done_all_rounded,
+                                                      size: 13,
+                                                      color: (msg['status_baca'] == true)
+                                                          ? const Color(0xFF40C4FF)
+                                                          : Colors.white.withOpacity(0.7),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+
                                   return Stack(
                                     children: [
                                       Padding(
@@ -465,20 +668,25 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                                                 ),
                                                 child: ClipRRect(
                                                   borderRadius: BorderRadius.circular(8),
-                                                  child: Image.network(
-                                                    Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
-                                                    fit: BoxFit.contain,
-                                                    errorBuilder: (context, error, stackTrace) {
-                                                      return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
-                                                    },
-                                                    loadingBuilder: (context, child, loadingProgress) {
-                                                      if (loadingProgress == null) return child;
-                                                      return const SizedBox(
-                                                        width: 100,
-                                                        height: 100,
-                                                        child: Center(child: CircularProgressIndicator()),
-                                                      );
-                                                    },
+                                                  child: GestureDetector(
+                                                    onTap: () => _openFullScreenImage(
+                                                      Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                                    ),
+                                                    child: Image.network(
+                                                      Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) {
+                                                        return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                      },
+                                                      loadingBuilder: (context, child, loadingProgress) {
+                                                        if (loadingProgress == null) return child;
+                                                        return const SizedBox(
+                                                          width: 100,
+                                                          height: 100,
+                                                          child: Center(child: CircularProgressIndicator()),
+                                                        );
+                                                      },
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -545,7 +753,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                     // Floating Menu
                     if (_isMenuOpen)
                       Positioned(
-                        bottom: 10, left: 20, right: 20,
+                        bottom: _previewTrackerMessage != null ? 90 : 10, left: 20, right: 20,
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                           decoration: BoxDecoration(
@@ -558,10 +766,21 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                             children: [
                               _buildMenuItem(Icons.camera_alt, 'Camera', cyanColor, _openCamera),
                               _buildMenuItem(Icons.image, 'Photo & Video', const Color(0xFF1E88E5), _openGallery),
-                              _buildMenuItem(Icons.location_on, 'Location', navyColor, _openLocation),
+                              _buildMenuItem(
+                                Icons.receipt_long_rounded,
+                                TranslationService.translate('receipt_summary'),
+                                const Color(0xFFFFB300),
+                                _attachOrderSummary,
+                              ),
                             ],
                           ),
                         ),
+                      ),
+                    
+                    if (_previewTrackerMessage != null && _previewOrder != null)
+                      Positioned(
+                        bottom: 10, left: 20, right: 20,
+                        child: _buildOrderTrackerPreviewCard(),
                       ),
                   ],
                 ),
@@ -571,7 +790,15 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           
           // --- BOTTOM INPUT AREA ---
           Container(
-            color: const Color(0xFFBCEFF2),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF8FBFC),
+              border: Border(
+                top: BorderSide(
+                  color: Color(0xFFEBF8FA),
+                  width: 1.5,
+                ),
+              ),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: SafeArea(
               top: false,
@@ -580,17 +807,33 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                   Expanded(
                     child: Container(
                       height: 50,
-                      padding: const EdgeInsets.only(left: 20, right: 8),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25)),
+                      padding: const EdgeInsets.only(left: 20, right: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: TextField(
                               controller: _messageController,
+                              style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
                               decoration: InputDecoration(
-                                hintText: 'Message',
+                                hintText: TranslationService.currentLang == 'en' ? 'Message' : 'Tulis pesan...',
                                 hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14),
                                 border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 10),
                               ),
                               onSubmitted: (_) => _sendMessage(),
                             ),
@@ -606,15 +849,94 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                   const SizedBox(width: 12),
                   Container(
                     width: 50, height: 50,
-                    decoration: BoxDecoration(color: cyanColor, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: cyanColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: cyanColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
                     child: IconButton(
-                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 24),
+                      icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
                       onPressed: _sendMessage,
                     ),
                   ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderTrackerPreviewCard() {
+    if (_previewOrder == null) return const SizedBox.shrink();
+    final order = _previewOrder!;
+    final orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
+    final layanan = order['Layanan'] ?? {};
+    final String serviceName = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan');
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: navyColor.withOpacity(0.15), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: navyColor.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  TranslationService.translate('attach_order_summary'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                Text(
+                  '$orderCode • $serviceName',
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded, color: Colors.grey.shade500, size: 20),
+            onPressed: () {
+              setState(() {
+                _previewTrackerMessage = null;
+                _previewOrder = null;
+              });
+            },
           ),
         ],
       ),
@@ -655,59 +977,58 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: 36),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withOpacity(0.18),
+                width: 1.5,
+              ),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
           const SizedBox(height: 8),
-          Text(label, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF0C4B8E), fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: const Color(0xFF0C4B8E),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void _autoSendOrderTrackerIfNeeded() {
-    if (widget.orderToTrack == null) return;
-    
-    final order = widget.orderToTrack!;
+  void _prepareOrderTrackerPreview(Map<String, dynamic> order) {
     final orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
     final searchPattern = '[Order Tracker] $orderCode';
     
-    bool alreadySent = false;
-    // Scan from newest to oldest to find the latest order tracker card
-    for (int i = _messages.length - 1; i >= 0; i--) {
-      final String text = _messages[i]['teks_pesan'] ?? '';
-      if (text.contains('[Order Tracker]')) {
-        if (text.contains(searchPattern)) {
-          alreadySent = true;
-        }
-        break; // Stop at the first (latest) order tracker card we encounter
-      }
-    }
+    final String serviceName = order['Layanan'] != null 
+        ? (order['Layanan']['nama_layanan'] ?? 'Layanan') 
+        : 'Layanan';
+    final String status = _getOrderStatusForTracker(order);
+    final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
+    final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String qtyStr = kuantitas > 0 ? '${kuantitas.toStringAsFixed(1)} kg' : 'Pending Weight';
     
-    if (!alreadySent) {
-      final String serviceName = order['Layanan'] != null 
-          ? (order['Layanan']['nama_layanan'] ?? 'Layanan') 
-          : 'Layanan';
-      final String status = _getOrderStatusForTracker(order);
-      final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
-      final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
-      final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-      final String qtyStr = kuantitas > 0 ? '${kuantitas.toStringAsFixed(1)} kg' : 'Pending Weight';
-      
-      final String trackerMessage = 
-          '📦 $searchPattern\n'
-          '🔹 Service: $serviceName\n'
-          '🔹 Weight: $qtyStr\n'
-          '🔹 Status: $status\n'
-          '🔹 Total: $priceStr\n'
-          '🔹 Order ID: ${order['id_order']}';
-          
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (_channel != null) {
-          _channel!.sink.add(json.encode({
-            'teks_pesan': trackerMessage,
-          }));
-        }
-      });
-    }
+    final String trackerMessage = 
+        '📦 $searchPattern\n'
+        '🔹 Service: $serviceName\n'
+        '🔹 Weight: $qtyStr\n'
+        '🔹 Status: $status\n'
+        '🔹 Total: $priceStr\n'
+        '🔹 Order ID: ${order['id_order']}';
+        
+    setState(() {
+      _previewTrackerMessage = trackerMessage;
+      _previewOrder = order;
+    });
   }
 
   Map<String, String>? _parseTrackerMessage(String text) {

@@ -167,6 +167,9 @@ class TranslationService {
       'full_name': 'Full Name',
       'username': 'Username',
       'password': 'Password',
+      'attach_order_summary': 'Attach Order Summary',
+      'receipt_summary': 'Receipt',
+      'no_order_details': 'No order details available for this chat',
     },
     'id': {
       'welcome': 'Selamat Datang',
@@ -299,6 +302,9 @@ class TranslationService {
       'full_name': 'Nama Lengkap',
       'username': 'Username',
       'password': 'Password',
+      'attach_order_summary': 'Lampirkan Ringkasan Pesanan',
+      'receipt_summary': 'Ringkasan',
+      'no_order_details': 'Tidak ada informasi pesanan untuk chat ini',
     }
   };
 

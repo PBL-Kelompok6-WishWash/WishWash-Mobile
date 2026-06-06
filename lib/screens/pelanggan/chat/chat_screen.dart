@@ -217,10 +217,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             
                                             final String rawTime = lastMsg['waktu_kirim'] ?? '';
                                             if (rawTime.isNotEmpty) {
-                                              try {
-                                                final dt = DateTime.parse(rawTime).toLocal();
-                                                lastMsgTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-                                              } catch (_) {}
+                                              lastMsgTime = _formatLastMessageTime(rawTime);
                                             }
                                           }
 
@@ -419,5 +416,55 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  String _formatLastMessageTime(String isoString) {
+    if (isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final now = DateTime.now();
+      
+      final dateOnlyDt = DateTime(dt.year, dt.month, dt.day);
+      final dateOnlyNow = DateTime(now.year, now.month, now.day);
+      
+      final difference = dateOnlyNow.difference(dateOnlyDt).inDays;
+      final isEn = TranslationService.currentLang == 'en';
+      
+      if (difference <= 0) {
+        return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      } else if (difference == 1) {
+        return isEn ? 'Yesterday' : 'Kemarin';
+      } else if (difference < 7) {
+        final dayOfWeek = dt.weekday;
+        if (isEn) {
+          switch (dayOfWeek) {
+            case 1: return 'Monday';
+            case 2: return 'Tuesday';
+            case 3: return 'Wednesday';
+            case 4: return 'Thursday';
+            case 5: return 'Friday';
+            case 6: return 'Saturday';
+            case 7: return 'Sunday';
+          }
+        } else {
+          switch (dayOfWeek) {
+            case 1: return 'Senin';
+            case 2: return 'Selasa';
+            case 3: return 'Rabu';
+            case 4: return 'Kamis';
+            case 5: return 'Jumat';
+            case 6: return 'Sabtu';
+            case 7: return 'Minggu';
+          }
+        }
+      }
+      
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final year = dt.year.toString();
+      return '$day/$month/$year';
+    } catch (_) {
+      return '';
+    }
   }
 }

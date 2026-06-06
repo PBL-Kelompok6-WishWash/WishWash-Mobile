@@ -1105,7 +1105,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            serviceName,
+                            "$serviceName  •  ${((order['kuantitas'] as num?)?.toDouble() ?? 0.0) > 0.0 ? '${((order['kuantitas'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(((order['kuantitas'] as num?)?.toDouble() ?? 0.0) % 1 == 0 ? 0 : 1)} kg' : '- kg'}  •  ${((order['total_bayar'] as num?)?.toDouble() ?? 0.0) > 0.0 ? _formatPrice(((order['total_bayar'] as num?)?.toDouble() ?? 0.0)) : 'Rp -'}",
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.grey.shade600,

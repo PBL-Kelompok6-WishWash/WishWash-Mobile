@@ -2102,8 +2102,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [navyColor, const Color(0xFF105CAE)],
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -3540,6 +3540,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 targetName: name,
                 targetPhoto: rawFoto,
                 subtitle: customerPhone,
+                orderToTrack: _currentOrder,
               ),
             ),
           );
