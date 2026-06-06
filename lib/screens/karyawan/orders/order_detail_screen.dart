@@ -35,6 +35,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   final Color softTeal = const Color(0xFFBCEFF2);
   bool _isDeliveryStarted = false;
   bool _isPickupStarted = false;
+  bool _isProgressExpanded = true;
+  bool _isHistoryExpanded = false;
 
   @override
   void initState() {
@@ -216,6 +218,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     return 'Belum Lunas';
   }
 
+  String _translateStatusWithLogistics(String statusName) {
+    final bool isEn = TranslationService.currentLang == 'en';
+    final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
+    final bool isDropOff = logistikType == 'Drop-off';
+    
+    final lower = statusName.toLowerCase().trim();
+    if (lower.contains('antar') || lower.contains('ready') || lower.contains('siap diantar')) {
+      if (isDropOff) {
+        return isEn ? 'Ready for Pickup' : 'Siap Diambil';
+      } else {
+        return isEn ? 'Ready for Delivery' : 'Siap Diantar';
+      }
+    }
+    return TranslationService.translateStatus(statusName);
+  }
+
   Map<String, dynamic> _getCurrentStatusInfo(Map<String, dynamic> order) {
     final List<Map<String, dynamic>> refStatuses = _getSortedReferenceStatuses(
       order,
@@ -289,7 +307,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         !isCompletedByKaryawanOnly;
 
     return {
-      'nama_status': TranslationService.translateStatus(currentStatus),
+      'nama_status': _translateStatusWithLogistics(currentStatus),
       'raw_status': currentStatus,
       'active_index': activeIndex,
       'statuses': refStatuses,
@@ -1406,15 +1424,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         fontSize: 18,
                       ),
                     ),
-                    // Tombol chat diposisikan di pojok kanan AppBar untuk kepraktisan Kurir/Kasir
-                    IconButton(
-                      icon: Icon(
-                        Icons.chat_bubble_outline_rounded,
-                        color: navyColor,
-                        size: 22,
-                      ),
-                      onPressed: () => _openCustomerChat(customerName),
-                    ),
+                    // Tombol chat di appbar diganti SizedBox agar tidak redundan karena sudah ada tombol pesan di card pelanggan
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
@@ -1577,216 +1588,427 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                TranslationService.currentLang == 'en'
-                    ? 'Order #$orderId'
-                    : 'Pesanan #$orderId',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: isCancelled ? Colors.red.shade800 : orderColor,
-                  fontSize: 12,
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isProgressExpanded = !_isProgressExpanded;
+              });
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      TranslationService.currentLang == 'en'
+                          ? 'Order #$orderId'
+                          : 'Pesanan #$orderId',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        color: isCancelled ? Colors.red.shade800 : orderColor,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _isProgressExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: isCancelled ? Colors.red.shade800 : orderColor,
+                    ),
+                  ],
                 ),
-              ),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time_rounded,
-                    size: 14,
-                    color: Colors.redAccent,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isCancelled
-                        ? (isEn
-                              ? 'Cancelled: $cancelTime'
-                              : 'Dibatalkan: $cancelTime')
-                        : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 14,
                       color: Colors.redAccent,
-                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isCancelled
+                          ? (isEn
+                                ? 'Cancelled: $cancelTime'
+                                : 'Dibatalkan: $cancelTime')
+                          : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (_isProgressExpanded) ...[
+            const SizedBox(height: 12),
+            Text(
+              isCancelled
+                  ? (isEn ? '$serviceName (Cancelled)' : '$serviceName (Dibatalkan)')
+                  : serviceName,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isCancelled ? Colors.red.shade900 : orderColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              qtyStr,
+              style: GoogleFonts.poppins(
+                fontSize: 12.5,
+                color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (!isCancelled) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    price,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: orderColor.withValues(alpha: 0.8),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  (() {
+                    final double kuantitas =
+                        (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                    if (kuantitas > 0.0) {
+                      final String paymentStatus = _getPaymentStatus(order);
+                      final bool isLunas = paymentStatus == 'Lunas';
+                      final Color capBg = isLunas
+                          ? const Color(0xFFE8F5E9)
+                          : const Color(0xFFFFF3E0);
+                      final Color capText = isLunas
+                          ? const Color(0xFF2E7D32)
+                          : const Color(0xFFE65100);
+                      final bool isEn = TranslationService.currentLang == 'en';
+                      final String capLabel = isLunas
+                          ? (isEn ? 'Paid' : 'Lunas')
+                          : (isEn ? 'Unpaid' : 'Belum Lunas');
+
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: capBg,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: capText.withValues(alpha: 0.2),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              capLabel,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: capText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  })(),
                 ],
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            isCancelled
-                ? (isEn ? '$serviceName (Cancelled)' : '$serviceName (Dibatalkan)')
-                : serviceName,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isCancelled ? Colors.red.shade900 : orderColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            qtyStr,
-            style: GoogleFonts.poppins(
-              fontSize: 12.5,
-              color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (!isCancelled) ...[
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  price,
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    color: orderColor.withValues(alpha: 0.8),
-                    fontWeight: FontWeight.w600,
-                  ),
+            if (isCancelled &&
+                order['catatan_order'] != null &&
+                order['catatan_order'].toString().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200, width: 1),
                 ),
-                (() {
-                  final double kuantitas =
-                      (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-                  if (kuantitas > 0.0) {
-                    final String paymentStatus = _getPaymentStatus(order);
-                    final bool isLunas = paymentStatus == 'Lunas';
-                    final Color capBg = isLunas
-                        ? const Color(0xFFE8F5E9)
-                        : const Color(0xFFFFF3E0);
-                    final Color capText = isLunas
-                        ? const Color(0xFF2E7D32)
-                        : const Color(0xFFE65100);
-                    final bool isEn = TranslationService.currentLang == 'en';
-                    final String capLabel = isLunas
-                        ? (isEn ? 'Paid' : 'Lunas')
-                        : (isEn ? 'Unpaid' : 'Belum Lunas');
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red.shade800,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      order['catatan_order'],
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+
+            // Stepper Tracker Horizontal Persis Punya Pelanggan
+            (() {
+              final lang = TranslationService.currentLang;
+              final List<Map<String, dynamic>> refStatuses =
+                  statusInfo['statuses'];
+              final int activeIdx = statusInfo['active_index'];
+              final bool isSelesai = statusInfo['is_selesai'] == true;
+              final String rawStatus =
+                  statusInfo['raw_status'] ?? 'Pesanan Diterima';
+              final bool isCancelled =
+                  rawStatus.toLowerCase().contains('batal') ||
+                  rawStatus.toLowerCase().contains('tolak') ||
+                  rawStatus.toLowerCase().contains('reject');
+
+              List<Widget> steps = [];
+              for (int i = 0; i < refStatuses.length; i++) {
+                final rawName = refStatuses[i]['nama_status'] ?? '';
+                final String shortLabel = _getShortStatusLabel(
+                  rawName,
+                  lang,
+                  isCancelled: isCancelled,
+                );
+
+                final bool isCurrent = i == activeIdx && !isSelesai;
+                final bool isDone =
+                    (i < activeIdx) ||
+                    (isSelesai && i == refStatuses.length - 1) ||
+                    (i == 0 && activeIdx > 0);
+                final bool isActive = isDone || isCurrent;
+
+                steps.add(
+                  _buildTimelineStep(
+                    label: shortLabel,
+                    isActive: isCancelled ? true : isActive,
+                    isDone: isCancelled ? true : isDone,
+                    isCurrent: isCancelled ? false : isCurrent,
+                    themeColor: isCancelled ? Colors.red : orderColor,
+                    index: i,
+                    totalSteps: refStatuses.length,
+                    isCancelled: isCancelled,
+                  ),
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: steps,
+              );
+            })(),
+            
+            // Collapsible Status History Timeline Dropdown
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isHistoryExpanded = !_isHistoryExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 16,
+                          color: orderColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isEn ? 'Status History Details' : 'Detail Riwayat Status',
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: orderColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Icon(
+                      _isHistoryExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 16,
+                      color: orderColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_isHistoryExpanded) ...[
+              const SizedBox(height: 12),
+              (() {
+                final List<Map<String, dynamic>> refStatuses = statusInfo['statuses'];
+                final int activeIdx = statusInfo['active_index'];
+                final bool isSelesai = statusInfo['is_selesai'] == true;
+                final historyList = order['RiwayatStatusDetail'];
+                
+                List<dynamic> sortedHistory = [];
+                if (historyList != null && historyList is List) {
+                  sortedHistory = List.from(historyList);
+                  sortedHistory.sort((a, b) {
+                    final idA = a['id_riwayat_status_detail'] as num? ?? 0;
+                    final idB = b['id_riwayat_status_detail'] as num? ?? 0;
+                    return idA.compareTo(idB);
+                  });
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: refStatuses.length,
+                  itemBuilder: (ctx, index) {
+                    final refItem = refStatuses[index];
+                    final String rawName = (refItem['nama_status'] ?? '').toString();
+                    
+                    // Determine if completed (done), current, or pending
+                    final bool isDone = (index < activeIdx) || (isSelesai && index == refStatuses.length - 1) || (index == 0 && activeIdx > 0);
+                    final bool isCurrent = index == activeIdx && !isSelesai;
+                    
+                    // Look for actual matching update time from historyList
+                    String formattedTime = '';
+                    if (sortedHistory.isNotEmpty) {
+                      final matchingHistory = sortedHistory.firstWhere((h) {
+                        final refStatus = h['ReferensiStatus'];
+                        final String hName = refStatus != null && refStatus is Map
+                            ? (refStatus['nama_status'] ?? '').toString().toLowerCase().trim()
+                            : (h['nama_status'] ?? '').toString().toLowerCase().trim();
+                        final String stageLower = rawName.toLowerCase().trim();
+                        return hName == stageLower ||
+                            (stageLower.contains('diterima') && hName.contains('diterima')) ||
+                            (stageLower.contains('jemput') && hName.contains('jemput')) ||
+                            (stageLower.contains('timbang') && hName.contains('timbang')) ||
+                            (stageLower.contains('cuci') && hName.contains('cuci')) ||
+                            (stageLower.contains('kering') && hName.contains('kering')) ||
+                            (stageLower.contains('lipat') && hName.contains('lipat')) ||
+                            (stageLower.contains('setrika') && hName.contains('setrika')) ||
+                            (stageLower.contains('antar') && hName.contains('antar')) ||
+                            (stageLower.contains('selesai') && hName.contains('selesai'));
+                      }, orElse: () => null);
+                      
+                      if (matchingHistory != null) {
+                        final String rawTime = (matchingHistory['waktu_update'] ?? matchingHistory['WaktuUpdate'] ?? '').toString();
+                        if (rawTime.isNotEmpty) {
+                          formattedTime = _formatDate(rawTime);
+                        }
+                      }
+                    }
+
+                    final bool isLast = index == refStatuses.length - 1;
 
                     return Row(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: capBg,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: capText.withValues(alpha: 0.2),
-                              width: 1,
+                        // Vertical line and circle indicator / checkmark
+                        Column(
+                          children: [
+                            const SizedBox(height: 2), // small adjustment for aligning checkmark/dot
+                            Container(
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: isDone
+                                    ? orderColor
+                                    : (isCurrent ? Colors.white : Colors.transparent),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isDone || isCurrent ? orderColor : Colors.grey.shade300,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: isDone
+                                  ? const Center(
+                                      child: Icon(
+                                        Icons.check,
+                                        size: 9,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : (isCurrent
+                                      ? Center(
+                                          child: Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              color: orderColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        )
+                                      : null),
                             ),
-                          ),
-                          child: Text(
-                            capLabel,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: capText,
-                            ),
+                            if (!isLast)
+                              Container(
+                                width: 1.5,
+                                height: 32,
+                                color: Colors.grey.shade300,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _translateStatusWithLogistics(rawName),
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
+                                  color: isCurrent || isDone ? orderColor : Colors.grey.shade400,
+                                ),
+                              ),
+                              if (formattedTime.isNotEmpty && (isDone || (index == 0 && activeIdx == 0))) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  formattedTime,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 9.5,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                            ],
                           ),
                         ),
                       ],
                     );
-                  }
-                  return const SizedBox.shrink();
-                })(),
-              ],
-            ),
+                  },
+                );
+              })(),
+            ],
           ],
-          if (isCancelled &&
-              order['catatan_order'] != null &&
-              order['catatan_order'].toString().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50.withValues(alpha: 0.8),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.shade200, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade800,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    order['catatan_order'],
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.red.shade900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 24),
-
-          // Stepper Tracker Horizontal Persis Punya Pelanggan
-          (() {
-            final lang = TranslationService.currentLang;
-            final List<Map<String, dynamic>> refStatuses =
-                statusInfo['statuses'];
-            final int activeIdx = statusInfo['active_index'];
-            final bool isSelesai = statusInfo['is_selesai'] == true;
-            final String rawStatus =
-                statusInfo['raw_status'] ?? 'Pesanan Diterima';
-            final bool isCancelled =
-                rawStatus.toLowerCase().contains('batal') ||
-                rawStatus.toLowerCase().contains('tolak') ||
-                rawStatus.toLowerCase().contains('reject');
-
-            List<Widget> steps = [];
-            for (int i = 0; i < refStatuses.length; i++) {
-              final rawName = refStatuses[i]['nama_status'] ?? '';
-              final String shortLabel = _getShortStatusLabel(
-                rawName,
-                lang,
-                isCancelled: isCancelled,
-              );
-
-              final bool isCurrent = i == activeIdx && !isSelesai;
-              final bool isDone =
-                  (i < activeIdx) ||
-                  (isSelesai && i == refStatuses.length - 1) ||
-                  (i == 0 && activeIdx > 0);
-              final bool isActive = isDone || isCurrent;
-
-              steps.add(
-                _buildTimelineStep(
-                  label: shortLabel,
-                  isActive: isCancelled ? true : isActive,
-                  isDone: isCancelled ? true : isDone,
-                  isCurrent: isCancelled ? false : isCurrent,
-                  themeColor: isCancelled ? Colors.red : orderColor,
-                  index: i,
-                  totalSteps: refStatuses.length,
-                  isCancelled: isCancelled,
-                ),
-              );
-            }
-
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: steps,
-            );
-          })(),
         ],
       ),
     );
