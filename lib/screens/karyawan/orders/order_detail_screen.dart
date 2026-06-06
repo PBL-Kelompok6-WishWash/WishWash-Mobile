@@ -1988,16 +1988,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                   color: isCurrent || isDone ? orderColor : Colors.grey.shade400,
                                 ),
                               ),
-                              if (formattedTime.isNotEmpty && (isDone || (index == 0 && activeIdx == 0))) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  formattedTime,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 9.5,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                ),
-                              ],
+                              (() {
+                                final bool isAmbilCurrent = isCurrent && (rawName.toLowerCase().contains('antar') || rawName.toLowerCase().contains('ambil') || rawName.toLowerCase().contains('ready'));
+                                final bool showTime = formattedTime.isNotEmpty && !isAmbilCurrent;
+                                if (showTime) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      formattedTime,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 9.5,
+                                        color: Colors.grey.shade500,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              })(),
                               const SizedBox(height: 12),
                             ],
                           ),
