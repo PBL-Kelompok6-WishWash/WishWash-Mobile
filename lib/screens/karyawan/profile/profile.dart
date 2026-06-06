@@ -394,10 +394,11 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       } catch (e) {
         return _buildDefaultAvatar();
       }
-    } else if (fotoKaryawan.startsWith('/uploads/')) {
+    } else if (fotoKaryawan.startsWith('/uploads/') || fotoKaryawan.startsWith('uploads/')) {
       final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      final fullPath = fotoKaryawan.startsWith('/') ? fotoKaryawan : '/$fotoKaryawan';
       return Image.network(
-        '$staticHost$fotoKaryawan',
+        '$staticHost$fullPath',
         width: 80,
         height: 80,
         fit: BoxFit.cover,

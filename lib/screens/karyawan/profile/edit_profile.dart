@@ -102,9 +102,10 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
       } catch (e) {
         debugPrint("Error base64 image: $e");
       }
-    } else if (_fotoKaryawan.startsWith('/uploads/')) {
+    } else if (_fotoKaryawan.startsWith('/uploads/') || _fotoKaryawan.startsWith('uploads/')) {
       final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
-      imageProvider = NetworkImage('$staticHost$_fotoKaryawan');
+      final fullPath = _fotoKaryawan.startsWith('/') ? _fotoKaryawan : '/$_fotoKaryawan';
+      imageProvider = NetworkImage('$staticHost$fullPath');
     } else if (_fotoKaryawan.isNotEmpty) {
       imageProvider = AssetImage(_fotoKaryawan);
     }

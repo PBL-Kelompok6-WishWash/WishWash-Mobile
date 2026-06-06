@@ -333,10 +333,11 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       } catch (e) {
         return _buildDefaultAvatar();
       }
-    } else if (_fotoKaryawan.startsWith('/uploads/')) {
+    } else if (_fotoKaryawan.startsWith('/uploads/') || _fotoKaryawan.startsWith('uploads/')) {
       final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      final fullPath = _fotoKaryawan.startsWith('/') ? _fotoKaryawan : '/$_fotoKaryawan';
       return Image.network(
-        '$staticHost$_fotoKaryawan',
+        '$staticHost$fullPath',
         width: 50,
         height: 50,
         fit: BoxFit.cover,
@@ -946,6 +947,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         final order = _realOrders[index];
         final pelanggan = order['Pelanggan'] as Map<String, dynamic>? ?? {};
         final String customerName = pelanggan['nama_lengkap'] ?? 'Pelanggan';
+        final String customerPhoto = pelanggan['foto_pelanggan'] ?? '';
         final String initials = _getInitials(customerName);
         final String orderCode =
             order['kode_order'] ?? 'WW-${order['id_order']}';
@@ -963,9 +965,54 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         final Color statusColor = _getStatusColor(status);
         final Color statusBg = statusColor.withOpacity(0.12);
 
+        // Helper widget to render customer avatar
+        Widget buildCustomerAvatar() {
+          if (customerPhoto.startsWith('http://') || customerPhoto.startsWith('https://')) {
+            return Image.network(
+              customerPhoto,
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(initials, cyanColor, navyColor),
+            );
+          } else if (customerPhoto.startsWith('data:image')) {
+            try {
+              final base64Content = customerPhoto.split(',').last;
+              final bytes = base64Decode(base64Content);
+              return Image.memory(
+                bytes,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(initials, cyanColor, navyColor),
+              );
+            } catch (_) {
+              return _buildInitialsAvatar(initials, cyanColor, navyColor);
+            }
+          } else if (customerPhoto.startsWith('/uploads/') || customerPhoto.startsWith('uploads/')) {
+            final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+            final fullPath = customerPhoto.startsWith('/') ? customerPhoto : '/$customerPhoto';
+            return Image.network(
+              '$staticHost$fullPath',
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(initials, cyanColor, navyColor),
+            );
+          } else if (customerPhoto.isNotEmpty) {
+            return Image.asset(
+              customerPhoto,
+              width: 44,
+              height: 44,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildInitialsAvatar(initials, cyanColor, navyColor),
+            );
+          }
+          return _buildInitialsAvatar(initials, cyanColor, navyColor);
+        }
+
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -978,104 +1025,146 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      cyanColor.withOpacity(0.8),
-                      navyColor.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderDetailScreenKaryawan(
+                      order: order,
+                      onOrderUpdated: (updated) {
+                        _fetchOrders();
+                      },
+                    ),
                   ),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  initials,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                );
+                _fetchOrders();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          "#$orderCode",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: cyanColor,
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEBF8FA),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
                           ),
-                        ),
-                        if (timeText.isNotEmpty) ...[
-                          const SizedBox(width: 6),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: buildCustomerAvatar(),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                "#$orderCode",
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: cyanColor,
+                                ),
+                              ),
+                              if (timeText.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                Text(
+                                  "•  $timeText",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade400,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
                           Text(
-                            "•  $timeText",
+                            customerName,
                             style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              color: Colors.grey.shade400,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: navyColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            serviceName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      customerName,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: navyColor,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      serviceName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        TranslationService.translateStatus(status),
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  TranslationService.translateStatus(status),
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildInitialsAvatar(String initials, Color cyanColor, Color navyColor) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            cyanColor.withOpacity(0.8),
+            navyColor.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initials,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

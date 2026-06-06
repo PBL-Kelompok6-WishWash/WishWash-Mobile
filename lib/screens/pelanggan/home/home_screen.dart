@@ -160,26 +160,30 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   Future<void> _fetchPromosData() async {
     try {
       final promosData = await PromoService.getPromos();
+      debugPrint("Promos API Response: $promosData");
       if (mounted) {
         setState(() {
           final now = DateTime.now();
           _promos = promosData.where((p) {
             final status = p['status_promo']?.toString() ?? 'Aktif';
+            final tglBerakhirStr = p['tgl_berakhir']?.toString();
+            debugPrint("Promo item: ${p['kode_promo']}, status: $status, end: $tglBerakhirStr");
             if (status.toLowerCase() != 'aktif') return false;
 
-            final tglBerakhirStr = p['tgl_berakhir']?.toString();
             if (tglBerakhirStr != null && tglBerakhirStr.isNotEmpty) {
               try {
                 final tglBerakhir = DateTime.parse(tglBerakhirStr);
                 if (tglBerakhir.isBefore(now)) {
+                  debugPrint("Promo ${p['kode_promo']} expired! end: $tglBerakhir, now: $now");
                   return false;
                 }
               } catch (e) {
-                debugPrint("Error parsing tgl_berakhir: $e");
+                debugPrint("Error parsing tgl_berakhir for ${p['kode_promo']}: $e");
               }
             }
             return true;
           }).toList();
+          debugPrint("Filtered Promos Count: ${_promos.length}");
           _isLoadingPromos = false;
         });
       }
@@ -1406,7 +1410,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             Text(
               TranslationService.translate('our_services'),
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w900,
                 color: const Color(0xFF0D47A1),
               ),
