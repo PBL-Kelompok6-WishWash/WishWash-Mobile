@@ -311,7 +311,19 @@ class _RatingScreenState extends State<RatingScreen> {
     final estDate = _getEstSelesaiDate(widget.order);
     final double totalBayar = (widget.order['total_bayar'] as num?)?.toDouble() ?? 0.0;
     final price = _formatRupiah(totalBayar);
-    
+    String cancelTime = '-';
+    if (isCancelled) {
+      final historyList = widget.order['RiwayatStatusDetail'];
+      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+        List<dynamic> sortedHistory = List.from(historyList);
+        sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
+        final rawTime = sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'];
+        if (rawTime != null) {
+          cancelTime = _formatDate(rawTime.toString());
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFBCEFF2),
       extendBody: true,
@@ -414,16 +426,38 @@ class _RatingScreenState extends State<RatingScreen> {
                                 ),
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time_rounded, size: 14, color: Colors.redAccent),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        color: Colors.redAccent,
-                                        fontWeight: FontWeight.bold,
+                                    if (isCancelled || statusInfo['is_selesai'] == true) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isCancelled
+                                              ? const Color(0xFFFF3B30)
+                                              : const Color(0xFF4CAF50),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          isCancelled
+                                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                                              : (isEn ? 'Completed' : 'Selesai'),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ] else ...[
+                                      const Icon(Icons.access_time_rounded, size: 14, color: Colors.redAccent),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          color: Colors.redAccent,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ],
@@ -449,46 +483,74 @@ class _RatingScreenState extends State<RatingScreen> {
                               ),
                             ],
                             const SizedBox(height: 8),
-                            Row(
+                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  price,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 13,
-                                    color: orderColor.withValues(alpha: 0.7),
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      price,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        color: orderColor.withValues(alpha: 0.7),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (kuantitas > 0.0) ...[
+                                      const SizedBox(width: 8),
+                                      (() {
+                                        final pembayaran = widget.order['Pembayaran'];
+                                        final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
+                                        final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+                                        final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                                        final String capLabel = isLunas 
+                                            ? (isEn ? 'Paid' : 'Lunas')
+                                            : (isEn ? 'Unpaid' : 'Belum Lunas');
+                                        
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: capBg,
+                                            borderRadius: BorderRadius.circular(30),
+                                            border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
+                                          ),
+                                          child: Text(
+                                            capLabel,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: capText,
+                                            ),
+                                          ),
+                                        );
+                                      })(),
+                                    ],
+                                  ],
                                 ),
-                                if (kuantitas > 0.0) ...[
-                                  const SizedBox(width: 8),
-                                  (() {
-                                    final pembayaran = widget.order['Pembayaran'];
-                                    final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
-                                    final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
-                                    final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
-                                    final String capLabel = isLunas 
-                                        ? (isEn ? 'Paid' : 'Lunas')
-                                        : (isEn ? 'Unpaid' : 'Belum Lunas');
-                                    
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: capBg,
-                                        borderRadius: BorderRadius.circular(30),
-                                        border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
-                                      ),
-                                      child: Text(
-                                        capLabel,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: capText,
-                                        ),
-                                      ),
-                                    );
-                                  })(),
-                                ],
+                                if (statusInfo['is_selesai'] == true)
+                                  Text(
+                                    isEn
+                                        ? 'Finished: ${_getCompletionTime(widget.order)}'
+                                        : 'Selesai: ${_getCompletionTime(widget.order)}',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      color: orderColor.withValues(alpha: 0.7),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                else if (isCancelled)
+                                  Text(
+                                    isEn
+                                        ? 'Cancelled: $cancelTime'
+                                        : 'Dibatalkan: $cancelTime',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 11,
+                                      color: Colors.red.shade800,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 24),
@@ -726,12 +788,27 @@ class _RatingScreenState extends State<RatingScreen> {
   String _formatDate(String? isoString) {
     if (isoString == null || isoString.isEmpty) return '-';
     try {
-      final dt = DateTime.parse(isoString);
+      final dt = DateTime.parse(isoString).toLocal();
       final months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
-        'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agt',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des',
       ];
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      final int hour = dt.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
       try {
         return isoString.split('T')[0];
@@ -750,7 +827,7 @@ class _RatingScreenState extends State<RatingScreen> {
       return '-';
     }
     try {
-      final baseDate = DateTime.parse(baseDateStr);
+      final baseDate = DateTime.parse(baseDateStr).toLocal();
       final paket = order['PaketLayanan'];
       final int durasiJam = paket != null ? (paket['durasi_jam'] as num?)?.toInt() ?? 0 : 0;
       
@@ -764,7 +841,12 @@ class _RatingScreenState extends State<RatingScreen> {
           ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
           : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
       
-      return '${estSelesai.day} ${months[estSelesai.month - 1]} ${estSelesai.year}';
+      final int hour = estSelesai.hour;
+      final String amPm = hour >= 12 ? 'PM' : 'AM';
+      final int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+      final String hourStr = hour12.toString().padLeft(2, '0');
+      final String minuteStr = estSelesai.minute.toString().padLeft(2, '0');
+      return '${estSelesai.day} ${months[estSelesai.month - 1]} ${estSelesai.year}, $hourStr:$minuteStr $amPm';
     } catch (_) {
       return '-';
     }
@@ -973,6 +1055,35 @@ class _RatingScreenState extends State<RatingScreen> {
       'is_selesai': isSelesai,
       'is_waiting_customer_confirm': isCompletedByKaryawanOnly,
     };
+  }
+
+  String _getCompletionTime(Map<String, dynamic> order) {
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      dynamic completionEntry;
+      for (var history in historyList) {
+        final refStatus = history['ReferensiStatus'];
+        if (refStatus != null && refStatus is Map) {
+          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+          if (statusName.contains('selesai') ||
+              statusName.contains('completed') ||
+              statusName.contains('success') ||
+              statusName.contains('batal') ||
+              statusName.contains('cancel') ||
+              statusName.contains('tolak') ||
+              statusName.contains('reject')) {
+            completionEntry = history;
+            break;
+          }
+        }
+      }
+      final timeSource = completionEntry ?? historyList.last;
+      final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
+      if (rawTime != null) {
+        return _formatDate(rawTime.toString());
+      }
+    }
+    return '-';
   }
 
   String _getShortStatusLabel(String rawStatus, String lang, {bool isCancelled = false, bool isDropOff = false}) {

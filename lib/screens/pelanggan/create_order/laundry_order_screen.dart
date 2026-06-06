@@ -1056,7 +1056,15 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                             border: Border.all(color: activeSelectionColor.withOpacity(0.2), width: 0.8),
                           ),
                           child: Text(
-                            address['tipe_alamat'] ?? 'Rumah',
+                            (() {
+                              final isEn = TranslationService.currentLang == 'en';
+                              final String tag = address['tipe_alamat'] ?? 'Rumah';
+                              if (!isEn) return tag;
+                              if (tag.toLowerCase() == 'rumah') return 'Home';
+                              if (tag.toLowerCase() == 'kantor') return 'Office';
+                              if (tag.toLowerCase() == 'lainnya') return 'Other';
+                              return tag;
+                            })(),
                             style: GoogleFonts.poppins(
                               color: activeSelectionColor,
                               fontWeight: FontWeight.bold,

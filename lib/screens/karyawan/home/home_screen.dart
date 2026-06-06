@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/screens/karyawan/orders/orders.dart';
+import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 import 'package:mobile/screens/karyawan/home/riwayat_pendapatan.dart';
 import 'package:mobile/screens/karyawan/home/scanner_screen.dart';
@@ -555,6 +556,20 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   context,
                   MaterialPageRoute(builder: (context) => const ScannerScreen()),
                 );
+                if (result != null && result is Map<String, dynamic> && mounted) {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderDetailScreenKaryawan(
+                        order: result,
+                        onOrderUpdated: (updated) {
+                          _fetchOrders();
+                        },
+                      ),
+                    ),
+                  );
+                  _fetchOrders();
+                }
               },
             ),
             const SizedBox(width: 10),

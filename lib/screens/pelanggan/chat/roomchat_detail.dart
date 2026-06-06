@@ -671,11 +671,14 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     final searchPattern = '[Order Tracker] $orderCode';
     
     bool alreadySent = false;
-    for (var msg in _messages) {
-      final String text = msg['teks_pesan'] ?? '';
-      if (text.contains(searchPattern)) {
-        alreadySent = true;
-        break;
+    // Scan from newest to oldest to find the latest order tracker card
+    for (int i = _messages.length - 1; i >= 0; i--) {
+      final String text = _messages[i]['teks_pesan'] ?? '';
+      if (text.contains('[Order Tracker]')) {
+        if (text.contains(searchPattern)) {
+          alreadySent = true;
+        }
+        break; // Stop at the first (latest) order tracker card we encounter
       }
     }
     

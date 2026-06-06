@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
+import 'package:mobile/screens/karyawan/home/scanner_screen.dart';
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -1002,9 +1003,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                     // Icon Header
                     Container(
                       width: 72,
@@ -1259,6 +1261,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                   ],
                 ),
+              ),
               ),
             );
           },
@@ -3556,6 +3559,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   // Footer lengket berisi Tombol Update Status & Pembayaran
   Widget _buildStickyActionFooter() {
+    final isEn = TranslationService.currentLang == 'en';
     final status = _getOrderStatus(_currentOrder).toLowerCase();
     final statusPembayaran = _getPaymentStatus(_currentOrder);
     final bool isBelumLunas = statusPembayaran == 'Belum Lunas';
@@ -4100,49 +4104,217 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               ],
             ),
           ] else if (actionBtnText.isNotEmpty) ...[
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: navyColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 4,
-                  shadowColor: navyColor.withValues(alpha: 0.4),
-                ),
-                onPressed: () {
-                  if (customAction != null) {
-                    customAction();
-                  } else if (nextStatus.isNotEmpty) {
-                    _updateStatus(nextStatus);
-                  }
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            (() {
+              final bool showScanButton = nextStatus.toLowerCase() == 'selesai';
+
+              if (showScanButton) {
+                return Row(
                   children: [
-                    Icon(
-                      (status == 'siap diantar' ||
-                              status == 'penjemputan' ||
-                              nextStatus == 'penjemputan')
-                          ? (isDropOff ? Icons.check_circle_outline_rounded : Icons.route_outlined)
-                          : Icons.check_circle_outline_rounded,
-                      size: 20,
+                    Expanded(
+                      child: SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: navyColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 4,
+                            shadowColor: navyColor.withValues(alpha: 0.4),
+                          ),
+                          onPressed: () {
+                            if (customAction != null) {
+                              customAction();
+                            } else if (nextStatus.isNotEmpty) {
+                              _updateStatus(nextStatus);
+                            }
+                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                (status == 'siap diantar' ||
+                                        status == 'penjemputan' ||
+                                        nextStatus == 'penjemputan')
+                                    ? (isDropOff
+                                        ? Icons.check_circle_outline_rounded
+                                        : Icons.route_outlined)
+                                    : Icons.check_circle_outline_rounded,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  actionBtnText,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      actionBtnText,
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 52,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: navyColor,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                          ),
+                          elevation: 3,
+                          shadowColor: const Color(0xFFCAD4DE).withOpacity(0.5),
+                        ),
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ScannerScreen(),
+                            ),
+                          );
+                          if (result != null) {
+                            if (result is Map<String, dynamic>) {
+                              // If it returned a Map, the status was already updated in ScannerScreen
+                              setState(() {
+                                _currentOrder = Map<String, dynamic>.from(result);
+                              });
+                              widget.onOrderUpdated(_currentOrder);
+
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      isEn
+                                          ? 'Order status updated successfully!'
+                                          : 'Status pesanan berhasil diperbarui!',
+                                    ),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } else if (result is String) {
+                              final String cleanScanned = result
+                                  .replaceAll('Order#', '')
+                                  .trim()
+                                  .toLowerCase();
+                              final String orderCode = (_currentOrder['kode_order'] ?? '')
+                                  .toString()
+                                  .trim()
+                                  .toLowerCase();
+                              final String orderIdStr =
+                                  'ww-${_currentOrder['id_order']}'.toLowerCase();
+
+                              if (cleanScanned == orderCode ||
+                                  cleanScanned == orderIdStr) {
+                                if (nextStatus.isNotEmpty) {
+                                  _updateStatus(nextStatus);
+                                }
+                              } else {
+                                if (mounted) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      title: Text(
+                                        isEn ? 'Barcode Mismatch' : 'Barcode Tidak Cocok',
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      content: Text(
+                                        isEn
+                                            ? 'The scanned barcode does not match this order.'
+                                            : 'Barcode yang dipindai tidak cocok dengan pesanan ini.',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx),
+                                          child: Text(
+                                            'OK',
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          }
+                        },
+                        child: const Icon(
+                          Icons.qr_code_scanner_rounded,
+                          size: 22,
+                        ),
                       ),
                     ),
                   ],
+                );
+              }
+
+              return SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: navyColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                    shadowColor: navyColor.withValues(alpha: 0.4),
+                  ),
+                  onPressed: () {
+                    if (customAction != null) {
+                      customAction();
+                    } else if (nextStatus.isNotEmpty) {
+                      _updateStatus(nextStatus);
+                    }
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        (status == 'siap diantar' ||
+                                status == 'penjemputan' ||
+                                nextStatus == 'penjemputan')
+                            ? (isDropOff
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.route_outlined)
+                            : Icons.check_circle_outline_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        actionBtnText,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            })(),
           ],
           if ((status == 'penjemputan' && _isPickupStarted) ||
               (status == 'siap diantar' && _isDeliveryStarted)) ...[

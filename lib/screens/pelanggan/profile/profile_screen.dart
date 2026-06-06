@@ -11,6 +11,7 @@ import 'package:mobile/services/translation_service.dart';
 import 'dart:convert';
 import 'package:mobile/services/pelanggan_service.dart';
 import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/screens/pelanggan/orders/orders_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/utils/constants.dart';
 
@@ -106,7 +107,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                       Padding(
                         padding: EdgeInsets.only(
                           top: statusBarHeight + 10,
-                          bottom: 100,
+                          bottom: 150,
                         ),
                         child: Column(
                           children: [
@@ -478,8 +479,18 @@ class ProfileScreenState extends State<ProfileScreen> {
               );
             },
           ),
-          _buildMenuItem(Icons.receipt_long_rounded, TranslationService.translate('order_history'), navyColor, cyanColor),
-          _buildMenuItem(Icons.credit_card_rounded, TranslationService.translate('payment_history'), navyColor, cyanColor),
+          _buildMenuItem(
+            Icons.receipt_long_rounded, 
+            TranslationService.translate('order_history'), 
+            navyColor, 
+            cyanColor,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const OrdersScreen(showNavbar: false, initialTab: 1)),
+              );
+            },
+          ),
           _buildMenuItem(Icons.help_outline_rounded, TranslationService.translate('faq'), navyColor, cyanColor),
           _buildLogoutItem(),
         ],

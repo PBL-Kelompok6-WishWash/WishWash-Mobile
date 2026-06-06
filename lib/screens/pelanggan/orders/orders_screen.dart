@@ -13,14 +13,16 @@ import 'package:mobile/services/order_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool showNavbar;
-  const OrdersScreen({super.key, this.showNavbar = true});
+  final int initialTab;
+  const OrdersScreen({super.key, this.showNavbar = true, this.initialTab = 0});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  int _selectedTab = 0; // 0: Aktif, 1: Riwayat
+  late int _selectedTab; // 0: Aktif, 1: Riwayat
+  late PageController _pageController;
   List<dynamic> _allOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -28,7 +30,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab;
+    _pageController = PageController(initialPage: widget.initialTab);
     _fetchOrders();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchOrders() async {
@@ -319,7 +329,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const SizedBox(width: 48),
+                              Navigator.canPop(context)
+                                  ? Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.06),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                        border: Border.all(color: const Color(0xFFE3F2FD), width: 1.5),
+                                      ),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 20),
+                                        onPressed: () => Navigator.pop(context),
+                                      ),
+                                    )
+                                  : const SizedBox(width: 48),
                               Text(
                                 TranslationService.translate('orders'),
                                 style: GoogleFonts.poppins(
@@ -339,69 +370,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     ),
                   ];
                 },
-                body: _isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(navyColor),
+                body: _errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+                            const SizedBox(height: 12),
+                            Text(
+                              _errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(color: navyColor, fontSize: 14),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _fetchOrders,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: Text(TranslationService.currentLang == 'en' ? 'Retry' : 'Coba Lagi'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: navyColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                          ],
                         ),
                       )
-                    : _errorMessage != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.poppins(color: navyColor, fontSize: 14),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: _fetchOrders,
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: Text(TranslationService.currentLang == 'en' ? 'Retry' : 'Coba Lagi'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: navyColor,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : RefreshIndicator(
+                    : Stack(
+                        children: [
+                          RefreshIndicator(
                             onRefresh: _fetchOrders,
                             color: navyColor,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 350),
-                              switchInCurve: Curves.easeInOutCubic,
-                              switchOutCurve: Curves.easeInOutCubic,
-                              transitionBuilder: (Widget child, Animation<double> animation) {
-                                final offsetAnimation = Tween<Offset>(
-                                  begin: const Offset(0.06, 0.0),
-                                  end: Offset.zero,
-                                ).animate(animation);
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: SlideTransition(
-                                    position: offsetAnimation,
-                                    child: child,
-                                  ),
-                                );
+                            child: PageView(
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _selectedTab = index;
+                                });
                               },
-                              child: _selectedTab == 0
-                                  ? SizedBox(
-                                      key: const ValueKey('active_orders_tab'),
-                                      child: _buildActiveOrders(navyColor),
-                                    )
-                                  : SizedBox(
-                                      key: const ValueKey('completed_orders_tab'),
-                                      child: _buildCompletedOrders(navyColor),
-                                    ),
+                              children: [
+                                _buildActiveOrders(navyColor),
+                                _buildCompletedOrders(navyColor),
+                              ],
                             ),
                           ),
+                          if (_isLoading)
+                            Container(
+                              color: bgGrey.withValues(alpha: 0.6),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(navyColor),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -501,7 +524,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _selectedTab = 0),
+                      onTap: () {
+                        setState(() => _selectedTab = 0);
+                        _pageController.animateToPage(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                        );
+                      },
                       child: Center(
                         child: AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
@@ -518,7 +548,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   Expanded(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () => setState(() => _selectedTab = 1),
+                      onTap: () {
+                        setState(() => _selectedTab = 1);
+                        _pageController.animateToPage(
+                          1,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOutCubic,
+                        );
+                      },
                       child: Center(
                         child: AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
@@ -855,9 +892,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
         String endDateTimeStr = order['tgl_pesanan'] ?? '';
         final historyList = order['RiwayatStatusDetail'];
         if (historyList != null && historyList is List && historyList.isNotEmpty) {
-          List<dynamic> sortedHistory = List.from(historyList);
-          sortedHistory.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
-          final rawTime = sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'];
+          dynamic completionEntry;
+          for (var history in historyList) {
+            final refStatus = history['ReferensiStatus'];
+            if (refStatus != null && refStatus is Map) {
+              final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+              if (statusName.contains('selesai') ||
+                  statusName.contains('completed') ||
+                  statusName.contains('success') ||
+                  statusName.contains('batal') ||
+                  statusName.contains('cancel') ||
+                  statusName.contains('tolak') ||
+                  statusName.contains('reject')) {
+                completionEntry = history;
+                break;
+              }
+            }
+          }
+          final timeSource = completionEntry ?? historyList.last;
+          final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
           if (rawTime != null) {
             endDateTimeStr = rawTime.toString();
           }
