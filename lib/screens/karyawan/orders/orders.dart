@@ -347,12 +347,13 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   String _formatDate(String isoString) {
     try {
-      final dt = DateTime.parse(isoString);
+      final dt = DateTime.parse(isoString).toLocal();
       final months = [
         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
         'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'
       ];
-      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      final String timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $timeStr';
     } catch (_) {
       return isoString.split('T')[0];
     }
@@ -371,7 +372,11 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
+    final s = status.toLowerCase();
+    if (s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject')) {
+      return const Color(0xFFFF3B30);
+    }
+    switch (s) {
       case 'pesanan diterima':
         return Colors.blue.shade700;
       case 'penjemputan':
@@ -1305,22 +1310,31 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                     Row(
                       children: [
                         // Status Operasional
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: statusColor.withOpacity(0.15), width: 1),
-                          ),
-                          child: Text(
-                            translatedStatus,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: statusColor,
+                        (() {
+                          final bool isCancelled = status.toLowerCase().contains('batal') ||
+                              status.toLowerCase().contains('cancel') ||
+                              status.toLowerCase().contains('tolak') ||
+                              status.toLowerCase().contains('reject');
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isCancelled ? const Color(0xFFFF3B30) : statusColor.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: isCancelled ? const Color(0xFFFF3B30) : statusColor.withOpacity(0.15),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                        ),
+                            child: Text(
+                              translatedStatus,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isCancelled ? Colors.white : statusColor,
+                              ),
+                            ),
+                          );
+                        })(),
                         const SizedBox(width: 8),
 
                         // Status Pembayaran
