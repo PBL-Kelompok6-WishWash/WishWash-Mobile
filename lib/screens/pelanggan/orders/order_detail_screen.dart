@@ -142,45 +142,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _loadAddresses() async {
     try {
-      final pelanggan = _currentOrder['Pelanggan'] ?? {};
-      final int? idPelanggan = pelanggan['id_pelanggan'];
-      if (idPelanggan != null) {
-        final list = await AlamatService.getAlamat(idPelanggan: idPelanggan);
-        setState(() {
-          addresses = list;
-          isLoadingAddresses = false;
-          if (list.isNotEmpty) {
-            final primary = list.firstWhere(
-              (element) => element['is_primary'] == true,
-              orElse: () => list.first,
-            );
+      final list = await AlamatService.getAlamat();
+      setState(() {
+        addresses = list;
+        isLoadingAddresses = false;
+        if (list.isNotEmpty) {
+          final primary = list.firstWhere(
+            (element) => element['is_primary'] == true,
+            orElse: () => list.first,
+          );
 
-            // Only set AlamatPenyerahan if it's currently null or uninitialized to avoid overwriting existing data
-            if (_currentOrder['AlamatPenyerahan'] == null ||
-                _currentOrder['AlamatPenyerahan']['alamat_lengkap'] == null) {
-              _currentOrder['AlamatPenyerahan'] = {
-                'alamat_lengkap': primary['alamat_lengkap'],
-                'tipe_alamat': primary['tipe_alamat'],
-                'nama_penerima': primary['nama_penerima'],
-              };
-            }
-
-            // Only initialize to Courier Delivery if the logistics type is completely null or empty
-            if (_currentOrder['tipe_logistik'] == null ||
-                _currentOrder['tipe_logistik'].toString().isEmpty) {
-              _currentOrder['tipe_logistik'] = 'Courier Delivery';
-              _updateLogisticsBackend(
-                'Courier Delivery',
-                idAlamatPenyerahan: primary['id_alamat'],
-              );
-            }
+          // Only set AlamatPenyerahan if it's currently null or uninitialized to avoid overwriting existing data
+          if (_currentOrder['AlamatPenyerahan'] == null ||
+              _currentOrder['AlamatPenyerahan']['alamat_lengkap'] == null) {
+            _currentOrder['AlamatPenyerahan'] = {
+              'alamat_lengkap': primary['alamat_lengkap'],
+              'tipe_alamat': primary['tipe_alamat'],
+              'nama_penerima': primary['nama_penerima'],
+            };
           }
-        });
-      } else {
-        setState(() {
-          isLoadingAddresses = false;
-        });
-      }
+
+          // Only initialize to Courier Delivery if the logistics type is completely null or empty
+          if (_currentOrder['tipe_logistik'] == null ||
+              _currentOrder['tipe_logistik'].toString().isEmpty) {
+            _currentOrder['tipe_logistik'] = 'Courier Delivery';
+            _updateLogisticsBackend(
+              'Courier Delivery',
+              idAlamatPenyerahan: primary['id_alamat'],
+            );
+          }
+        }
+      });
     } catch (e) {
       setState(() {
         isLoadingAddresses = false;
@@ -193,7 +185,97 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       context,
       MaterialPageRoute(builder: (context) => const AlamatScreen()),
     );
-    _loadAddresses();
+    try {
+      final list = await AlamatService.getAlamat();
+      if (list.isNotEmpty) {
+        final primary = list.firstWhere(
+          (element) => element['is_primary'] == true,
+          orElse: () => list.first,
+        );
+        await _updateOrderAddressBackend(primary['id_alamat']);
+      }
+    } catch (e) {
+      debugPrint('Error after choosing address: $e');
+    }
+  }
+
+  Future<void> _updateOrderAddressBackend(int idAlamat) async {
+    try {
+      final Map<String, dynamic> body = {
+        'id_alamat_penyerahan': idAlamat,
+        'tipe_logistik': _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
+      };
+      await OrderService.updateOrder(
+        _currentOrder['id_order'],
+        body,
+      );
+      await _loadOrderDetail();
+      final list = await AlamatService.getAlamat();
+      setState(() {
+        addresses = list;
+        isLoadingAddresses = false;
+      });
+    } catch (e) {
+      _showErrorAutoDismissDialog(
+        TranslationService.currentLang == 'en'
+            ? 'Failed to update delivery address: $e'
+            : 'Gagal memperbarui alamat pengiriman: $e',
+      );
+    }
+  }
+
+  String _getTranslatedType(String? rawType, bool isEn) {
+    if (rawType == null) return '';
+    final typeLower = rawType.toLowerCase();
+    if (typeLower == 'rumah') {
+      return isEn ? 'Home' : 'Rumah';
+    } else if (typeLower == 'kantor') {
+      return isEn ? 'Office' : 'Kantor';
+    } else if (typeLower == 'lainnya') {
+      return isEn ? 'Other' : 'Lainnya';
+    }
+    return rawType;
+  }
+
+  String _getCompletionTime(Map<String, dynamic> order) {
+    final String rawStatus = _getOrderStatus(order).toLowerCase();
+    final bool isFinished =
+        rawStatus.contains('selesai') ||
+        rawStatus.contains('completed') ||
+        rawStatus.contains('success') ||
+        rawStatus.contains('batal') ||
+        rawStatus.contains('cancel') ||
+        rawStatus.contains('tolak') ||
+        rawStatus.contains('reject');
+        
+    if (!isFinished) return '-';
+    
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      dynamic completionEntry;
+      for (var history in historyList) {
+        final refStatus = history['ReferensiStatus'];
+        if (refStatus != null && refStatus is Map) {
+          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+          if (statusName.contains('selesai') ||
+              statusName.contains('completed') ||
+              statusName.contains('success') ||
+              statusName.contains('batal') ||
+              statusName.contains('cancel') ||
+              statusName.contains('tolak') ||
+              statusName.contains('reject')) {
+            completionEntry = history;
+            break;
+          }
+        }
+      }
+      final timeSource = completionEntry ?? historyList.last;
+      final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
+      if (rawTime != null) {
+        return _formatDate(rawTime.toString());
+      }
+    }
+    return '-';
   }
 
   Future<void> _updateLogisticsBackend(
@@ -2352,26 +2434,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           rawStatus.contains('selesai') ||
           rawStatus.contains('completed') ||
           rawStatus.contains('success');
-      String finishedTimeText = '-';
-      if (isFinished) {
-        final historyList = order['RiwayatStatusDetail'];
-        if (historyList != null &&
-            historyList is List &&
-            historyList.isNotEmpty) {
-          List<dynamic> sortedHistory = List.from(historyList);
-          sortedHistory.sort(
-            (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
-              b['id_riwayat_status_detail'] as num? ?? 0,
-            ),
-          );
-          final rawTime =
-              sortedHistory.last['waktu_update'] ??
-              sortedHistory.last['WaktuUpdate'];
-          if (rawTime != null) {
-            finishedTimeText = _formatDate(rawTime.toString());
-          }
-        }
-      }
+      final String finishedTimeText = _getCompletionTime(order);
 
       // Add a page to the PDF
       pdf.addPage(
@@ -2921,26 +2984,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         rawStatus.contains('selesai') ||
         rawStatus.contains('completed') ||
         rawStatus.contains('success');
-    String finishedTime = '-';
-    if (isFinished) {
-      final historyList = _currentOrder['RiwayatStatusDetail'];
-      if (historyList != null &&
-          historyList is List &&
-          historyList.isNotEmpty) {
-        List<dynamic> sortedHistory = List.from(historyList);
-        sortedHistory.sort(
-          (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
-            b['id_riwayat_status_detail'] as num? ?? 0,
-          ),
-        );
-        final rawTime =
-            sortedHistory.last['waktu_update'] ??
-            sortedHistory.last['WaktuUpdate'];
-        if (rawTime != null) {
-          finishedTime = _formatDate(rawTime.toString());
-        }
-      }
-    }
+    final String finishedTime = _getCompletionTime(_currentOrder);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -3284,20 +3328,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 if (!isDropOffLogistik) ...[
                   _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
-                    addresses.isNotEmpty &&
-                            addresses.firstWhere(
+                    (_currentOrder['AlamatPenyerahan'] != null &&
+                            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null)
+                        ? '${_currentOrder['AlamatPenyerahan']['alamat_lengkap']} (${_getTranslatedType(_currentOrder['AlamatPenyerahan']['tipe_alamat'], isEn)}) - Penerima: ${_currentOrder['AlamatPenyerahan']['nama_penerima'] ?? ''}'
+                        : (addresses.isNotEmpty
+                            ? (() {
+                                final primaryAddr = addresses.firstWhere(
                                   (e) => e['is_primary'] == true,
                                   orElse: () => addresses.first,
-                                ) !=
-                                null
-                        ? (() {
-                            final primaryAddr = addresses.firstWhere(
-                              (e) => e['is_primary'] == true,
-                              orElse: () => addresses.first,
-                            );
-                            return '${primaryAddr['alamat_lengkap']} (${primaryAddr['tipe_alamat']}) - Penerima: ${primaryAddr['nama_penerima']}';
-                          })()
-                        : deliveryAddr,
+                                );
+                                return '${primaryAddr['alamat_lengkap']} (${_getTranslatedType(primaryAddr['tipe_alamat'], isEn)}) - Penerima: ${primaryAddr['nama_penerima']}';
+                              })()
+                            : '-'),
                     Icons.location_on_rounded,
                   ),
                 ] else ...[
@@ -3360,12 +3402,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     final String rawStatus = _getOrderStatus(_currentOrder).toLowerCase();
 
-    final address = addresses.isNotEmpty
-        ? addresses.firstWhere(
-            (element) => element['is_primary'] == true,
-            orElse: () => addresses.first,
-          )
-        : null;
+    final address = (_currentOrder['AlamatPenyerahan'] != null &&
+            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null)
+        ? _currentOrder['AlamatPenyerahan']
+        : (addresses.isNotEmpty
+            ? addresses.firstWhere(
+                (element) => element['is_primary'] == true,
+                orElse: () => addresses.first,
+              )
+            : null);
 
     // Parse coordinates
     double lat = -7.0499; // Semarang fallback
@@ -3675,7 +3720,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ),
                               child: Text(
-                                address['tipe_alamat'] ?? 'Rumah',
+                                _getTranslatedType(address['tipe_alamat'], isEn),
                                 style: GoogleFonts.poppins(
                                   color: navyColor,
                                   fontWeight: FontWeight.bold,
@@ -4498,24 +4543,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.access_time_rounded,
-                      size: 14,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isCancelled
-                          ? (isEn
-                                ? 'Cancelled: $cancelTime'
-                                : 'Dibatalkan: $cancelTime')
-                          : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
+                    if (isCancelled || statusInfo['is_selesai'] == true) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isCancelled
+                              ? const Color(0xFFFF3B30)
+                              : const Color(0xFF4CAF50),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isCancelled
+                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                              : (isEn ? 'Completed' : 'Selesai'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const Icon(
+                        Icons.access_time_rounded,
+                        size: 14,
+                        color: Colors.redAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -4547,70 +4610,99 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             if (!isCancelled) ...[
               const SizedBox(height: 8),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    price,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: orderColor.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  (() {
-                    final double kuantitas =
-                        (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-                    if (kuantitas > 0.0) {
-                      final pembayaran = order['Pembayaran'];
-                      final bool isLunas =
-                          pembayaran != null &&
-                          pembayaran['status_pembayaran'] == 'Lunas';
-                      final Color capBg = isLunas
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFFF3E0);
-                      final Color capText = isLunas
-                          ? const Color(0xFF2E7D32)
-                          : const Color(0xFFE65100);
-                      final String capLabel = isLunas
-                          ? (TranslationService.currentLang == 'en'
-                                ? 'Paid'
-                                : 'Lunas')
-                          : (TranslationService.currentLang == 'en'
-                                ? 'Unpaid'
-                                : 'Belum Lunas');
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        price,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: orderColor.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      (() {
+                        final double kuantitas =
+                            (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                        if (kuantitas > 0.0) {
+                          final pembayaran = order['Pembayaran'];
+                          final bool isLunas =
+                              pembayaran != null &&
+                              pembayaran['status_pembayaran'] == 'Lunas';
+                          final Color capBg = isLunas
+                              ? const Color(0xFFE8F5E9)
+                              : const Color(0xFFFFF3E0);
+                          final Color capText = isLunas
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFE65100);
+                          final String capLabel = isLunas
+                              ? (TranslationService.currentLang == 'en'
+                                    ? 'Paid'
+                                    : 'Lunas')
+                              : (TranslationService.currentLang == 'en'
+                                    ? 'Unpaid'
+                                    : 'Belum Lunas');
 
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: capBg,
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: capText.withValues(alpha: 0.2),
-                                width: 1,
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: capBg,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: capText.withValues(alpha: 0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  capLabel,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: capText,
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              capLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: capText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  })(),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      })(),
+                    ],
+                  ),
+                  if (statusInfo['is_selesai'] == true)
+                    Text(
+                      isEn
+                          ? 'Finished: ${_getCompletionTime(order)}'
+                          : 'Selesai: ${_getCompletionTime(order)}',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: orderColor.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                 ],
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              Text(
+                isEn
+                    ? 'Cancelled: $cancelTime'
+                    : 'Dibatalkan: $cancelTime',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.red.shade800,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
             if (isCancelled &&
@@ -5625,26 +5717,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         rawStatus.contains('selesai') ||
         rawStatus.contains('completed') ||
         rawStatus.contains('success');
-    String finishedTimeText = '-';
-    if (isFinished) {
-      final historyList = order['RiwayatStatusDetail'];
-      if (historyList != null &&
-          historyList is List &&
-          historyList.isNotEmpty) {
-        List<dynamic> sortedHistory = List.from(historyList);
-        sortedHistory.sort(
-          (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
-            b['id_riwayat_status_detail'] as num? ?? 0,
-          ),
-        );
-        final rawTime =
-            sortedHistory.last['waktu_update'] ??
-            sortedHistory.last['WaktuUpdate'];
-        if (rawTime != null) {
-          finishedTimeText = _formatDate(rawTime.toString());
-        }
-      }
-    }
+    final String finishedTimeText = _getCompletionTime(order);
 
     final pelanggan = order['Pelanggan'] ?? {};
     final String customerPhone =
@@ -6742,7 +6815,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                         paymentMethod: 'QRIS',
                                       ),
                                     ),
-                                  );
+                                  ).then((result) {
+                                    if (result == true) {
+                                      _loadOrderDetail();
+                                    }
+                                  });
                                 } else {
                                   // Confirm Cash Payment with beautiful modern custom Dialog
                                   showDialog(
@@ -7199,15 +7276,6 @@ class DeliveryMapPainter extends CustomPainter {
         size.width * 0.8,
         size.height * 0.5,
         size.width * 0.8,
-        size.height * 0.8,
-      )
-      ..lineTo(size.width, size.height * 0.8);
-    canvas.drawPath(routePath, paintAccentRoad);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
         size.height * 0.8,
       )
       ..lineTo(size.width, size.height * 0.8);

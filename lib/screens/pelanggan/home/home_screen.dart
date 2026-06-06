@@ -2053,23 +2053,3 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     );
   }
 }
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? themeColor : Colors.grey.shade600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -389,22 +389,4 @@ class _DetailPromoScreenState extends State<DetailPromoScreen> {
       ),
     );
   }
-}             color: color, 
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 13, 
-              color: color, 
-              fontWeight: FontWeight.w400,
-              height: 1.4, // Biar teks deskripsi panjang (S&K) tetep rapi dibacanya
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
