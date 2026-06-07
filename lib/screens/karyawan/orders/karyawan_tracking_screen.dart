@@ -894,6 +894,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                   child: TextButton(
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: Colors.red.shade600,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
                     ),
@@ -901,9 +902,9 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                     child: Text(
                       isEn ? 'Cancel' : 'Batal',
                       style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Colors.grey.shade500),
+                          color: Colors.red.shade600),
                     ),
                   ),
                 ),
