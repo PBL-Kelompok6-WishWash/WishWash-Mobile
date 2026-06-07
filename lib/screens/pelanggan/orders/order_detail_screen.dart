@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:barcode_widget/barcode_widget.dart';
@@ -57,6 +58,121 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   List<dynamic> _claimedPromos = [];
   bool _isLoadingPromos = true;
 
+  double _routeDuration = 0.0;
+  double _routeProgress = 0.0;
+  Timer? _trackingTimer;
+
+  Future<void> _fetchRouteDistanceAndDuration() async {
+    final String currentStatus = _getOrderStatus(_currentOrder);
+    final String lowerCurrent = currentStatus.toLowerCase().trim();
+    final bool canTrack = lowerCurrent.contains('jemput') ||
+        lowerCurrent.contains('antar') ||
+        lowerCurrent.contains('kirim') ||
+        lowerCurrent.contains('diterima');
+    final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
+
+    if (!canTrack || !isCourierOnWay) return;
+
+    final bool isPickup = lowerCurrent.contains('jemput') || lowerCurrent.contains('diterima');
+    final alamatAmbil = _currentOrder['AlamatPengambilan'];
+    final alamatKirim = _currentOrder['AlamatPenyerahan'];
+    final targetAddrObj = isPickup ? alamatAmbil : alamatKirim;
+
+    final double storeLat = -7.0499;
+    final double storeLon = 110.4381;
+
+    double customerLat = -7.0499;
+    double customerLon = 110.4381;
+    bool hasCoords = false;
+
+    if (targetAddrObj != null && targetAddrObj['latitude'] != null && targetAddrObj['longitude'] != null) {
+      final double? parsedLat = double.tryParse(targetAddrObj['latitude'].toString());
+      final double? parsedLon = double.tryParse(targetAddrObj['longitude'].toString());
+      if (parsedLat != null && parsedLon != null) {
+        customerLat = parsedLat;
+        customerLon = parsedLon;
+        hasCoords = true;
+      }
+    }
+
+    if (!hasCoords) {
+      customerLat = storeLat + 0.0055;
+      customerLon = storeLon - 0.0065;
+    }
+
+    double startLat = storeLat;
+    double startLon = storeLon;
+    if (_currentOrder['courier_latitude'] != null && _currentOrder['courier_longitude'] != null) {
+      final double? cLat = double.tryParse(_currentOrder['courier_latitude'].toString());
+      final double? cLon = double.tryParse(_currentOrder['courier_longitude'].toString());
+      if (cLat != null && cLon != null && cLat != 0.0 && cLon != 0.0) {
+        startLat = cLat;
+        startLon = cLon;
+      }
+    }
+
+    final distanceCalculator = const Distance();
+    final double totalDistance = distanceCalculator.as(
+      LengthUnit.Meter,
+      LatLng(storeLat, storeLon),
+      LatLng(customerLat, customerLon),
+    );
+
+    final double remainingDistance = distanceCalculator.as(
+      LengthUnit.Meter,
+      LatLng(startLat, startLon),
+      LatLng(customerLat, customerLon),
+    );
+
+    double progressFactor = 0.0;
+    if (totalDistance > 0.0) {
+      progressFactor = (totalDistance - remainingDistance) / totalDistance;
+      if (progressFactor < 0.0) progressFactor = 0.0;
+      if (progressFactor > 1.0) progressFactor = 1.0;
+    }
+
+    final double fallbackDuration = (remainingDistance / 8.33) * 1.45; // motorcycle speed scaled by 1.45x
+
+    if (mounted) {
+      setState(() {
+        _routeDuration = fallbackDuration;
+        _routeProgress = progressFactor;
+      });
+    }
+
+    try {
+      final url = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/$startLon,$startLat;$customerLon,$customerLat?overview=full&geometries=geojson',
+      );
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final routes = data['routes'] as List?;
+        if (routes != null && routes.isNotEmpty) {
+          final firstRoute = routes.first as Map;
+          double routeDuration = 0.0;
+
+          if (firstRoute.containsKey('duration') && firstRoute['duration'] != null) {
+            routeDuration = (firstRoute['duration'] as num).toDouble() * 1.45;
+          }
+
+          if (routeDuration == 0.0) {
+            routeDuration = fallbackDuration;
+          }
+
+          if (mounted) {
+            setState(() {
+              _routeDuration = routeDuration;
+              _routeProgress = progressFactor;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching route for order detail: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +180,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _loadAddresses();
     _loadOrderDetail();
     _loadPromos();
+    _fetchRouteDistanceAndDuration();
+    _trackingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      final String currentStatus = _getOrderStatus(_currentOrder);
+      final String lowerCurrent = currentStatus.toLowerCase().trim();
+      final bool canTrack = lowerCurrent.contains('jemput') ||
+          lowerCurrent.contains('antar') ||
+          lowerCurrent.contains('kirim') ||
+          lowerCurrent.contains('diterima');
+      final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
+      if (canTrack && isCourierOnWay) {
+        _loadOrderDetail();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _trackingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadPromos() async {
@@ -135,6 +270,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         setState(() {
           _currentOrder = Map<String, dynamic>.from(updated);
         });
+        await _fetchRouteDistanceAndDuration();
       }
     } catch (e) {
       debugPrint('Error loading order details: $e');
@@ -1536,61 +1672,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 2. Employee card or active Grab-style tracking card
+                      // 2. Employee card (always kept unchanged)
                       if (order['Karyawan'] != null &&
                           (order['Karyawan']['id_karyawan'] as int? ?? 0) > 0) ...[
-                        (() {
-                          final statusLcl = currentStatus.toLowerCase();
-                          final bool canTrack = statusLcl.contains('jemput') ||
-                              statusLcl.contains('antar') ||
-                              statusLcl.contains('kirim');
-                          
-                          final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
-                          if (canTrack && isCourierOnWay) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildGrabTrackingWidget(order: _currentOrder, isEn: isEn),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    height: 48,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: navyColor,
-                                        foregroundColor: Colors.white,
-                                        elevation: 2,
-                                        shadowColor: navyColor.withOpacity(0.3),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                      ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => PelangganTrackingScreen(order: _currentOrder),
-                                          ),
-                                        ).then((_) => _loadOrderDetail());
-                                      },
-                                      icon: const Icon(Icons.map_rounded, size: 20),
-                                      label: Text(
-                                        isEn ? 'Track Courier' : 'Lacak Kurir',
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            );
-                          } else {
-                            return _buildEmployeeCard(order: order, isEn: isEn);
-                          }
-                        })(),
+                        _buildEmployeeCard(order: order, isEn: isEn),
                         const SizedBox(height: 16),
                       ],
 
@@ -4973,6 +5058,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ),
                               (() {
+                                final bool isAmbilCurrent = isCurrent && (rawName.toLowerCase().contains('antar') || rawName.toLowerCase().contains('ambil') || rawName.toLowerCase().contains('ready'));
+                                final bool isPesananDiterimaNotAccepted = 
+                                    rawName.toLowerCase().contains('diterima') &&
+                                    statusInfo['raw_status'].toString().toLowerCase().trim() == 'pesanan diterima';
                                 final bool isCourierActive = isCurrent &&
                                     (rawName.toLowerCase().contains('jemput') || rawName.toLowerCase().contains('antar')) &&
                                     (_currentOrder['is_courier_on_way'] == true);
@@ -5736,8 +5825,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                         // Animated green progress bar
                         TweenAnimationBuilder<double>(
-                          tween: Tween<double>(begin: 0.0, end: 0.7),
-                          duration: const Duration(seconds: 4),
+                          tween: Tween<double>(begin: 0.0, end: _routeProgress),
+                          duration: const Duration(milliseconds: 800),
                           builder: (context, val, _) {
                             return FractionallySizedBox(
                               widthFactor: val,
@@ -6448,6 +6537,181 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
+    final String currentStatus = _getOrderStatus(_currentOrder);
+    final String lowerCurrent = currentStatus.toLowerCase().trim();
+    final bool canTrack = lowerCurrent.contains('jemput') ||
+        lowerCurrent.contains('antar') ||
+        lowerCurrent.contains('kirim');
+    final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
+
+    if (canTrack && isCourierOnWay) {
+      final String titleStatus = lowerCurrent.contains('jemput')
+          ? (isEn
+              ? "Courier is on the way to pick up your laundry."
+              : "Kurir sedang dalam perjalanan menjemput cucian Anda.")
+          : (isEn
+              ? "Courier is on the way to deliver your laundry."
+              : "Kurir sedang dalam perjalanan mengantarkan cucian Anda.");
+      final int minutes = (_routeDuration / 60).round();
+      final String etaText = isEn
+          ? '${minutes < 1 ? 1 : minutes} mins'
+          : '${minutes < 1 ? 1 : minutes} Menit';
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        etaText,
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        titleStatus,
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [navyColor, cyanColor],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cyanColor.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.electric_moped_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Progress Bar (Grab Style)
+            Row(
+              children: [
+                Icon(Icons.motorcycle_rounded, color: Colors.green.shade600, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      Container(
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: _routeProgress),
+                        duration: const Duration(milliseconds: 800),
+                        builder: (context, val, _) {
+                          return FractionallySizedBox(
+                            widthFactor: val,
+                            child: Container(
+                              height: 4,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.green.shade400, Colors.green.shade700],
+                                ),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.home_rounded, color: Colors.grey.shade400, size: 18),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Track Courier Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: navyColor,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shadowColor: navyColor.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PelangganTrackingScreen(order: _currentOrder),
+                    ),
+                  ).then((_) => _loadOrderDetail());
+                },
+                icon: const Icon(Icons.map_rounded, size: 20),
+                label: Text(
+                  isEn ? 'Track Courier' : 'Lacak Kurir',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final bool isSelesai = statusInfo['is_selesai'] == true;
     final bool isRated = _currentOrder['Penilaian'] != null;
 
@@ -6500,8 +6764,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
-    final String currentStatus = _getOrderStatus(_currentOrder);
-    final String lowerCurrent = currentStatus.toLowerCase().trim();
     final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
     final bool isReadyForDelivery = lowerCurrent.contains('antar') || lowerCurrent.contains('ambil') || lowerCurrent.contains('ready');
 

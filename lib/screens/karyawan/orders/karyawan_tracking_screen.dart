@@ -52,6 +52,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
   bool _isNavigationMode = false; // when trip active, switch to nav mode
   bool _autoCenter = true;
   DateTime? _lastRouteFetchTime;
+  DateTime? _lastLocationUploadTime;
 
   // --- Responsive sheet sizes (computed in build) ---
   double _miniSize = 0.22;
@@ -207,7 +208,28 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
       if (shouldReroute) {
         _fetchRoutePoints();
       }
+
+      // Send location update to backend at most once every 10 seconds
+      final nowTime = DateTime.now();
+      if (_lastLocationUploadTime == null || nowTime.difference(_lastLocationUploadTime!).inSeconds >= 10) {
+        _lastLocationUploadTime = nowTime;
+        _uploadLocationToBackend(pos.latitude, pos.longitude);
+      }
     });
+  }
+
+  Future<void> _uploadLocationToBackend(double lat, double lng) async {
+    try {
+      await OrderService.updateOrder(
+        widget.order['id_order'],
+        {
+          'courier_latitude': lat.toString(),
+          'courier_longitude': lng.toString(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Error uploading courier location: $e');
+    }
   }
 
   void _animatedMapMoveAndRotate(LatLng destLocation, double destZoom, double destRotation) {
@@ -373,7 +395,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
       LatLng(startLat, startLon),
       LatLng(customerLat, customerLon),
     );
-    final double fallbackDuration = fallbackDistance / 8.33;
+    final double fallbackDuration = (fallbackDistance / 8.33) * 1.45;
 
     // Fetch static store-to-customer route once
     if (_storeRoutePoints.isEmpty) {
@@ -440,7 +462,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
           double routeDistance =
               (firstRoute['distance'] as num?)?.toDouble() ?? fallbackDistance;
           double routeDuration =
-              (firstRoute['duration'] as num?)?.toDouble() ?? fallbackDuration;
+              ((firstRoute['duration'] as num?)?.toDouble() ?? fallbackDuration) * 1.45;
           if (routeDistance == 0.0) routeDistance = fallbackDistance;
           if (routeDuration == 0.0) routeDuration = fallbackDuration;
 
@@ -1064,9 +1086,9 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
     final double miniPx = 25 + statusRowH + 48 + 76 + safeBottom;
     final double miniSize = (miniPx / screenH).clamp(0.15, 0.35);
 
-    // Expanded mode: mini + routeCard(150) + customerCard(80) + gap(24)
-    final double expandedPx = miniPx + 150 + 80 + 24;
-    final double expandedSize = (expandedPx / screenH).clamp(miniSize + 0.05, 0.72);
+    // Expanded mode: mini + routeCard(210) + customerCard(80) + gap(16)
+    final double expandedPx = miniPx + 210 + 80 + 16;
+    final double expandedSize = (expandedPx / screenH).clamp(miniSize + 0.05, 0.78);
 
     // Normal (non-nav) initial: same as expanded
     final double normalInitialSize = expandedSize;
@@ -1342,9 +1364,13 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                           Expanded(
                             child: Text(
                               _isNavigationMode
-                                  ? (TranslationService.currentLang == 'en'
-                                      ? 'Live Navigation Active'
-                                      : 'Navigasi Langsung Aktif')
+                                  ? (isPickup
+                                      ? (TranslationService.currentLang == 'en'
+                                          ? "Picking Up Customer's Laundry"
+                                          : 'Menjemput Cucian Pelanggan')
+                                      : (TranslationService.currentLang == 'en'
+                                          ? "Delivering Customer's Laundry"
+                                          : 'Mengantar Cucian Pelanggan'))
                                   : titleText,
                               style: GoogleFonts.poppins(
                                 color: navyColor,
@@ -2221,93 +2247,139 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
             ? nameParts[0][0].toUpperCase()
             : '?');
 
-    return Row(
-      children: [
-        // Avatar
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF0C4B8E).withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF42C6D4).withValues(alpha: 0.25),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: navyColor.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: hasFoto
-              ? ClipOval(
-                  child: Image.network(
-                    fotoUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => Center(
-                      child: Text(
-                        initials,
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0C4B8E).withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: hasFoto
+                ? ClipOval(
+                    child: Image.network(
+                      fotoUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (ctx, err, stack) => Center(
+                        child: Text(
+                          initials,
+                          style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
+                        ),
                       ),
                     ),
+                  )
+                : Center(
+                    child: Text(
+                      initials,
+                      style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
                   ),
-                )
-              : Center(
-                  child: Text(
-                    initials,
-                    style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
-                  ),
-                ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                customerName,
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: navyColor,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                customerPhone,
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  color: const Color(0xFF718096),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
           ),
-        ),
-        // Chat button linked to in-app room chat
-        GestureDetector(
-          onTap: () => _openCustomerChat(customerName),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cyanColor.withOpacity(0.12),
-              shape: BoxShape.circle,
-              border: Border.all(color: cyanColor.withOpacity(0.2), width: 1),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  customerName,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  customerPhone,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    color: const Color(0xFF718096),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            child: Icon(Icons.chat_bubble_rounded, color: navyColor, size: 16),
           ),
-        ),
-      ],
+          // Chat button linked to in-app room chat
+          GestureDetector(
+            onTap: () => _openCustomerChat(customerName),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0C4B8E), Color(0xFF42C6D4)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0C4B8E).withValues(alpha: 0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.chat_bubble_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Chat',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

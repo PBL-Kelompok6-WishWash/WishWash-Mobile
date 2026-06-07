@@ -1989,6 +1989,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                 ),
                               ),
                               (() {
+                                final bool isAmbilCurrent = isCurrent && (rawName.toLowerCase().contains('antar') || rawName.toLowerCase().contains('ambil') || rawName.toLowerCase().contains('ready'));
+                                final bool isPesananDiterimaNotAccepted = 
+                                    rawName.toLowerCase().contains('diterima') &&
+                                    statusInfo['raw_status'].toString().toLowerCase().trim() == 'pesanan diterima';
                                 final bool isCourierActive = isCurrent &&
                                     (rawName.toLowerCase().contains('jemput') || rawName.toLowerCase().contains('antar')) &&
                                     (_currentOrder['is_courier_on_way'] == true);

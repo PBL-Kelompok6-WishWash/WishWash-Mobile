@@ -225,16 +225,13 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
       }
     });
-    // Jaminan scroll tambahan setelah render selesai sepenuhnya
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    for (final delay in [50, 150, 300, 500]) {
+      Future.delayed(Duration(milliseconds: delay), () {
+        if (mounted && _scrollController.hasClients) {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+      });
+    }
   }
 
   @override

@@ -71,16 +71,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _isNotificationVisible = widget.showOrderSuccessNotification;
-    if (_isNotificationVisible) {
-      Future.delayed(const Duration(seconds: 4), () {
-        if (mounted) {
-          setState(() {
-            _isNotificationVisible = false;
-          });
-        }
-      });
-    }
+    _isNotificationVisible = false;
     _loadClaimedPromos();
     _fetchProfileData();
     _fetchServicesData();
