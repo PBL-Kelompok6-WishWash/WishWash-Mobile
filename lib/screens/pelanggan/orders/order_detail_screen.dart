@@ -4974,7 +4974,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ),
                               (() {
                                 final bool isAmbilCurrent = isCurrent && (rawName.toLowerCase().contains('antar') || rawName.toLowerCase().contains('ambil') || rawName.toLowerCase().contains('ready'));
-                                final bool showTime = formattedTime.isNotEmpty && !isAmbilCurrent;
+                                final bool isPesananDiterimaNotAccepted = 
+                                    rawName.toLowerCase().contains('diterima') &&
+                                    statusInfo['raw_status'].toString().toLowerCase().trim() == 'pesanan diterima';
+                                final bool showTime = formattedTime.isNotEmpty && !isAmbilCurrent && !isPesananDiterimaNotAccepted;
                                 if (showTime) {
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 2),
