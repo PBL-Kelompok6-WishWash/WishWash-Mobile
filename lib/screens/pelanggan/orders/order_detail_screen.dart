@@ -4973,11 +4973,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ),
                               (() {
-                                final bool isAmbilCurrent = isCurrent && (rawName.toLowerCase().contains('antar') || rawName.toLowerCase().contains('ambil') || rawName.toLowerCase().contains('ready'));
-                                final bool isPesananDiterimaNotAccepted = 
-                                    rawName.toLowerCase().contains('diterima') &&
-                                    statusInfo['raw_status'].toString().toLowerCase().trim() == 'pesanan diterima';
-                                final bool showTime = formattedTime.isNotEmpty && !isAmbilCurrent && !isPesananDiterimaNotAccepted;
+                                final bool isCourierActive = isCurrent &&
+                                    (rawName.toLowerCase().contains('jemput') || rawName.toLowerCase().contains('antar')) &&
+                                    (_currentOrder['is_courier_on_way'] == true);
+                                final bool showTime = formattedTime.isNotEmpty &&
+                                    (isDone || isCourierActive) &&
+                                    !isAmbilCurrent &&
+                                    !isPesananDiterimaNotAccepted;
                                 if (showTime) {
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 2),
