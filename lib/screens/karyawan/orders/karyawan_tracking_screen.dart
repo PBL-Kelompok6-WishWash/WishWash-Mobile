@@ -810,51 +810,67 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
+                 Container(
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: navyColor.withOpacity(0.08),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isPickup
                         ? Icons.local_shipping_rounded
                         : Icons.task_alt_rounded,
-                    color: Colors.green.shade600,
-                    size: 36,
+                    color: navyColor,
+                    size: 32,
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 Text(
                   title,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: navyColor,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   desc,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
                     height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
+                const SizedBox(height: 28),
+                Container(
                   width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [navyColor, navyColor.withBlue(180)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: navyColor.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
                     onPressed: () {
@@ -872,23 +888,22 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade600,
-                      foregroundColor: Colors.white,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                      elevation: 0,
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
                       isEn ? 'Cancel' : 'Batal',
                       style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.grey.shade500),
                     ),
                   ),
                 ),
