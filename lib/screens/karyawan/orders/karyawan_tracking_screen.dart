@@ -537,20 +537,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
     // Route fetch completed (fallback used)
   }
 
-  Future<void> _launchGoogleMaps(String address) async {
-    final query = Uri.encodeComponent(address);
-    final googleMapsUrl =
-        Uri.parse("https://www.google.com/maps/search/?api=1&query=$query");
-    if (await canLaunchUrl(googleMapsUrl)) {
-      await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak dapat membuka Google Maps')),
-        );
-      }
-    }
-  }
+
 
   void _showStartTripConfirmationDialog() {
     final status = _getOrderStatus(widget.order).toLowerCase();
@@ -723,14 +710,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                         if (mounted) setState(() => _showStartAlert = false);
                       });
 
-                      // Launch Google Maps as navigation guide
-                      _launchGoogleMaps(isPickup
-                          ? (widget.order['AlamatPengambilan'] ??
-                                  {})['alamat_lengkap'] ??
-                              'Alamat Pelanggan'
-                          : (widget.order['AlamatPenyerahan'] ??
-                                  {})['alamat_lengkap'] ??
-                              'Alamat Pelanggan');
+
                     },
                     child: Text(
                       isEn ? 'Yes, Start Now' : 'Ya, Mulai Sekarang',
@@ -775,13 +755,13 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
 
     final String title = isPickup
         ? (isEn
-            ? 'Confirm Pickup Completed?'
-            : 'Konfirmasi Selesai Penjemputan?')
+            ? 'Confirm Arrival at Pickup?'
+            : 'Konfirmasi Sampai Lokasi Jemput?')
         : (isEn ? 'Confirm Delivery Completed?' : 'Konfirmasi Selesai Diantar?');
     final String desc = isPickup
         ? (isEn
-            ? 'Are you sure you have completed picking up the laundry?'
-            : 'Apakah Anda yakin telah menyelesaikan penjemputan cucian dari pelanggan ini?')
+            ? 'Are you sure you have arrived at the pickup location?'
+            : 'Apakah Anda yakin telah sampai di lokasi penjemputan?')
         : (isEn
             ? 'Are you sure the laundry has been successfully handed over?'
             : 'Apakah Anda yakin cucian telah berhasil diserahkan ke pelanggan?');
@@ -891,12 +871,14 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: Colors.red.shade600,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
                     ),
                     onPressed: () => Navigator.pop(context),
                     child: Text(
@@ -904,7 +886,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                       style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: Colors.red.shade600),
+                          color: Colors.white),
                     ),
                   ),
                 ),
@@ -925,10 +907,10 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
         : 'Anda telah sampai di lokasi penjemputan!';
 
     if (status == 'siap diantar') {
-      nextStatus = 'selesai';
+      nextStatus = 'siap diantar';
       successMsg = isEn
-          ? 'Laundry successfully delivered to customer!'
-          : 'Cucian berhasil diantarkan ke pelanggan!';
+          ? 'You have arrived at the customer location!'
+          : 'Anda telah sampai di lokasi pelanggan!';
     }
 
     setState(() => _isUpdating = true);
@@ -945,22 +927,112 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
           _isUpdating = false;
           _isNavigationMode = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMsg,
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.green.shade700,
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: navyColor.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.check_circle_rounded, color: navyColor, size: 40),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    successMsg,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: navyColor,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: navyColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(dialogCtx);
+                        Navigator.pop(context, updatedOrder);
+                      },
+                      child: Text(
+                        'OK',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
-        Navigator.pop(context, updatedOrder);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isUpdating = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isEn ? 'Failed: $e' : 'Gagal: $e'),
-            backgroundColor: Colors.red,
+        showDialog(
+          context: context,
+          builder: (dialogCtx) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.error_outline_rounded, color: Colors.red.shade600, size: 40),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    isEn ? 'Failed: $e' : 'Gagal: $e',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                      ),
+                      onPressed: () => Navigator.pop(dialogCtx),
+                      child: Text(
+                        'OK',
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       }
@@ -1015,7 +1087,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
     final String actionButtonText = _isRouteActive
         ? (isPickup
             ? 'Konfirmasi Selesai Penjemputan'
-            : 'Konfirmasi Selesai Diantar')
+            : 'Konfirmasi Sampai di Lokasi')
         : (isPickup ? 'Mulai Penjemputan' : 'Mulai Pengantaran');
 
     // Store coords
@@ -1265,8 +1337,8 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
                         ),
                       ),
 
-                      // Live courier GPS marker (only when route active)
-                      if (_isRouteActive)
+                      // Live courier GPS marker (only when route active or GPS location is available)
+                      if (_isRouteActive || _currentGpsPosition != null)
                         Marker(
                           point: courierPos,
                           width: 56,

@@ -1710,6 +1710,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn: isEn,
                           hargaPerSatuan: hargaPerSatuan,
                           biayaTambahan: biayaTambahan,
+                          orderId: orderId,
+                          orderDate: orderDate,
+                          customerName: customerName,
+                          price: price,
+                          totalBayar: totalBayar,
                         ),
                         const SizedBox(height: 16),
                         _buildDeliveryLocationSection(isEn),
@@ -1730,11 +1735,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               ? _appliedPromoCode
                               : (order['PromoOrder'] != null &&
                                         (order['PromoOrder'] as List).isNotEmpty
-                                    ? ((order['PromoOrder'] as List)
-                                              .first['Promo']?['code']
-                                              ?.toString() ??
-                                          '')
-                                    : ''),
+                                     ? ((order['PromoOrder'] as List)
+                                               .first['Promo']?['code']
+                                               ?.toString() ??
+                                           '')
+                                     : ''),
                           isEn: isEn,
                         ),
                       ] else ...[
@@ -1751,6 +1756,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn: isEn,
                           hargaPerSatuan: hargaPerSatuan,
                           biayaTambahan: biayaTambahan,
+                          orderId: orderId,
+                          orderDate: orderDate,
+                          customerName: customerName,
+                          price: price,
+                          totalBayar: totalBayar,
                         ),
                         const SizedBox(height: 16),
                         _buildDeliveryLocationSection(isEn),
@@ -3061,6 +3071,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required bool isEn,
     required double hargaPerSatuan,
     required double biayaTambahan,
+    required String orderId,
+    required String orderDate,
+    required String customerName,
+    required String price,
+    required double totalBayar,
   }) {
     final bool hasPickup = (_currentOrder['id_alamat_pengambilan'] != null && _currentOrder['id_alamat_pengambilan'] != 0) ||
         (_currentOrder['AlamatPengambilan'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != 0);
@@ -3454,6 +3469,50 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
           ),
+          if (kuantitasVal > 0.0) ...[
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                icon: Icon(
+                  Icons.receipt_long_rounded,
+                  color: navyColor,
+                  size: 18,
+                ),
+                label: Text(
+                  isEn ? 'View Transaction Receipt' : 'Lihat Resi Transaksi',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                    fontSize: 13,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: navyColor,
+                  elevation: 2,
+                  shadowColor: const Color(0xFFCAD4DE).withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                  ),
+                ),
+                onPressed: () => _showInvoiceModal(
+                  context,
+                  _currentOrder,
+                  orderId,
+                  orderDate,
+                  customerName,
+                  packageName,
+                  perfumeName,
+                  price,
+                  totalBayar,
+                  isEn,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -5001,7 +5060,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         // Vertical line and circle indicator / checkmark
                         Column(
                           children: [
-                            const SizedBox(height: 2), // small adjustment for aligning checkmark/dot
                             Container(
                               width: 14,
                               height: 14,
@@ -5038,9 +5096,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                             if (!isLast)
                               Container(
-                                width: 1.5,
-                                height: 32,
-                                color: Colors.grey.shade300,
+                                width: 2.0,
+                                height: 34,
+                                color: (index < activeIdx || isSelesai)
+                                    ? orderColor
+                                    : Colors.grey.shade300,
                               ),
                           ],
                         ),
@@ -7041,6 +7101,39 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ],
               ),
             ),
+          ] else if (lowerCurrent.contains('antar') || lowerCurrent.contains('kirim') || lowerCurrent.contains('siap diantar')) ...[
+            if (!isDropOff)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3CD),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade900,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isEn
+                            ? 'Awaiting courier to deliver your laundry.'
+                            : 'Menunggu kurir mengantarkan cucian Anda.',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.amber.shade900,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
           if (isOrderStillPendingAcceptance) ...[
             SizedBox(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -988,6 +989,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         'Paket Laundry';
     final isEn = TranslationService.currentLang == 'en';
 
+    String? validationError;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1056,7 +1058,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
+                     Text(
                       isEn
                           ? 'Enter actual laundry weight in kilograms'
                           : 'Masukkan berat cucian riil dalam kilogram',
@@ -1066,6 +1068,44 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         color: Colors.grey.shade500,
                       ),
                     ),
+                    if (validationError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF0F2),
+                          border: Border.all(color: const Color(0xFFFF3B30).withOpacity(0.3), width: 1.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFF3B30),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.priority_high_rounded,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                validationError!,
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFFF3B30),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     // TextField
                     TextField(
@@ -1203,15 +1243,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             textController.text.replaceAll(',', '.'),
                           );
                           if (weight == null || weight <= 0.0) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isEn
-                                      ? 'Please enter a valid weight number!'
-                                      : 'Harap masukkan angka berat yang valid!',
-                                ),
-                              ),
-                            );
+                            setStateDialog(() {
+                              validationError = isEn
+                                  ? 'Please enter a valid weight number!'
+                                  : 'Harap masukkan angka berat yang valid!';
+                            });
+                            Timer(const Duration(seconds: 3), () {
+                              if (context.mounted) {
+                                setStateDialog(() {
+                                  validationError = null;
+                                });
+                              }
+                            });
                             return;
                           }
                           Navigator.pop(context);
@@ -1932,7 +1975,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         // Vertical line and circle indicator / checkmark
                         Column(
                           children: [
-                            const SizedBox(height: 2), // small adjustment for aligning checkmark/dot
                             Container(
                               width: 14,
                               height: 14,
@@ -1969,9 +2011,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             ),
                             if (!isLast)
                               Container(
-                                width: 1.5,
-                                height: 32,
-                                color: Colors.grey.shade300,
+                                width: 2.0,
+                                height: 34,
+                                color: (index < activeIdx || isSelesai)
+                                    ? orderColor
+                                    : Colors.grey.shade300,
                               ),
                           ],
                         ),
@@ -2916,11 +2960,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
           if (kuantitasVal > 0.0) ...[
             const SizedBox(height: 18),
-            // Action Button: View Transaction Receipt
             SizedBox(
               width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
+              height: 50,
+              child: ElevatedButton.icon(
                 icon: Icon(
                   Icons.receipt_long_rounded,
                   color: navyColor,
@@ -2931,13 +2974,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.bold,
                     color: navyColor,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: navyColor.withOpacity(0.4), width: 1.5),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: navyColor,
+                  elevation: 2,
+                  shadowColor: const Color(0xFFCAD4DE).withOpacity(0.4),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: Colors.grey.shade200, width: 1.5),
                   ),
                 ),
                 onPressed: () => _showReceiptModal(),
@@ -3816,14 +3863,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
     final bool isDropOff = logistikType == 'Drop-off';
 
-    final bool isDeliveringNow = (status == 'siap diantar' || status == 'kirim') && !isDropOff;
     final bool showTandaiLunas = isBelumLunas &&
         kuantitas > 0.0 &&
-        (paymentMethod == 'CASH' || paymentMethod == 'COD') &&
-        !isDeliveringNow;
+        (paymentMethod == 'CASH' || paymentMethod == 'COD');
 
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
+
+    // Deteksi apakah kurir sedang di jalan (rute aktif)
+    final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
 
     if (isWaitingCustomer && !showTandaiLunas) {
       return Container(
@@ -3891,8 +3939,6 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           status,
     );
 
-
-
     final bool isPaymentConfirmed =
         pembayaran != null && paymentMethod.isNotEmpty;
     final bool canDeliver =
@@ -3902,133 +3948,142 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
     if (status == 'siap diantar' && !isDropOff) {
-      actionBtnText = TranslationService.currentLang == 'en'
-          ? 'View Delivery Route'
-          : 'Lihat Rute Pengantaran';
-      customAction = () async {
-        if (!canDeliver) {
-          String warningMsg = '';
-          if (!isPaymentConfirmed) {
-            warningMsg = TranslationService.currentLang == 'en'
-                ? 'The customer has not selected a payment method (Cash/QRIS) yet in their app.'
-                : 'Pelanggan belum memilih metode pembayaran (Cash/QRIS) di aplikasi mereka.';
-          } else if (paymentMethod == 'QRIS' && paymentStatus != 'Lunas') {
-            warningMsg = TranslationService.currentLang == 'en'
-                ? 'The customer selected QRIS payment, but the payment status is not LUNAS yet.'
-                : 'Pelanggan memilih metode pembayaran QRIS, tetapi status pembayaran belum LUNAS.';
+      if (!isCourierOnWay) {
+        // Belum mulai perjalanan
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'Start Delivery / View Route'
+            : 'Mulai Pengantaran / Lihat Rute';
+        customAction = () async {
+          if (!canDeliver) {
+            String warningMsg = '';
+            if (!isPaymentConfirmed) {
+              warningMsg = TranslationService.currentLang == 'en'
+                  ? 'The customer has not selected a payment method (Cash/QRIS) yet in their app.'
+                  : 'Pelanggan belum memilih metode pembayaran (Cash/QRIS) di aplikasi mereka.';
+            } else if (paymentMethod == 'QRIS' && paymentStatus != 'Lunas') {
+              warningMsg = TranslationService.currentLang == 'en'
+                  ? 'The customer selected QRIS payment, but the payment status is not LUNAS yet.'
+                  : 'Pelanggan memilih metode pembayaran QRIS, tetapi status pembayaran belum LUNAS.';
+            }
+
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) {
+                final isEn = TranslationService.currentLang == 'en';
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: navyColor.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF3E0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFE65100),
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          isEn
+                              ? 'Payment Unconfirmed'
+                              : 'Pembayaran Belum Siap',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          warningMsg,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: navyColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              isEn ? 'Understood' : 'Mengerti',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+            return;
           }
 
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) {
-              final isEn = TranslationService.currentLang == 'en';
-              return Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                elevation: 0,
-                backgroundColor: Colors.transparent,
-                child: Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: navyColor.withValues(alpha: 0.15),
-                        blurRadius: 30,
-                        spreadRadius: 0,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFF3E0),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.warning_amber_rounded,
-                          color: Color(0xFFE65100),
-                          size: 36,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        isEn
-                            ? 'Payment Unconfirmed'
-                            : 'Pembayaran Belum Siap',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        warningMsg,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: navyColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            isEn ? 'Understood' : 'Mengerti',
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  KaryawanTrackingScreen(order: _currentOrder),
+            ),
           );
-          return;
-        }
-
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                KaryawanTrackingScreen(order: _currentOrder),
-          ),
-        );
-        if (result != null &&
-            result is Map<String, dynamic> &&
-            mounted) {
-          setState(() {
-            _currentOrder = result;
-          });
-          widget.onOrderUpdated(_currentOrder);
-        }
-      };
+          if (result != null &&
+              result is Map<String, dynamic> &&
+              mounted) {
+            setState(() {
+              _currentOrder = result;
+            });
+            widget.onOrderUpdated(_currentOrder);
+          }
+        };
+      } else {
+        // Kurir sedang di jalan / sudah sampai lokasi. Tampilkan tombol konfirmasi & scan qr berdampingan
+        actionBtnText = TranslationService.currentLang == 'en'
+            ? 'Confirm Laundry Delivered'
+            : 'Konfirmasi Selesai Diantar';
+        nextStatus = 'selesai';
+      }
     } else if (currentStatusIdx != -1 &&
         currentStatusIdx < refStatuses.length - 1) {
       final nextRef = refStatuses[currentStatusIdx + 1];
@@ -4083,7 +4138,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           status,
           TranslationService.currentLang,
         );
-        final String nextLabel = _getShortStatusLabel(
+        final String textNextLabel = _getShortStatusLabel(
           rawNextName,
           TranslationService.currentLang,
         );
@@ -4102,19 +4157,19 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             lowerNext.contains('delivery') ||
             lowerNext.contains('siap diantar')) {
           actionBtnText = isEn
-              ? (isDropOff ? 'Process $currentLabel Completed' : 'Process $currentLabel Completed ➔ Ready to Deliver')
-              : (isDropOff ? 'Proses $currentLabel Selesai' : 'Proses $currentLabel Selesai ➔ Siap Diantar');
+              ? 'Process $currentLabel Completed'
+              : 'Proses $currentLabel Selesai';
         } else {
           actionBtnText = isEn
-              ? 'Process $currentLabel Completed ➔ Start $nextLabel'
-              : 'Proses $currentLabel Selesai ➔ Mulai $nextLabel';
+              ? 'Process $currentLabel Completed ➔ Start $textNextLabel'
+              : 'Proses $currentLabel Selesai ➔ Mulai $textNextLabel';
         }
       }
     }
 
     final bool hasMapButton =
         status == 'penjemputan' ||
-        status == 'siap diantar' ||
+        (status == 'siap diantar' && !isDropOff) ||
         nextStatus == 'penjemputan';
     if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton) {
       return const SizedBox.shrink();
@@ -4347,6 +4402,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               final bool showScanButton = nextStatus.toLowerCase() == 'selesai';
 
               if (showScanButton) {
+                // Tampilkan konfirmasi selesai dan scan qr berdampingan jika cash sudah lunas atau non-cash
+                if (isBelumLunas && (paymentMethod == 'CASH' || paymentMethod == 'COD')) {
+                  // Jika COD/Cash belum lunas, paksa lunasi dulu (tombol lunasi akan muncul di bawah)
+                  return const SizedBox.shrink();
+                }
+
                 return Row(
                   children: [
                     Expanded(
@@ -4378,21 +4439,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                         nextStatus == 'penjemputan')
                                     ? (isDropOff
                                         ? Icons.check_circle_outline_rounded
-                                        : Icons.route_outlined)
+                                        : (isCourierOnWay
+                                            ? Icons.check_circle_outline_rounded
+                                            : Icons.route_outlined))
                                     : Icons.check_circle_outline_rounded,
                                 size: 20,
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  actionBtnText,
-                                  textAlign: TextAlign.center,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
+                              const SizedBox(width: 10),
+                              Text(
+                                actionBtnText,
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
                               ),
                             ],
@@ -4432,15 +4490,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                               widget.onOrderUpdated(_currentOrder);
 
                               if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      isEn
-                                          ? 'Order status updated successfully!'
-                                          : 'Status pesanan berhasil diperbarui!',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
+                                _showSuccessDialog(
+                                  title: isEn
+                                      ? 'Delivery Confirmed'
+                                      : 'Pengantaran Terkonfirmasi',
+                                  content: isEn
+                                      ? 'Order status has been successfully updated to Completed.'
+                                      : 'Status pesanan berhasil diperbarui dan telah selesai diserahkan.',
                                 );
                               }
                             } else if (result is String) {
@@ -4555,8 +4611,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               );
             })(),
           ],
-          if ((status == 'penjemputan' && _isPickupStarted) ||
-              (status == 'siap diantar' && _isDeliveryStarted)) ...[
+          if (((status == 'penjemputan' && _isPickupStarted) ||
+              (status == 'siap diantar' && _isDeliveryStarted)) && !isCourierOnWay) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
