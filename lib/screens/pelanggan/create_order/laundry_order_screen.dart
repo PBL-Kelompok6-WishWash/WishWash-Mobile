@@ -5,6 +5,7 @@ import 'package:mobile/services/alamat_service.dart';
 import 'package:mobile/screens/pelanggan/home/alamat_screen.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/services/order_service.dart';
+import 'package:mobile/services/parfum_service.dart';
 import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 import 'package:mobile/screens/karyawan/main_karyawan.dart';
 import 'package:mobile/utils/constants.dart';
@@ -93,8 +94,31 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   List<Map<String, String>> dates = [];
   bool _isPlacingOrder = false;
 
-  // Consistent 4 Perfumes mapping from GORM Database seeder IDs
-  final List<Map<String, dynamic>> perfumes = [
+  List<Map<String, dynamic>> perfumes = [];
+  bool isLoadingPerfumes = true;
+
+  // Pre-configured metadata for known perfumes
+  final Map<String, Map<String, dynamic>> _perfumeMetadata = {
+    'lavender bliss': {
+      'icon': Icons.local_florist_outlined,
+      'desc_en': 'Premium lavender flower scent for deep relaxation.',
+    },
+    'ocean breeze': {
+      'icon': Icons.water_drop_outlined,
+      'desc_en': 'Fresh ocean breeze freshness for active wear.',
+    },
+    'fresh cotton': {
+      'icon': Icons.block,
+      'desc_en': 'Soft clean cotton fragrance and hypoallergenic.',
+    },
+    'malaikat subuh': {
+      'icon': Icons.spa_outlined,
+      'desc_en': 'Luxurious, soothing, and warm traditional fragrance.',
+    },
+  };
+
+  // Consistent 4 Perfumes mapping from GORM Database seeder IDs as fallback
+  final List<Map<String, dynamic>> _fallbackPerfumes = [
     {
       'id': 2,
       'name': 'Lavender Bliss',
@@ -128,13 +152,79 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   @override
   void initState() {
     super.initState();
+    // Initialize with fallback first so UI is not empty while loading
+    perfumes = List.from(_fallbackPerfumes);
     _generateDates();
     _loadAddresses();
     _initDefaultPackage();
+    _loadPerfumes();
 
     // Automatically switch default selectedTime to Afternoon if today is already past 12:00 PM
     if (DateTime.now().hour >= 12) {
       selectedTime = 'Afternoon';
+    }
+  }
+
+  Future<void> _loadPerfumes() async {
+    try {
+      final dbParfums = await ParfumService.getParfums();
+      
+      // Filter only "Tersedia" status
+      final availableParfums = dbParfums.where((p) {
+        final status = (p['status_parfum'] ?? 'Tersedia').toString().toLowerCase();
+        return status == 'tersedia';
+      }).toList();
+
+      if (availableParfums.isEmpty) {
+        setState(() {
+          perfumes = List.from(_fallbackPerfumes);
+          isLoadingPerfumes = false;
+        });
+        return;
+      }
+
+      List<Map<String, dynamic>> tempPerfumes = [];
+      for (var p in availableParfums) {
+        final String name = p['nama_parfum'] ?? '';
+        final int id = (p['id_parfum'] as num?)?.toInt() ?? 0;
+        final String desc = p['keterangan'] ?? '';
+        final String nameLower = name.toLowerCase();
+
+        // Map icon and English description if we have it pre-configured
+        IconData icon = Icons.spa_outlined;
+        String descEn = desc;
+        if (_perfumeMetadata.containsKey(nameLower)) {
+          icon = _perfumeMetadata[nameLower]!['icon'] ?? Icons.spa_outlined;
+          descEn = _perfumeMetadata[nameLower]!['desc_en'] ?? desc;
+        }
+
+        tempPerfumes.add({
+          'id': id,
+          'name': name,
+          'desc': desc,
+          'desc_en': descEn,
+          'icon': icon,
+        });
+      }
+
+      setState(() {
+        perfumes = tempPerfumes;
+        // Auto select first perfume if available, otherwise default to selectedPerfume
+        if (perfumes.isNotEmpty) {
+          final hasDefault = perfumes.any((p) => p['name'] == selectedPerfume);
+          if (!hasDefault) {
+            selectedPerfume = perfumes.first['name'];
+          }
+        }
+        isLoadingPerfumes = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading perfumes: $e');
+      setState(() {
+        // Fall back to local list
+        perfumes = List.from(_fallbackPerfumes);
+        isLoadingPerfumes = false;
+      });
     }
   }
 
