@@ -798,114 +798,173 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     );
   }
 
+  int _currentPerfumePage = 0;
+
   Widget _buildPerfumeGrid(Color themeColor) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.35,
-      ),
-      itemCount: perfumes.length,
-      itemBuilder: (context, index) {
-        final perfume = perfumes[index];
-        final isSelected = selectedPerfume == perfume['name'];
-        return GestureDetector(
-          onTap: () => setState(() => selectedPerfume = perfume['name']),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isSelected ? activeSelectionColor : Colors.grey.shade100,
-                width: isSelected ? 2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isSelected 
-                      ? activeSelectionColor.withOpacity(0.08) 
-                      : Colors.black.withOpacity(0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                                ? activeSelectionColor.withOpacity(0.12) 
-                                : Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            perfume['icon'], 
-                            color: isSelected ? activeSelectionColor : Colors.grey.shade600, 
-                            size: 16
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            perfume['name'],
-                            style: GoogleFonts.poppins(
-                              color: navyColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: Text(
-                        TranslationService.currentLang == 'en' ? (perfume['desc_en'] ?? perfume['desc']) : perfume['desc'],
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey.shade500,
-                          fontSize: 9,
-                          height: 1.3,
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                if (isSelected)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: activeSelectionColor,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 10,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+    if (perfumes.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Text(
+            TranslationService.currentLang == 'en' ? 'No perfumes available' : 'Tidak ada parfum tersedia.',
+            style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    final int pageCount = (perfumes.length / 4).ceil();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 250, // Height for a 2x2 grid
+          child: PageView.builder(
+            itemCount: pageCount,
+            onPageChanged: (int page) {
+              setState(() {
+                _currentPerfumePage = page;
+              });
+            },
+            itemBuilder: (context, pageIndex) {
+              final int startIndex = pageIndex * 4;
+              int endIndex = startIndex + 4;
+              if (endIndex > perfumes.length) {
+                endIndex = perfumes.length;
+              }
+              final pageItems = perfumes.sublist(startIndex, endIndex);
+
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.35,
+                ),
+                itemCount: pageItems.length,
+                itemBuilder: (context, index) {
+                  final perfume = pageItems[index];
+                  final isSelected = selectedPerfume == perfume['name'];
+                  return GestureDetector(
+                    onTap: () => setState(() => selectedPerfume = perfume['name']),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected ? activeSelectionColor : Colors.grey.shade100,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isSelected 
+                                ? activeSelectionColor.withOpacity(0.08) 
+                                : Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: isSelected 
+                                          ? activeSelectionColor.withOpacity(0.12) 
+                                          : Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      perfume['icon'], 
+                                      color: isSelected ? activeSelectionColor : Colors.grey.shade600, 
+                                      size: 16
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      perfume['name'],
+                                      style: GoogleFonts.poppins(
+                                        color: navyColor,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(
+                                child: Text(
+                                  TranslationService.currentLang == 'en' ? (perfume['desc_en'] ?? perfume['desc']) : perfume['desc'],
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 9,
+                                    height: 1.3,
+                                  ),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (isSelected)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: activeSelectionColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 10,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        if (pageCount > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(pageCount, (index) {
+              final isCurrent = index == _currentPerfumePage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: isCurrent ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: isCurrent ? activeSelectionColor : Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ],
+      ],
     );
   }
 
