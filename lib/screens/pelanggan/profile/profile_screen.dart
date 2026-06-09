@@ -14,6 +14,8 @@ import 'package:mobile/services/auth_service.dart';
 import 'package:mobile/screens/pelanggan/orders/orders_screen.dart';
 import 'package:mobile/screens/auth/login_screen.dart';
 import 'package:mobile/utils/constants.dart';
+import 'package:mobile/screens/help_center_screen.dart';
+
 
 class ProfileScreen extends StatefulWidget {
   final bool showNavbar;
@@ -491,7 +493,20 @@ class ProfileScreenState extends State<ProfileScreen> {
               );
             },
           ),
-          _buildMenuItem(Icons.help_outline_rounded, TranslationService.translate('faq'), navyColor, cyanColor),
+          _buildMenuItem(
+            Icons.help_outline_rounded,
+            TranslationService.translate('faq'),
+            navyColor,
+            cyanColor,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HelpCenterScreen(userRole: 'pelanggan'),
+                ),
+              );
+            },
+          ),
           _buildLogoutItem(),
         ],
       ),

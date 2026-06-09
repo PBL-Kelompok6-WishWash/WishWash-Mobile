@@ -9,6 +9,7 @@ import 'package:mobile/screens/karyawan/profile/change_password.dart';
 import 'package:mobile/screens/karyawan/profile/preferences_language.dart';
 import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
+import 'package:mobile/screens/help_center_screen.dart';
 
 class ProfileScreenKaryawan extends StatefulWidget {
   const ProfileScreenKaryawan({super.key});
@@ -483,6 +484,14 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
           _buildMenuItem(
             Icons.help_outline_rounded,
             TranslationService.translate('help_faq'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HelpCenterScreen(userRole: 'karyawan'),
+                ),
+              );
+            },
           ),
           _buildLogoutItem(),
         ],
