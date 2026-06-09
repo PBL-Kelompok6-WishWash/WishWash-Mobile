@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/services/translation_service.dart';
-
+import 'package:mobile/utils/notification_listener.dart';
 
 class BottomNavbar extends StatefulWidget {
   final int currentIndex;
@@ -56,6 +56,11 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
     _unreadTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _checkUnreadChats();
     });
+    NotificationListenerManager().addCallback(_onNewNotificationWS);
+  }
+
+  void _onNewNotificationWS(Map<String, dynamic> notif) {
+    _checkUnreadChats();
   }
 
   Future<void> _checkUnreadChats() async {
@@ -114,6 +119,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
 
   @override
   void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotificationWS);
     _unreadTimer?.cancel();
     _controller.dispose();
     super.dispose();
@@ -317,14 +323,22 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   Icon(isSelected ? activeIcon : icon, color: color, size: 26),
                   if (hasBadge)
                     Positioned(
-                      top: -2,
-                      right: -2,
+                      top: -3,
+                      right: -3,
                       child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF3B30), // Premium Apple iOS Red
                           shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFF3B30).withOpacity(0.3),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -345,8 +359,6 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
       ),
     );
   }
-
-
 }
 
 class IndicatorPainter extends CustomPainter {

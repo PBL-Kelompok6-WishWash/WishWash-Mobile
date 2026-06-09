@@ -10,6 +10,8 @@ import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/orders/rating_screen.dart';
 import 'package:mobile/screens/pelanggan/create_order/create_order_screen.dart';
 import 'package:mobile/services/order_service.dart';
+import 'package:mobile/services/notifikasi_service.dart';
+import 'package:mobile/utils/notification_listener.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool showNavbar;
@@ -26,6 +28,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   List<dynamic> _allOrders = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _hasUnreadNotifications = false;
 
   @override
   void initState() {
@@ -33,12 +36,35 @@ class _OrdersScreenState extends State<OrdersScreen> {
     _selectedTab = widget.initialTab;
     _pageController = PageController(initialPage: widget.initialTab);
     _fetchOrders();
+    _checkUnreadNotifications();
+    NotificationListenerManager().addCallback(_onNewNotificationWS);
   }
 
   @override
   void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotificationWS);
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _onNewNotificationWS(Map<String, dynamic> notif) {
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = true;
+      });
+    }
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final list = await NotifikasiService.getNotifications();
+      final hasUnread = list.any((notif) => notif['is_read'] == false);
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications = hasUnread;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchOrders() async {
@@ -232,11 +258,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Widget _buildNotificationIcon() {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const NotificationScreen()),
         );
+        _checkUnreadNotifications();
       },
       child: Container(
         width: 48,
@@ -262,26 +289,27 @@ class _OrdersScreenState extends State<OrdersScreen> {
               color: Color(0xFF0C4B8E),
               size: 26,
             ),
-            Positioned(
-              top: -1,
-              right: -1,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF3B30), // Premium Apple iOS Red
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+            if (_hasUnreadNotifications)
+              Positioned(
+                top: -1,
+                right: -1,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

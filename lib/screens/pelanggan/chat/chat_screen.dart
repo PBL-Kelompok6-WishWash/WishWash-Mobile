@@ -96,19 +96,21 @@ class _ChatScreenState extends State<ChatScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
         return Scaffold(
           backgroundColor: const Color(0xFFBCEFF2),
           extendBody: true,
           body: Column(
             children: [
               // --- HEADER & APPBAR ---
-              SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, statusBarHeight + 10, 20, 10),
+                child: SizedBox(
+                  height: 48,
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      const SizedBox(width: 48),
                       Text(
                         TranslationService.translate('message'),
                         style: GoogleFonts.poppins(
@@ -117,6 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           fontSize: 20,
                         ),
                       ),
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),

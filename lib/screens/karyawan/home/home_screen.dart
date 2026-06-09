@@ -12,6 +12,9 @@ import 'package:mobile/utils/constants.dart';
 import 'dart:convert';
 import 'dart:ui';
 
+import 'package:mobile/services/notifikasi_service.dart';
+import 'package:mobile/utils/notification_listener.dart';
+
 class DashboardKaryawan extends StatefulWidget {
   final VoidCallback? onProfileTap;
   final Function(int)? onTabChange;
@@ -34,19 +37,56 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   bool _isLoadingOrders = true;
   double _todayRevenue = 0.0;
   String _percentageTrend = '0%';
+  bool _hasUnreadNotifications = false;
 
   @override
   void initState() {
     super.initState();
     _fetchProfile();
     _fetchOrders();
+    _checkUnreadNotifications();
+    NotificationListenerManager().addCallback(_onNewNotificationWS);
+  }
+
+  @override
+  void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotificationWS);
+    super.dispose();
+  }
+
+  void _onNewNotificationWS(Map<String, dynamic> notif) {
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = true;
+      });
+    }
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final list = await NotifikasiService.getNotifications();
+      final hasUnread = list.any((notif) => notif['is_read'] == false);
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications = hasUnread;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchProfile() async {
     try {
       final response = await PelangganService.getProfile();
+      debugPrint("👤 [KaryawanProfile] API Response: $response");
       if (response['success'] == true) {
         final data = response['data'] ?? {};
+        
+        final int? userId = data['id_user'] ?? data['UserID'];
+        debugPrint("👤 [KaryawanProfile] Extracted UserID: $userId");
+        if (userId != null) {
+          NotificationListenerManager().connect(userId);
+        }
+
         setState(() {
           _namaKaryawan = data['nama_karyawan'] ?? 'Karyawan';
           _fotoKaryawan = data['foto_karyawan'] ?? '';
@@ -307,6 +347,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   Future<void> _onRefresh() async {
     await _fetchProfile();
     await _fetchOrders();
+    await _checkUnreadNotifications();
   }
 
   Widget _buildProfileImage() {
@@ -576,16 +617,18 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             const SizedBox(width: 10),
             _buildGlassIconButton(
               Icons.notifications_none_rounded,
-              navyColor, // ➔ Koma di sini penting biar dia turun baris
-              onTap: () {
-                Navigator.push(
+              navyColor,
+              hasBadge: _hasUnreadNotifications,
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => const NotificationScreen(),
-                  ), // ➔ Koma di sini juga ngebantu perapian
+                  ),
                 );
+                _checkUnreadNotifications();
               },
-            ), // ➔ Tutup kurung ini juga dikasih koma
+            ),
           ],
         ),
       ],
@@ -596,10 +639,11 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     IconData icon,
     Color color, {
     VoidCallback? onTap,
+    bool hasBadge = false,
   }) {
     return Container(
-      width: 45,
-      height: 45,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
@@ -622,7 +666,33 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         child: IconButton(
           padding: EdgeInsets.zero,
           onPressed: onTap,
-          icon: Icon(icon, color: color, size: 22),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, color: color, size: 22),
+              if (hasBadge)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF3B30).withOpacity(0.3),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

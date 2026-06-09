@@ -3446,7 +3446,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
                     (_currentOrder['AlamatPenyerahan'] != null &&
-                            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null)
+                            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null &&
+                            _currentOrder['AlamatPenyerahan']['alamat_lengkap'].toString().isNotEmpty)
                         ? '${_currentOrder['AlamatPenyerahan']['alamat_lengkap']} (${_getTranslatedType(_currentOrder['AlamatPenyerahan']['tipe_alamat'], isEn)}) - Penerima: ${_currentOrder['AlamatPenyerahan']['nama_penerima'] ?? ''}'
                         : (addresses.isNotEmpty
                             ? (() {
@@ -3564,7 +3565,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final String rawStatus = _getOrderStatus(_currentOrder).toLowerCase();
 
     final address = (_currentOrder['AlamatPenyerahan'] != null &&
-            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null)
+            _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null &&
+            _currentOrder['AlamatPenyerahan']['alamat_lengkap'].toString().isNotEmpty)
         ? _currentOrder['AlamatPenyerahan']
         : (addresses.isNotEmpty
             ? addresses.firstWhere(

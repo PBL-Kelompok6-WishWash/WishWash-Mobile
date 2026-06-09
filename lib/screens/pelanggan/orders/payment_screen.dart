@@ -1251,7 +1251,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
 
     final alamatPenyerahan = widget.order['AlamatPenyerahan'];
-    final String deliveryAddr = (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+    final String deliveryAddr = (alamatPenyerahan != null &&
+            alamatPenyerahan['alamat_lengkap'] != null &&
+            alamatPenyerahan['alamat_lengkap'].toString().isNotEmpty)
         ? alamatPenyerahan['alamat_lengkap'].toString()
         : (isEn ? 'Not specified yet' : 'Belum ditentukan');
 

@@ -107,14 +107,11 @@ class ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.only(
-                          top: statusBarHeight + 10,
-                          bottom: 150,
-                        ),
+                        padding: const EdgeInsets.only(bottom: 150),
                         child: Column(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                              padding: EdgeInsets.fromLTRB(20, statusBarHeight + 10, 20, 10),
                               child: SizedBox(
                                 height: 48,
                                 child: Row(

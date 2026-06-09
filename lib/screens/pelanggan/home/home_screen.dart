@@ -13,11 +13,13 @@ import 'package:mobile/services/layanan_service.dart';
 import 'package:mobile/screens/pelanggan/create_order/laundry_order_screen.dart';
 import 'package:mobile/screens/pelanggan/create_order/create_order_screen.dart';
 import 'package:mobile/services/order_service.dart';
+import 'package:mobile/utils/notification_listener.dart';
 import 'dart:convert';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/pelanggan/home/detail_promo.dart';
 import 'package:mobile/services/promo_service.dart';
+import 'package:mobile/services/notifikasi_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -67,6 +69,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   List<dynamic> _promos = [];
   bool _isLoadingPromos = true;
   List<String> _claimedPromoIds = [];
+  bool _hasUnreadNotifications = false;
 
   @override
   void initState() {
@@ -77,6 +80,34 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     _fetchServicesData();
     _fetchActiveOrders();
     _fetchPromosData();
+    _checkUnreadNotifications();
+    NotificationListenerManager().addCallback(_onNewNotificationWS);
+  }
+
+  @override
+  void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotificationWS);
+    super.dispose();
+  }
+
+  void _onNewNotificationWS(Map<String, dynamic> notif) {
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = true;
+      });
+    }
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final list = await NotifikasiService.getNotifications();
+      final hasUnread = list.any((notif) => notif['is_read'] == false);
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications = hasUnread;
+        });
+      }
+    } catch (_) {}
   }
 
   void closeDropdown() {
@@ -93,6 +124,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     _fetchServicesData();
     _fetchActiveOrders();
     _fetchPromosData();
+    _checkUnreadNotifications();
   }
 
   Future<void> _loadClaimedPromos() async {
@@ -221,10 +253,17 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   Future<void> _fetchProfileData() async {
     try {
       final response = await PelangganService.getProfile();
+      debugPrint("👤 [PelangganProfile] API Response: $response");
       if (response['success'] == true) {
         final data = response['data'];
         final pelanggan = data['pelanggan'] ?? {};
         
+        final int? userId = pelanggan['id_user'];
+        debugPrint("👤 [PelangganProfile] Extracted UserID: $userId");
+        if (userId != null) {
+          NotificationListenerManager().connect(userId);
+        }
+
         if (mounted) {
           setState(() {
             _namaLengkap = pelanggan['nama_lengkap'] ?? 'User';
@@ -1150,11 +1189,12 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   Widget _buildNotificationIcon() {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        await Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => NotificationScreen()),
+          MaterialPageRoute(builder: (context) => const NotificationScreen()),
         );
+        _checkUnreadNotifications();
       },
       child: Container(
         width: 48,
@@ -1180,26 +1220,27 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               color: Color(0xFF0C4B8E),
               size: 26,
             ),
-            Positioned(
-              top: -1,
-              right: -1,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF3B30), // Premium Apple iOS Red
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
-                      blurRadius: 4,
-                      spreadRadius: 1,
-                    ),
-                  ],
+            if (_hasUnreadNotifications)
+              Positioned(
+                top: -1,
+                right: -1,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFF3B30).withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

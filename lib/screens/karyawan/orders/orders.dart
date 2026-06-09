@@ -5,6 +5,8 @@ import 'package:barcode_widget/barcode_widget.dart';
 import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
 import 'package:mobile/screens/karyawan/home/notifikasi.dart';
 import 'package:mobile/services/order_service.dart';
+import 'package:mobile/services/notifikasi_service.dart';
+import 'package:mobile/utils/notification_listener.dart';
 
 class OrderScreenKaryawan extends StatefulWidget {
   const OrderScreenKaryawan({super.key});
@@ -31,12 +33,15 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   List<dynamic> _orders = [];
   bool _isLoading = true;
   String _errorMessage = "";
+  bool _hasUnreadNotifications = false;
 
   @override
   void initState() {
     super.initState();
     _activeTabIndex = OrderScreenKaryawan.orderTabNotifier.value;
     _fetchOrders();
+    _checkUnreadNotifications();
+    NotificationListenerManager().addCallback(_onNewNotificationWS);
     OrderScreenKaryawan.orderTabNotifier.addListener(_onTabNotifierChange);
   }
 
@@ -50,8 +55,29 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
   @override
   void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotificationWS);
     OrderScreenKaryawan.orderTabNotifier.removeListener(_onTabNotifierChange);
     super.dispose();
+  }
+
+  void _onNewNotificationWS(Map<String, dynamic> notif) {
+    if (mounted) {
+      setState(() {
+        _hasUnreadNotifications = true;
+      });
+    }
+  }
+
+  Future<void> _checkUnreadNotifications() async {
+    try {
+      final list = await NotifikasiService.getNotifications();
+      final hasUnread = list.any((notif) => notif['is_read'] == false);
+      if (mounted) {
+        setState(() {
+          _hasUnreadNotifications = hasUnread;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchOrders() async {
@@ -62,6 +88,7 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     });
     try {
       final list = await OrderService.getOrders();
+      _checkUnreadNotifications();
       if (mounted) {
         setState(() {
           _orders = list;
@@ -345,7 +372,8 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     }
   ];
 
-  String _formatDate(String isoString) {
+  String _formatDate(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '-';
     try {
       final dt = DateTime.parse(isoString).toLocal();
       final months = [
@@ -355,7 +383,11 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       final String timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       return '${dt.day} ${months[dt.month - 1]} ${dt.year}, $timeStr';
     } catch (_) {
-      return isoString.split('T')[0];
+      try {
+        return isoString.split('T')[0];
+      } catch (_) {
+        return isoString;
+      }
     }
   }
 
@@ -640,39 +672,49 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     return Padding(
       padding: EdgeInsets.fromLTRB(24, statusBarHeight + 10, 24, 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const SizedBox(width: 45), // Untuk menyeimbangkan agar judul tetap di tengah
-          Text(
-            TranslationService.translate('orders'),
-            style: GoogleFonts.poppins(
-              color: navyColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const SizedBox(width: 48), // Untuk menyeimbangkan agar judul tetap di tengah
+            Text(
+              TranslationService.translate('orders'),
+              style: GoogleFonts.poppins(
+                color: navyColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
             ),
-          ),
-          _buildGlassIconButton(
-            Icons.notifications_none_rounded,
-            navyColor,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
-              );
-            },
-          ),
-        ],
+            _buildGlassIconButton(
+              Icons.notifications_none_rounded,
+              navyColor,
+              hasBadge: _hasUnreadNotifications,
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationScreen(),
+                  ),
+                );
+                _checkUnreadNotifications();
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildGlassIconButton(IconData icon, Color color, {VoidCallback? onTap}) {
+  Widget _buildGlassIconButton(
+    IconData icon,
+    Color color, {
+    VoidCallback? onTap,
+    bool hasBadge = false,
+  }) {
     return Container(
-      width: 45,
-      height: 45,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
@@ -695,7 +737,33 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
         child: IconButton(
           padding: EdgeInsets.zero,
           onPressed: onTap,
-          icon: Icon(icon, color: color, size: 22),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(icon, color: color, size: 22),
+              if (hasBadge)
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFFF3B30).withOpacity(0.3),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1377,44 +1445,41 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
   }
 
   Widget _buildEmptyState() {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      children: [
-        SizedBox(height: MediaQuery.of(context).size.height * 0.15),
-        Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: navyColor.withOpacity(0.05),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.assignment_late_outlined, size: 50, color: navyColor),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Tidak Ada Pesanan',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: navyColor,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Daftar pesanan operasional kosong atau tidak cocok.',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+    return Container(
+      alignment: const Alignment(0, -0.3), // Shifts content slightly upwards from the center
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: navyColor.withOpacity(0.05),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.assignment_late_outlined, size: 50, color: navyColor),
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          Text(
+            'Tidak Ada Pesanan',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: navyColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Daftar pesanan operasional kosong atau tidak cocok.',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

@@ -3204,7 +3204,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final alamatPenyerahan = order['AlamatPenyerahan'];
     final String deliveryAddr =
-        (alamatPenyerahan != null && alamatPenyerahan['alamat_lengkap'] != null)
+        (alamatPenyerahan != null &&
+                alamatPenyerahan['alamat_lengkap'] != null &&
+                alamatPenyerahan['alamat_lengkap'].toString().isNotEmpty)
         ? alamatPenyerahan['alamat_lengkap'].toString()
         : (isEn ? 'Not specified yet' : 'Belum ditentukan');
 

@@ -70,6 +70,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
 
   @override
   Widget build(BuildContext context) {
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
     return ValueListenableBuilder<String>(
       valueListenable: TranslationService.languageNotifier,
       builder: (context, lang, child) {
@@ -78,23 +79,31 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
             : ListView(
                 padding: EdgeInsets.fromLTRB(
                   24,
-                  MediaQuery.of(context).padding.top + 20,
+                  statusBarHeight + 10,
                   24,
                   150,
                 ),
                 children: [
                   // Header
-                  Center(
-                    child: Text(
-                      TranslationService.translate('my_profile'),
-                      style: GoogleFonts.poppins(
-                        color: navyColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
+                  SizedBox(
+                    height: 48,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 48),
+                        Text(
+                          TranslationService.translate('my_profile'),
+                          style: GoogleFonts.poppins(
+                            color: navyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 48),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 10),
 
                   // Profile Card
                   _buildProfileCard(),
@@ -166,12 +175,10 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
                         ),
                         const SizedBox(width: 8),
                         _buildStatusBadge(
-                          icon: Icons.circle,
-                          iconSize: 6,
-                          text: statusKetersediaan.toLowerCase() == 'aktif'
-                              ? TranslationService.translate('active')
-                              : (statusKetersediaan.toLowerCase() == 'sibuk'
-                                  ? TranslationService.translate('busy')
+                          text: statusKetersediaan.toLowerCase() == 'aktif' || statusKetersediaan.toLowerCase() == 'tersedia' || statusKetersediaan.toLowerCase() == 'available'
+                              ? (TranslationService.currentLang == 'en' ? 'Available' : 'Tersedia')
+                              : (statusKetersediaan.toLowerCase() == 'sibuk' || statusKetersediaan.toLowerCase() == 'busy'
+                                  ? (TranslationService.currentLang == 'en' ? 'Busy' : 'Sibuk')
                                   : statusKetersediaan),
                           bgColor: _getStatusColor(statusKetersediaan).withOpacity(0.1),
                           textColor: _getStatusColor(statusKetersediaan),
@@ -286,7 +293,7 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
   }
 
   Widget _buildStatusBadge({
-    required IconData icon,
+    IconData? icon,
     double iconSize = 12,
     required String text,
     required Color bgColor,
@@ -301,8 +308,10 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: iconSize, color: textColor),
-          const SizedBox(width: 6),
+          if (icon != null) ...[
+            Icon(icon, size: iconSize, color: textColor),
+            const SizedBox(width: 6),
+          ],
           Text(
             text,
             style: GoogleFonts.poppins(
@@ -363,10 +372,10 @@ class _ProfileScreenKaryawanState extends State<ProfileScreenKaryawan> {
 
   Color _getStatusColor(String status) {
     final s = status.toLowerCase();
-    if (s == 'aktif') {
-      return Colors.green;
-    } else if (s == 'sibuk') {
-      return Colors.amber.shade700;
+    if (s == 'aktif' || s == 'tersedia' || s == 'available') {
+      return const Color(0xFF2E7D32); // Green
+    } else if (s == 'sibuk' || s == 'busy') {
+      return const Color(0xFFC62828); // Red
     } else {
       return Colors.orange;
     }

@@ -1,19 +1,593 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile/services/notifikasi_service.dart';
+import 'package:intl/intl.dart';
+import 'package:mobile/utils/notification_listener.dart';
+import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
+import 'package:mobile/screens/karyawan/orders/order_detail_screen.dart';
+import 'package:mobile/services/order_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:mobile/utils/constants.dart';
 
-class NotificationScreen extends StatelessWidget {
+class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  List<dynamic> _notifications = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+  int _selectedFilterIndex = 0; // 0: Semua, 1: Belum Dibaca, 2: Sudah Dibaca
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
+    NotificationListenerManager().addCallback(_onNewNotification);
+  }
+
+  @override
+  void dispose() {
+    NotificationListenerManager().removeCallback(_onNewNotification);
+    super.dispose();
+  }
+
+  void _onNewNotification(Map<String, dynamic> notif) {
+    if (mounted) {
+      setState(() {
+        _notifications.insert(0, notif);
+      });
+    }
+  }
+
+  Future<void> _fetchNotifications() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = '';
+      });
+      final list = await NotifikasiService.getNotifications();
+      setState(() {
+        _notifications = list;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _markAsRead(int id, int index) async {
+    try {
+      final success = await NotifikasiService.markAsRead(id);
+      if (success) {
+        setState(() {
+          _notifications[index]['is_read'] = true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _markAllAsRead() async {
+    try {
+      final success = await NotifikasiService.markAllAsRead();
+      if (success) {
+        setState(() {
+          for (var item in _notifications) {
+            item['is_read'] = true;
+          }
+        });
+        _showSuccessDialog();
+      }
+    } catch (_) {}
+  }
+
+  void _showSuccessDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black.withValues(alpha: 0.3),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, anim1, anim2) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, anim1, anim2, child) {
+        final curveValue = Curves.easeOutBack.transform(anim1.value);
+        return Transform.scale(
+          scale: curveValue,
+          child: Opacity(
+            opacity: anim1.value,
+            child: AutoDismissDialog(
+              duration: const Duration(milliseconds: 1600),
+              child: Dialog(
+                backgroundColor: Colors.white,
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE2F3E4),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.done_all_rounded,
+                          color: Color(0xFF2E7D32),
+                          size: 38,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Text(
+                        'Berhasil!',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: const Color(0xFF0F2F53),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Semua notifikasi telah terbaca.\nSekarang Anda sudah up-to-date! ✨',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMarkAllAsReadConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FAFB),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFBCEFF2),
+                      width: 2.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.done_all_rounded,
+                    color: Color(0xFF0C4B8E),
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Tandai Semua Dibaca',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F2F53),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Apakah Anda yakin ingin menandai semua notifikasi sebagai telah dibaca?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: const Color(0xFFBCEFF2).withValues(alpha: 0.8), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _markAllAsRead();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0C4B8E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Ya, Tandai',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String? _extractOrderCode(String title, String description) {
+    final combined = "$title $description";
+    final match = RegExp(r"WW-[A-Z0-9]+", caseSensitive: false).firstMatch(combined);
+    return match?.group(0)?.toUpperCase();
+  }
+
+  Future<void> _navigateToChat(String title) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF0C4B8E))),
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('jwt_token');
+      if (token == null) {
+        Navigator.pop(context);
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('${Constants.baseUrl}/chat/rooms'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (mounted) {
+        Navigator.pop(context); // close loader
+      }
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List<dynamic> rooms = data['data'] ?? [];
+
+        String targetName = "";
+        final match = RegExp(r"Pesan Baru dari (.*?) 💬").firstMatch(title);
+        if (match != null) {
+          targetName = match.group(1) ?? "";
+        } else {
+          targetName = title.replaceAll("Pesan Baru dari ", "").replaceAll(" 💬", "").trim();
+        }
+
+        var selectedRoom = rooms.firstWhere(
+          (r) {
+            final order = r['Order'];
+            final pelanggan = order != null ? order['Pelanggan'] : null;
+            final String name = pelanggan == null ? '' : pelanggan['nama_lengkap'];
+            return name.toLowerCase().contains(targetName.toLowerCase()) ||
+                   targetName.toLowerCase().contains(name.toLowerCase());
+          },
+          orElse: () => null,
+        );
+
+        if (selectedRoom == null && rooms.isNotEmpty) {
+          selectedRoom = rooms.first;
+        }
+
+        if (selectedRoom != null && mounted) {
+          final order = selectedRoom['Order'];
+          final pelanggan = order != null ? order['Pelanggan'] : null;
+          String name = pelanggan == null ? 'Customer' : pelanggan['nama_lengkap'];
+          String fotoPelanggan = pelanggan == null ? '' : (pelanggan['foto_pelanggan'] ?? '');
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RoomChatDetailScreen(
+                roomChatID: selectedRoom['id_room_chat'],
+                targetName: name,
+                targetPhoto: fotoPelanggan,
+                subtitle: '',
+              ),
+            ),
+          ).then((_) => _fetchNotifications());
+        }
+      }
+    } catch (e) {
+      debugPrint("Error navigating to chat room: $e");
+    }
+  }
+
+  Future<void> _navigateToOrderDetail(String orderCode) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF0C4B8E))),
+      );
+
+      final orders = await OrderService.getOrders();
+      
+      if (mounted) {
+        Navigator.pop(context); // close loader
+      }
+
+      final selectedOrder = orders.firstWhere(
+        (o) {
+          final String code = o['kode_order'] ?? '';
+          return code.toLowerCase() == orderCode.toLowerCase();
+        },
+        orElse: () => null,
+      );
+
+      if (selectedOrder != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailScreenKaryawan(
+              order: selectedOrder,
+              onOrderUpdated: (updatedOrder) {
+                _fetchNotifications();
+              },
+            ),
+          ),
+        ).then((_) => _fetchNotifications());
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Detail pesanan tidak ditemukan')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error navigating to order detail: $e");
+    }
+  }
+
+  String _formatTime(String rawDate) {
+    try {
+      final dt = DateTime.parse(rawDate).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      if (diff.inDays == 1) return 'Yesterday';
+      return DateFormat('dd MMM, HH:mm').format(dt);
+    } catch (_) {
+      return '-';
+    }
+  }
+
+  IconData _getIcon(String title) {
+    final lower = title.toLowerCase();
+    if (lower.contains('baru masuk') || (lower.contains('pesanan') && lower.contains('baru'))) {
+      return Icons.add_shopping_cart_rounded;
+    }
+    if (lower.contains('pelanggan baru')) {
+      return Icons.person_add_outlined;
+    }
+    if (lower.contains('pembayaran') || lower.contains('bayar')) {
+      return Icons.payments_outlined;
+    }
+    if (lower.contains('selesai')) {
+      return Icons.check_circle_outline_rounded;
+    }
+    if (lower.contains('setrika')) {
+      return Icons.iron_outlined;
+    }
+    if (lower.contains('kering') || lower.contains('pengering')) {
+      return Icons.dry_cleaning_outlined;
+    }
+    if (lower.contains('dicuci') || lower.contains('pencucian')) {
+      return Icons.local_laundry_service_outlined;
+    }
+    if (lower.contains('timbang')) {
+      return Icons.scale_outlined;
+    }
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
+      return Icons.local_shipping_outlined;
+    }
+    if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
+      return Icons.sms_outlined;
+    }
+    if (lower.contains('batal') || lower.contains('cancel')) {
+      return Icons.cancel_outlined;
+    }
+    return Icons.notifications_active_outlined;
+  }
+
+  Color _getIconBgColor(String title) {
+    final lower = title.toLowerCase();
+    if (lower.contains('baru masuk') || (lower.contains('pesanan') && lower.contains('baru'))) {
+      return const Color(0xFFFFF3E0); // Orange/Peach
+    }
+    if (lower.contains('pelanggan baru')) {
+      return const Color(0xFFE2F3E4); // Soft Green
+    }
+    if (lower.contains('pembayaran') || lower.contains('bayar')) {
+      return const Color(0xFFF1E1FB); // Soft Purple
+    }
+    if (lower.contains('selesai')) {
+      return const Color(0xFFE2F3E4); // Soft Green
+    }
+    if (lower.contains('setrika')) {
+      return const Color(0xFFF1E1FB);
+    }
+    if (lower.contains('kering') || lower.contains('pengering')) {
+      return const Color(0xFFFFF3E0);
+    }
+    if (lower.contains('dicuci') || lower.contains('pencucian')) {
+      return const Color(0xFFE3F2FD);
+    }
+    if (lower.contains('timbang')) {
+      return const Color(0xFFE0F2F1);
+    }
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
+      return const Color(0xFFE8F5E9);
+    }
+    if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
+      return const Color(0xFFE3F2FD);
+    }
+    if (lower.contains('batal') || lower.contains('cancel')) {
+      return const Color(0xFFFFEBEE);
+    }
+    return const Color(0xFFF1E1FB);
+  }
+
+  Color _getIconColor(String title) {
+    final lower = title.toLowerCase();
+    if (lower.contains('baru masuk') || (lower.contains('pesanan') && lower.contains('baru'))) {
+      return const Color(0xFFFF9800); // Orange
+    }
+    if (lower.contains('pelanggan baru')) {
+      return const Color(0xFF2E7D32); // Green
+    }
+    if (lower.contains('pembayaran') || lower.contains('bayar')) {
+      return const Color(0xFF6A1B9A); // Purple
+    }
+    if (lower.contains('selesai')) {
+      return const Color(0xFF2E7D32); // Green
+    }
+    if (lower.contains('setrika')) {
+      return const Color(0xFF6A1B9A);
+    }
+    if (lower.contains('kering') || lower.contains('pengering')) {
+      return const Color(0xFFFF9800);
+    }
+    if (lower.contains('dicuci') || lower.contains('pencucian')) {
+      return const Color(0xFF1E88E5);
+    }
+    if (lower.contains('timbang')) {
+      return const Color(0xFF00796B);
+    }
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
+      return const Color(0xFF2E7D32);
+    }
+    if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
+      return const Color(0xFF1E88E5);
+    }
+    if (lower.contains('batal') || lower.contains('cancel')) {
+      return const Color(0xFFE53935);
+    }
+    return const Color(0xFF6A1B9A);
+  }
+
+  Widget _buildFilterSelector() {
+    const Color navyColor = Color(0xFF0C4B8E);
+    final filters = ['Semua', 'Belum Dibaca', 'Sudah Dibaca'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(filters.length, (index) {
+          final isSelected = _selectedFilterIndex == index;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedFilterIndex = index),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? navyColor : Colors.white.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: navyColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ]
+                      : [],
+                ),
+                child: Text(
+                  filters[index],
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                    color: isSelected ? Colors.white : navyColor,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     const Color navyColor = Color(0xFF0C4B8E);
-    const Color cyanColor = Color(0xFF42C6D4);
 
     return Scaffold(
       backgroundColor: const Color(0xFFBCEFF2),
       body: Column(
         children: [
-          // --- HEADER & APPBAR ---
           SafeArea(
             bottom: false,
             child: Padding(
@@ -22,7 +596,7 @@ class NotificationScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 22),
                     onPressed: () => Navigator.pop(context),
                   ),
                   Text(
@@ -33,84 +607,49 @@ class NotificationScreen extends StatelessWidget {
                       fontSize: 20,
                     ),
                   ),
-                  const SizedBox(width: 48), // Spacer untuk menyeimbangkan posisi teks ke tengah
+                  _notifications.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.done_all_rounded, color: navyColor, size: 22),
+                          tooltip: 'Tandai semua dibaca',
+                          onPressed: _showMarkAllAsReadConfirmation,
+                        )
+                      : const SizedBox(width: 48),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 5),
+          _buildFilterSelector(),
           const SizedBox(height: 10),
 
           // --- KONTEN HALAMAN (Sheet Putih) ---
           Expanded(
             child: Container(
               width: double.infinity,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(40),
                   topRight: Radius.circular(40),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black12,
                     blurRadius: 15,
-                    offset: const Offset(0, -5),
+                    offset: Offset(0, -5),
                   ),
                 ],
               ),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 30, 24, 10),
-                children: [
-                  // NOTIFIKASI 1: ORDER BARU (Cocok untuk Kasir)
-                  _buildNotificationCard(
-                    icon: Icons.add_shopping_cart_rounded,
-                    title: "Order Baru Masuk!",
-                    description: "Ada pesanan baru #WW-8821. Yuk, segera cek dan proses pesanannya di sistem.",
-                    time: "Just now",
-                    iconBg: const Color(0xFFFFF3E0),
-                    iconColor: const Color(0xFFFF9800),
-                  ),
-                  
-                  // NOTIFIKASI 2: CHAT MASUK DARI PELANGGAN
-                  _buildNotificationCard(
-                    icon: Icons.chat_outlined,
-                    title: "Pesan Baru Masuk",
-                    description: "Pelanggan (Budi): 'Mbak, tolong baju putihnya dipisah ya...'",
-                    time: "10:30 AM",
-                    iconBg: const Color(0xFFE3F9FD),
-                    iconColor: cyanColor,
-                  ),
-
-                  // NOTIFIKASI 3: TUGAS PICKUP (Cocok untuk Kurir)
-                  _buildNotificationCard(
-                    icon: Icons.local_shipping_outlined,
-                    title: "Tugas Pickup Baru",
-                    description: "Jemput cucian di Jl. Sudirman No. 45 (a.n. Siska). Segera meluncur ya!",
-                    time: "08:15 AM",
-                    iconBg: const Color(0xFFFDEEF6),
-                    iconColor: const Color(0xFFE91E63),
-                  ),
-
-                  // NOTIFIKASI 4: TUGAS DELIVERY (Cocok untuk Kurir)
-                  _buildNotificationCard(
-                    icon: Icons.inventory_2_outlined,
-                    title: "Cucian Siap Antar",
-                    description: "Pesanan #WW-8800 sudah selesai dipacking dan siap dikirim ke pelanggan.",
-                    time: "Yesterday",
-                    iconBg: const Color(0xFFE2F3E4),
-                    iconColor: const Color(0xFF2E7D32),
-                  ),
-
-                  // NOTIFIKASI 5: PEMBAYARAN MASUK (Cocok untuk Kasir)
-                  _buildNotificationCard(
-                    icon: Icons.payments_outlined,
-                    title: "Pembayaran Diterima",
-                    description: "Saldo masuk Rp 75.000 via QRIS untuk tagihan pesanan #WW-8799.",
-                    time: "2 days ago",
-                    iconBg: const Color(0xFFF1E1FB),
-                    iconColor: const Color(0xFF6A1B9A),
-                  ),
-                ],
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(40),
+                  topRight: Radius.circular(40),
+                ),
+                child: RefreshIndicator(
+                  onRefresh: _fetchNotifications,
+                  color: navyColor,
+                  child: _buildBody(),
+                ),
               ),
             ),
           ),
@@ -119,87 +658,313 @@ class NotificationScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildBody() {
+    const Color navyColor = Color(0xFF0C4B8E);
+
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: navyColor),
+      );
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+          const Icon(Icons.error_outline_rounded, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              'Gagal memuat notifikasi',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: navyColor, fontSize: 16),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              _errorMessage,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: _fetchNotifications,
+              child: const Text('Coba Lagi'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final filteredList = _notifications.where((notif) {
+      final bool isRead = notif['is_read'] ?? false;
+      if (_selectedFilterIndex == 1) return !isRead; // Belum Dibaca
+      if (_selectedFilterIndex == 2) return isRead;  // Sudah Dibaca
+      return true; // Semua
+    }).toList();
+
+    if (filteredList.isEmpty) {
+      String emptyText = 'Belum ada notifikasi';
+      String emptyDesc = 'Notifikasi seputar pekerjaan Anda akan muncul di sini.';
+      if (_selectedFilterIndex == 1) {
+        emptyText = 'Tidak ada notifikasi baru';
+        emptyDesc = 'Semua notifikasi Anda sudah dibaca.';
+      } else if (_selectedFilterIndex == 2) {
+        emptyText = 'Tidak ada riwayat';
+        emptyDesc = 'Notifikasi yang sudah dibaca akan muncul di sini.';
+      }
+
+      return TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 450),
+        tween: Tween<double>(begin: 0.0, end: 1.0),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(0, 25 * (1.0 - value)),
+            child: Opacity(
+              opacity: value,
+              child: child,
+            ),
+          );
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+            Icon(Icons.notifications_off_outlined, size: 80, color: Colors.grey.shade300),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                emptyText,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  emptyDesc,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      key: ValueKey<int>(_selectedFilterIndex),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(24, 30, 24, 30),
+      itemCount: filteredList.length,
+      itemBuilder: (context, index) {
+        final notif = filteredList[index];
+        final int id = notif['id_notifikasi'] ?? 0;
+        final String title = notif['judul'] ?? 'Notifikasi';
+        final String desc = notif['pesan'] ?? '';
+        final String time = _formatTime(notif['created_at'] ?? DateTime.now().toIso8601String());
+        final bool isRead = notif['is_read'] ?? false;
+
+        return TweenAnimationBuilder<double>(
+          duration: Duration(milliseconds: 300 + (index * 60).clamp(0, 300)),
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 30 * (1.0 - value)),
+              child: Opacity(
+                opacity: value,
+                child: child,
+              ),
+            );
+          },
+          child: _buildNotificationCard(
+            id: id,
+            index: index,
+            title: title,
+            description: desc,
+            time: time,
+            isRead: isRead,
+            icon: _getIcon(title),
+            iconBg: _getIconBgColor(title),
+            iconColor: _getIconColor(title),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildNotificationCard({
+    required int id,
+    required int index,
     required IconData icon,
     required String title,
     required String description,
     required String time,
+    required bool isRead,
     required Color iconBg,
     required Color iconColor,
-    VoidCallback? onTap,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        if (!isRead) {
+          _markAsRead(id, index);
+        }
+        
+        final String titleLower = title.toLowerCase();
+        if (titleLower.contains('chat') || titleLower.contains('pesan baru')) {
+          _navigateToChat(title);
+        } else {
+          final orderCode = _extractOrderCode(title, description);
+          if (orderCode != null) {
+            _navigateToOrderDetail(orderCode);
+          }
+        }
+      },
       child: Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: isRead ? Colors.white : const Color(0xFFF0FAFB),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isRead ? Colors.grey.shade100 : const Color(0xFFBCEFF2).withValues(alpha: 0.5),
+            width: 1.5,
           ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
-            child: Icon(icon, color: iconColor, size: 26),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: iconColor.withValues(alpha: 0.15),
+                      width: 1.0,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: iconColor.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: iconColor, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: isRead ? FontWeight.normal : FontWeight.w800,
+                                color: isRead ? Colors.grey.shade400 : const Color(0xFF0F2F53),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            time,
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: isRead ? Colors.grey.shade400 : Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        description,
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF0F2F53),
+                          fontSize: 12,
+                          color: isRead ? Colors.grey.shade400 : const Color(0xFF0C4B8E).withValues(alpha: 0.7),
+                          height: 1.4,
+                          fontWeight: isRead ? FontWeight.normal : FontWeight.w500,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      time,
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  description,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: const Color(0xFF0C4B8E).withOpacity(0.6),
-                    height: 1.4,
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
+            if (!isRead)
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+}
+
+class AutoDismissDialog extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  const AutoDismissDialog({super.key, required this.child, this.duration = const Duration(milliseconds: 1500)});
+
+  @override
+  State<AutoDismissDialog> createState() => _AutoDismissDialogState();
+}
+
+class _AutoDismissDialogState extends State<AutoDismissDialog> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(widget.duration, () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

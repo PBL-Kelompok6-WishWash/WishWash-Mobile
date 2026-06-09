@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'dart:convert';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/services/order_service.dart';
@@ -52,9 +53,14 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   Map<String, dynamic>? _previewOrder;
   Map<String, dynamic>? _currentRoomOrder;
 
+  bool _isTargetTyping = false;
+  bool _isTyping = false;
+  Timer? _typingTimer;
+
   @override
   void initState() {
     super.initState();
+    _messageController.addListener(_onTextChanged);
     _initChat();
   }
 
@@ -168,10 +174,23 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
 
     _channel!.stream.listen((message) {
       final incomingData = json.decode(message);
-      setState(() {
-        _messages.add(incomingData);
-      });
-      _scrollToBottom();
+      if (incomingData['type'] == 'typing') {
+        if (mounted) {
+          setState(() {
+            _isTargetTyping = incomingData['is_typing'] == true;
+          });
+          _scrollToBottom();
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isTargetTyping = false;
+          _messages.add(incomingData);
+        });
+        _scrollToBottom();
+      }
       
       // Jika pesan bukan dari user sekarang, beri tahu server untuk read (dengan trigger load history ulang)
       if (incomingData['id_user'] != currentUserID) {
@@ -182,6 +201,29 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     }, onDone: () {
       debugPrint("WebSocket Koneksi Terputus.");
     });
+  }
+
+  void _onTextChanged() {
+    final hasText = _messageController.text.trim().isNotEmpty;
+    if (hasText && !_isTyping) {
+      _isTyping = true;
+      _sendTypingStatus(true);
+    } else if (!hasText && _isTyping) {
+      _isTyping = false;
+      _sendTypingStatus(false);
+    }
+  }
+
+  void _sendTypingStatus(bool isTyping) {
+    if (_channel != null) {
+      try {
+        _channel!.sink.add(json.encode({
+          'is_typing': isTyping,
+        }));
+      } catch (e) {
+        debugPrint("Error sending typing status: $e");
+      }
+    }
   }
 
   // 3. Fungsi Mengirim Pesan Instan
@@ -236,6 +278,8 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
+    _typingTimer?.cancel();
     _channel?.sink.close(status.goingAway);
     _messageController.dispose();
     _scrollController.dispose();
@@ -484,8 +528,27 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                         top: 20,
                         bottom: _previewTrackerMessage != null ? 100 : 20,
                       ),
-                      itemCount: _messages.length,
+                      itemCount: _messages.length + (_isTargetTyping ? 1 : 0),
                       itemBuilder: (context, index) {
+                        if (index == _messages.length) {
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEBF8FA),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  topRight: Radius.circular(16),
+                                  bottomLeft: Radius.zero,
+                                  bottomRight: Radius.circular(16),
+                                ),
+                              ),
+                              child: const TypingIndicator(),
+                            ),
+                          );
+                        }
                         final msg = _messages[index];
                         bool isMe = (msg['id_user'] as num?)?.toInt() == currentUserID;
 
@@ -1323,3 +1386,73 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     return 'Pesanan Diterima';
   }
 }
+
+class TypingIndicator extends StatefulWidget {
+  const TypingIndicator({super.key});
+
+  @override
+  State<TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<TypingIndicator> with TickerProviderStateMixin {
+  late List<AnimationController> _controllers;
+  late List<Animation<double>> _animations;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (index) {
+      return AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 600),
+      );
+    });
+
+    _animations = _controllers.map((controller) {
+      return Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+      );
+    }).toList();
+
+    for (int i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 150), () {
+        if (mounted) {
+          _controllers[i].repeat(reverse: true);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        return AnimatedBuilder(
+          animation: _animations[index],
+          builder: (context, child) {
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0C4B8E).withOpacity(0.3 + 0.7 * _animations[index].value),
+                shape: BoxShape.circle,
+              ),
+              transform: Matrix4.translationValues(0, -4 * _animations[index].value, 0),
+            );
+          },
+        );
+      }),
+    );
+  }
+}
+

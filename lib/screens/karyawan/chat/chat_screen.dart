@@ -88,32 +88,30 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
     return Container(
       color: Colors.transparent,
       child: Column(
         children: [
           // --- HEADER & APPBAR ---
-          SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: SizedBox(
-                height: 48,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const SizedBox(width: 48), // Symmetrical spacing
-                    Text(
-                      TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
-                      style: GoogleFonts.poppins(
-                        color: navyColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(24, statusBarHeight + 10, 24, 10),
+            child: SizedBox(
+              height: 48,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(width: 48), // Symmetrical spacing
+                  Text(
+                    TranslationService.currentLang == 'en' ? 'Message' : 'Pesan',
+                    style: GoogleFonts.poppins(
+                      color: navyColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
-                    const SizedBox(width: 48), // Symmetrical spacing
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 48), // Symmetrical spacing
+                ],
               ),
             ),
           ),
