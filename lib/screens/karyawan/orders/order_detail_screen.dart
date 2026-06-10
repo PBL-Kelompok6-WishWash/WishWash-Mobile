@@ -439,6 +439,45 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     return const Color(0xFF00BCD4); // fallback Cyan
   }
 
+  Widget _buildServiceImage(String imagePath) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return Image.network(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    } else if (imagePath.startsWith('data:image')) {
+      try {
+        final base64Content = imagePath.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.image, size: 20),
+        );
+      } catch (e) {
+        return const Icon(Icons.broken_image, size: 20);
+      }
+    } else if (imagePath.startsWith('/uploads/')) {
+      final staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      return Image.network(
+        '$staticHost$imagePath',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    } else {
+      return Image.asset(
+        imagePath,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) =>
+            const Icon(Icons.image, size: 20),
+      );
+    }
+  }
+
   Color _getDarkenedTextColor(Color color) {
     final hsl = HSLColor.fromColor(color);
     if (hsl.hue >= 160 && hsl.hue <= 210) {
@@ -2585,6 +2624,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required String orderDate,
     required String estDate,
   }) {
+    final String imagePath = (_currentOrder['Layanan'] != null && _currentOrder['Layanan']['gambar_layanan'] != null)
+        ? _currentOrder['Layanan']['gambar_layanan'].toString()
+        : 'assets/images/services/wash_only.png';
+
     final bool isDropOff = logistikType == 'Drop-off';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
@@ -2648,15 +2691,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
                     color: softTeal,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.local_laundry_service_rounded,
-                    color: navyColor,
-                    size: 22,
+                  child: ClipOval(
+                    child: _buildServiceImage(imagePath),
                   ),
                 ),
                 const SizedBox(width: 12),
