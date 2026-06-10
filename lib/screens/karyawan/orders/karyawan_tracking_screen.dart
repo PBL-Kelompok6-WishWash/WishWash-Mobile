@@ -911,6 +911,8 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
       successMsg = isEn
           ? 'You have arrived at the customer location!'
           : 'Anda telah sampai di lokasi pelanggan!';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('arrived_delivery_${widget.order['id_order']}', true);
     }
 
     setState(() => _isUpdating = true);

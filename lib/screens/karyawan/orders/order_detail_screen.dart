@@ -38,12 +38,49 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   bool _isPickupStarted = false;
   bool _isProgressExpanded = true;
   bool _isHistoryExpanded = false;
+  bool _hasArrivedAtDestination = false;
 
   @override
   void initState() {
     super.initState();
     // Salin data order lokal agar modifikasi state aman secara interaktif
     _currentOrder = Map<String, dynamic>.from(widget.order);
+    _loadArrivedStatus();
+  }
+
+  Future<void> _loadArrivedStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool arrived = prefs.getBool('arrived_delivery_${_currentOrder['id_order']}') ?? false;
+    if (mounted) {
+      setState(() {
+        _hasArrivedAtDestination = arrived;
+      });
+    }
+  }
+
+  Future<void> _clearArrivedStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('arrived_delivery_${_currentOrder['id_order']}');
+    if (mounted) {
+      setState(() {
+        _hasArrivedAtDestination = false;
+      });
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      final updated = await OrderService.getOrderById(_currentOrder['id_order']);
+      if (mounted) {
+        setState(() {
+          _currentOrder = Map<String, dynamic>.from(updated);
+        });
+        widget.onOrderUpdated(_currentOrder);
+        await _loadArrivedStatus();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing order details: $e');
+    }
   }
 
   // --- KONSISTENSI DENGAN DETIL PESANAN PELANGGAN ---
@@ -1514,11 +1551,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
               // --- SCROLL CONTENT ---
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 260),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: RefreshIndicator(
+                  color: navyColor,
+                  onRefresh: _handleRefresh,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 260),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       // 1. Progress Card (Desain & Horizontal Stepper Persis Punya Pelanggan)
                       (() {
                         final bool isCancelled =
@@ -1599,6 +1640,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ),
                 ),
               ),
+            ),
             ],
           ),
         ),
@@ -3907,15 +3949,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
     final bool isDropOff = logistikType == 'Drop-off';
 
-    final bool showTandaiLunas = isBelumLunas &&
-        kuantitas > 0.0 &&
-        (paymentMethod == 'CASH' || paymentMethod == 'COD');
-
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
 
     // Deteksi apakah kurir sedang di jalan (rute aktif)
     final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
+
+    final bool showTandaiLunas = isBelumLunas &&
+        kuantitas > 0.0 &&
+        (paymentMethod == 'CASH' || paymentMethod == 'COD') &&
+        (isDropOff || isCourierOnWay || _hasArrivedAtDestination);
 
     if (isWaitingCustomer && !showTandaiLunas) {
       return Container(
@@ -3992,11 +4035,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
     if (status == 'siap diantar' && !isDropOff) {
-      if (!isCourierOnWay) {
+      if (!isCourierOnWay && !_hasArrivedAtDestination) {
         // Belum mulai perjalanan
         actionBtnText = TranslationService.currentLang == 'en'
-            ? 'Start Delivery / View Route'
-            : 'Mulai Pengantaran / Lihat Rute';
+            ? 'View Delivery Route'
+            : 'Lihat Rute Pengantaran';
         customAction = () async {
           if (!canDeliver) {
             String warningMsg = '';
@@ -4112,6 +4155,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   KaryawanTrackingScreen(order: _currentOrder),
             ),
           );
+          await _loadArrivedStatus();
           if (result != null &&
               result is Map<String, dynamic> &&
               mounted) {
@@ -4199,7 +4243,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         status == 'penjemputan' ||
         (status == 'siap diantar' && !isDropOff) ||
         nextStatus == 'penjemputan';
-    if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton) {
+    final bool isSiapDiantar = status == 'siap diantar';
+    if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton && !isSiapDiantar) {
       return const SizedBox.shrink();
     }
 
@@ -4467,7 +4512,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                         nextStatus == 'penjemputan')
                                     ? (isDropOff
                                         ? Icons.check_circle_outline_rounded
-                                        : (isCourierOnWay
+                                        : (isCourierOnWay || _hasArrivedAtDestination
                                             ? Icons.check_circle_outline_rounded
                                             : Icons.route_outlined))
                                     : Icons.check_circle_outline_rounded,
@@ -4516,6 +4561,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                 _currentOrder = Map<String, dynamic>.from(result);
                               });
                               widget.onOrderUpdated(_currentOrder);
+                              await _clearArrivedStatus();
 
                               if (mounted) {
                                 _showSuccessDialog(

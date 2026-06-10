@@ -8,14 +8,23 @@ class Constants {
 
   static Future<void> initBaseUrl() async {
     try {
-      // Coba hubungkan ke port 8080 emulator (10.0.2.2)
+      // 1. Coba hubungkan ke port 8080 emulator (10.0.2.2)
       final socket = await Socket.connect('10.0.2.2', 8080, timeout: const Duration(milliseconds: 500));
       socket.destroy();
       baseUrl = 'http://10.0.2.2:8080/api/v1';
       debugPrint("Koneksi berhasil ke Emulator: $baseUrl");
     } catch (_) {
-      baseUrl = 'http://192.168.1.13:8080/api/v1';
-      debugPrint("Gagal konek ke emulator, fallback ke IP PC/Laptop: $baseUrl");
+      try {
+        // 2. Coba hubungkan ke localhost/127.0.0.1 (aktif jika menjalankan adb reverse tcp:8080 tcp:8080)
+        final socket = await Socket.connect('127.0.0.1', 8080, timeout: const Duration(milliseconds: 500));
+        socket.destroy();
+        baseUrl = 'http://127.0.0.1:8080/api/v1';
+        debugPrint("Koneksi berhasil ke Localhost via ADB Reverse: $baseUrl");
+      } catch (_) {
+        // 3. Fallback ke IP Wi-Fi PC/Laptop
+        baseUrl = 'http://172.16.180.95:8080/api/v1';
+        debugPrint("Gagal konek ke emulator & localhost, fallback ke IP PC: $baseUrl");
+      }
     }
   }
 
