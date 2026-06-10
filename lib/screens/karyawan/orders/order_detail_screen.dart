@@ -4128,20 +4128,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             widget.onOrderUpdated(_currentOrder);
           }
         };
-      } else if (lowerNext.contains('jemput') ||
-          lowerNext.contains('pickup') ||
-          lowerNext.contains('penjemputan')) {
-        actionBtnText = TranslationService.currentLang == 'en'
-            ? 'Order Received ➔ Ready to Pick Up'
-            : 'Pesanan Diterima ➔ Siap Jemput';
       } else {
         final isEn = TranslationService.currentLang == 'en';
         final String currentLabel = _getShortStatusLabel(
           status,
-          TranslationService.currentLang,
-        );
-        final String textNextLabel = _getShortStatusLabel(
-          rawNextName,
           TranslationService.currentLang,
         );
 
@@ -4155,16 +4145,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           } else {
             actionBtnText = '';
           }
-        } else if (lowerNext.contains('antar') ||
-            lowerNext.contains('delivery') ||
-            lowerNext.contains('siap diantar')) {
+        } else {
           actionBtnText = isEn
               ? 'Process $currentLabel Completed'
               : 'Proses $currentLabel Selesai';
-        } else {
-          actionBtnText = isEn
-              ? 'Process $currentLabel Completed ➔ Start $textNextLabel'
-              : 'Proses $currentLabel Selesai ➔ Mulai $textNextLabel';
         }
       }
     }
