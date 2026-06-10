@@ -455,6 +455,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (lower.contains('batal') || lower.contains('cancel')) {
       return Icons.cancel_outlined;
     }
+    if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
+      return Icons.star_rate_rounded;
+    }
     return Icons.notifications_active_outlined;
   }
 
@@ -493,6 +496,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (lower.contains('batal') || lower.contains('cancel')) {
       return const Color(0xFFFFEBEE);
     }
+    if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
+      return const Color(0xFFFFFDE7); // Soft Gold
+    }
     return const Color(0xFFF1E1FB);
   }
 
@@ -530,6 +536,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
     if (lower.contains('batal') || lower.contains('cancel')) {
       return const Color(0xFFE53935);
+    }
+    if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
+      return const Color(0xFFFFB300); // Gold
     }
     return const Color(0xFF6A1B9A);
   }
