@@ -181,50 +181,66 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
                             ),
                           ),
                           Expanded(
-                            child: filteredRooms.isEmpty
-                                ? Center(child: Text(TranslationService.currentLang == 'en' ? "No active chats yet" : "Belum ada obrolan aktif", style: GoogleFonts.poppins()))
-                                : ListView.builder(
-                                    padding: const EdgeInsets.fromLTRB(24, 15, 24, 100),
-                                    itemCount: filteredRooms.length,
-                                    itemBuilder: (context, index) {
-                                      final room = filteredRooms[index];
-                                      final order = room['Order'];
-                                      final pelanggan = order != null ? order['Pelanggan'] : null;
-                                      
-                                      String namaPelanggan = pelanggan != null ? pelanggan['nama_lengkap'] : 'Customer';
-                                      String fotoPelanggan = pelanggan != null ? (pelanggan['foto_pelanggan'] ?? '') : '';
-                                      String statusTag = '';
+                            child: RefreshIndicator(
+                              onRefresh: fetchChatRooms,
+                              color: navyColor,
+                              child: filteredRooms.isEmpty
+                                  ? ListView(
+                                      physics: const AlwaysScrollableScrollPhysics(),
+                                      children: [
+                                        SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                                        Center(
+                                          child: Text(
+                                            TranslationService.currentLang == 'en' ? "No active chats yet" : "Belum ada obrolan aktif",
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : ListView.builder(
+                                      physics: const AlwaysScrollableScrollPhysics(),
+                                      padding: const EdgeInsets.fromLTRB(24, 15, 24, 100),
+                                      itemCount: filteredRooms.length,
+                                      itemBuilder: (context, index) {
+                                        final room = filteredRooms[index];
+                                        final order = room['Order'];
+                                        final pelanggan = order != null ? order['Pelanggan'] : null;
+                                        
+                                        String namaPelanggan = pelanggan != null ? pelanggan['nama_lengkap'] : 'Customer';
+                                        String fotoPelanggan = pelanggan != null ? (pelanggan['foto_pelanggan'] ?? '') : '';
+                                        String statusTag = '';
 
-                                      final lastMsg = room['LastMessage'];
-                                      String lastMsgText = 'Belum ada pesan';
-                                      String lastMsgTime = '';
-                                      if (lastMsg != null) {
-                                        final String msgText = lastMsg['teks_pesan'] ?? '';
-                                        final String pathImg = lastMsg['path_gambar'] ?? '';
-                                        if (msgText.isNotEmpty) {
-                                          lastMsgText = msgText;
-                                        } else if (pathImg.isNotEmpty) {
-                                          lastMsgText = '📷 Foto';
+                                        final lastMsg = room['LastMessage'];
+                                        String lastMsgText = 'Belum ada pesan';
+                                        String lastMsgTime = '';
+                                        if (lastMsg != null) {
+                                          final String msgText = lastMsg['teks_pesan'] ?? '';
+                                          final String pathImg = lastMsg['path_gambar'] ?? '';
+                                          if (msgText.isNotEmpty) {
+                                            lastMsgText = msgText;
+                                          } else if (pathImg.isNotEmpty) {
+                                            lastMsgText = '📷 Foto';
+                                          }
+                                          final String rawTime = lastMsg['waktu_kirim'] ?? '';
+                                          if (rawTime.isNotEmpty) {
+                                            lastMsgTime = _formatLastMessageTime(rawTime);
+                                          }
                                         }
-                                        final String rawTime = lastMsg['waktu_kirim'] ?? '';
-                                        if (rawTime.isNotEmpty) {
-                                          lastMsgTime = _formatLastMessageTime(rawTime);
-                                        }
-                                      }
 
-                                      return _buildCustomerCard(
-                                        context: context,
-                                        roomID: room['id_room_chat'],
-                                        name: namaPelanggan,
-                                        statusTag: statusTag,
-                                        message: lastMsgText,
-                                        time: lastMsgTime,
-                                        navyColor: navyColor,
-                                        unreadCount: room['unread_count'] ?? 0,
-                                        fotoPelanggan: fotoPelanggan,
-                                      );
-                                    },
-                                  ),
+                                        return _buildCustomerCard(
+                                          context: context,
+                                          roomID: room['id_room_chat'],
+                                          name: namaPelanggan,
+                                          statusTag: statusTag,
+                                          message: lastMsgText,
+                                          time: lastMsgTime,
+                                          navyColor: navyColor,
+                                          unreadCount: room['unread_count'] ?? 0,
+                                          fotoPelanggan: fotoPelanggan,
+                                        );
+                                      },
+                                    ),
+                            ),
                           ),
                         ],
                       );

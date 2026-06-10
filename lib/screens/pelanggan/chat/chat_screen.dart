@@ -183,61 +183,77 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ),
                               ),
                               Expanded(
-                                child: filteredRooms.isEmpty
-                                    ? Center(child: Text(TranslationService.currentLang == 'en' ? "No active chats" : "Belum ada obrolan aktif", style: GoogleFonts.poppins()))
-                                    : ListView.builder(
-                                        padding: const EdgeInsets.fromLTRB(24, 15, 24, 100),
-                                        itemCount: filteredRooms.length,
-                                        itemBuilder: (context, index) {
-                                          final room = filteredRooms[index];
-                                          final order = room['Order'];
-                                          final karyawan = order != null ? order['Karyawan'] : null;
-                                          
-                                          bool isAdmin = karyawan == null;
-                                          String namaKurir = isAdmin ? 'Admin WishWash' : karyawan['nama_karyawan'];
-                                          String fotoKaryawan = isAdmin ? '' : (karyawan['foto_karyawan'] ?? '');
-                                          
-                                          String subtitle = isAdmin
-                                              ? '-'
-                                              : [
-                                                  if (karyawan['jenis_kendaraan'] != null && karyawan['jenis_kendaraan'].toString().trim().isNotEmpty)
-                                                    karyawan['jenis_kendaraan'].toString().trim(),
-                                                  if (karyawan['plat_nomor'] != null && karyawan['plat_nomor'].toString().trim().isNotEmpty)
-                                                    karyawan['plat_nomor'].toString().trim(),
-                                                ].join(' \u2022 ');
-
-                                          final lastMsg = room['LastMessage'];
-                                          String lastMsgText = 'Belum ada pesan';
-                                          String lastMsgTime = '';
-                                          if (lastMsg != null) {
-                                            final String msgText = lastMsg['teks_pesan'] ?? '';
-                                            final String pathImg = lastMsg['path_gambar'] ?? '';
-                                            if (msgText.isNotEmpty) {
-                                              lastMsgText = msgText;
-                                            } else if (pathImg.isNotEmpty) {
-                                              lastMsgText = '📷 Foto';
-                                            }
+                                child: RefreshIndicator(
+                                  onRefresh: fetchChatRooms,
+                                  color: navyColor,
+                                  child: filteredRooms.isEmpty
+                                      ? ListView(
+                                          physics: const AlwaysScrollableScrollPhysics(),
+                                          children: [
+                                            SizedBox(height: MediaQuery.of(context).size.height * 0.25),
+                                            Center(
+                                              child: Text(
+                                                TranslationService.currentLang == 'en' ? "No active chats" : "Belum ada obrolan aktif",
+                                                style: GoogleFonts.poppins(),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : ListView.builder(
+                                          physics: const AlwaysScrollableScrollPhysics(),
+                                          padding: const EdgeInsets.fromLTRB(24, 15, 24, 100),
+                                          itemCount: filteredRooms.length,
+                                          itemBuilder: (context, index) {
+                                            final room = filteredRooms[index];
+                                            final order = room['Order'];
+                                            final karyawan = order != null ? order['Karyawan'] : null;
                                             
-                                            final String rawTime = lastMsg['waktu_kirim'] ?? '';
-                                            if (rawTime.isNotEmpty) {
-                                              lastMsgTime = _formatLastMessageTime(rawTime);
-                                            }
-                                          }
+                                            bool isAdmin = karyawan == null;
+                                            String namaKurir = isAdmin ? 'Admin WishWash' : karyawan['nama_karyawan'];
+                                            String fotoKaryawan = isAdmin ? '' : (karyawan['foto_karyawan'] ?? '');
+                                            
+                                            String subtitle = isAdmin
+                                                ? '-'
+                                                : [
+                                                    if (karyawan['jenis_kendaraan'] != null && karyawan['jenis_kendaraan'].toString().trim().isNotEmpty)
+                                                      karyawan['jenis_kendaraan'].toString().trim(),
+                                                    if (karyawan['plat_nomor'] != null && karyawan['plat_nomor'].toString().trim().isNotEmpty)
+                                                      karyawan['plat_nomor'].toString().trim(),
+                                                  ].join(' \u2022 ');
 
-                                          return _buildCourierCard(
-                                            context: context,
-                                            roomID: room['id_room_chat'],
-                                            name: namaKurir,
-                                            platNomor: subtitle,
-                                            message: lastMsgText,
-                                            time: lastMsgTime,
-                                            navyColor: navyColor,
-                                            unreadCount: room['unread_count'] ?? 0,
-                                            isAdmin: isAdmin,
-                                            fotoKaryawan: fotoKaryawan,
-                                          );
-                                        },
-                                      ),
+                                            final lastMsg = room['LastMessage'];
+                                            String lastMsgText = 'Belum ada pesan';
+                                            String lastMsgTime = '';
+                                            if (lastMsg != null) {
+                                              final String msgText = lastMsg['teks_pesan'] ?? '';
+                                              final String pathImg = lastMsg['path_gambar'] ?? '';
+                                              if (msgText.isNotEmpty) {
+                                                lastMsgText = msgText;
+                                              } else if (pathImg.isNotEmpty) {
+                                                lastMsgText = '📷 Foto';
+                                              }
+                                              
+                                              final String rawTime = lastMsg['waktu_kirim'] ?? '';
+                                              if (rawTime.isNotEmpty) {
+                                                lastMsgTime = _formatLastMessageTime(rawTime);
+                                              }
+                                            }
+
+                                            return _buildCourierCard(
+                                              context: context,
+                                              roomID: room['id_room_chat'],
+                                              name: namaKurir,
+                                              platNomor: subtitle,
+                                              message: lastMsgText,
+                                              time: lastMsgTime,
+                                              navyColor: navyColor,
+                                              unreadCount: room['unread_count'] ?? 0,
+                                              isAdmin: isAdmin,
+                                              fotoKaryawan: fotoKaryawan,
+                                            );
+                                          },
+                                        ),
+                                ),
                               ),
                             ],
                           );
