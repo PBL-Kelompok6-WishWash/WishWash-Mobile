@@ -699,7 +699,7 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
 
                       try {
                         await OrderService.updateOrder(
-                            orderId, {'is_courier_on_way': true});
+                            orderId, {'is_courier_on_way': true, 'is_courier_arrived': false});
                       } catch (e) {
                         debugPrint("Error setting is_courier_on_way: $e");
                       } finally {
@@ -920,7 +920,11 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
     try {
       final updatedOrder = await OrderService.updateOrder(
         widget.order['id_order'],
-        {'status': nextStatus, 'is_courier_on_way': false},
+        {
+          'status': nextStatus,
+          'is_courier_on_way': false,
+          'is_courier_arrived': true,
+        },
       );
       if (mounted) {
         _activeTripOrderIds.remove(widget.order['id_order']);

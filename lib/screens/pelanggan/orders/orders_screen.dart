@@ -426,21 +426,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       )
                     : Stack(
                         children: [
-                          RefreshIndicator(
-                            onRefresh: _fetchOrders,
-                            color: navyColor,
-                            child: PageView(
-                              controller: _pageController,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _selectedTab = index;
-                                });
-                              },
-                              children: [
-                                _buildActiveOrders(navyColor),
-                                _buildCompletedOrders(navyColor),
-                              ],
-                            ),
+                          PageView(
+                            controller: _pageController,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _selectedTab = index;
+                              });
+                            },
+                            children: [
+                              _buildActiveOrders(navyColor),
+                              _buildCompletedOrders(navyColor),
+                            ],
                           ),
                           if (_isLoading)
                             Container(
@@ -824,20 +820,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }).toList();
 
     if (activeOrders.isEmpty) {
-      return _buildEmptyState(
-        navyColor,
-        TranslationService.currentLang == 'en' ? 'No Active Orders' : 'Belum Ada Pesanan Aktif',
-        TranslationService.currentLang == 'en'
-            ? 'Your active laundry requests will appear here.'
-            : 'Permintaan laundry aktif Anda akan muncul di sini.',
+      return RefreshIndicator(
+        onRefresh: _fetchOrders,
+        color: navyColor,
+        child: _buildEmptyState(
+          navyColor,
+          TranslationService.currentLang == 'en' ? 'No Active Orders' : 'Belum Ada Pesanan Aktif',
+          TranslationService.currentLang == 'en'
+              ? 'Your active laundry requests will appear here.'
+              : 'Permintaan laundry aktif Anda akan muncul di sini.',
+        ),
       );
     }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+    return RefreshIndicator(
+      onRefresh: _fetchOrders,
+      color: navyColor,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
           itemCount: activeOrders.length,
           itemBuilder: (context, index) {
         final order = activeOrders[index];
@@ -883,6 +887,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       },
     ),
     ),
+    ),
     );
   }
 
@@ -893,20 +898,28 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }).toList();
 
     if (completedOrders.isEmpty) {
-      return _buildEmptyState(
-        navyColor,
-        TranslationService.currentLang == 'en' ? 'No Order History' : 'Belum Ada Riwayat Pesanan',
-        TranslationService.currentLang == 'en'
-            ? 'Completed laundry orders will appear here.'
-            : 'Pesanan laundry yang sudah selesai akan muncul di sini.',
+      return RefreshIndicator(
+        onRefresh: _fetchOrders,
+        color: navyColor,
+        child: _buildEmptyState(
+          navyColor,
+          TranslationService.currentLang == 'en' ? 'No Order History' : 'Belum Ada Riwayat Pesanan',
+          TranslationService.currentLang == 'en'
+              ? 'Completed laundry orders will appear here.'
+              : 'Pesanan laundry yang sudah selesai akan muncul di sini.',
+        ),
       );
     }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+    return RefreshIndicator(
+      onRefresh: _fetchOrders,
+      color: navyColor,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
           itemCount: completedOrders.length,
           itemBuilder: (context, index) {
         final order = completedOrders[index];
@@ -973,6 +986,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           ),
         );
       },
+    ),
     ),
     ),
     );
@@ -1125,7 +1139,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final bool isDropOff = order['tipe_logistik'] == 'Drop-off';
+              final bool isDropOff = order['tipe_logistik'] == 'Drop-off' || order['tipe_logistik'] == 'Self Pickup';
               final String shortLabel = _getShortStatusLabel(
                 rawName,
                 lang,
@@ -1364,7 +1378,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             List<Widget> steps = [];
             for (int i = 0; i < refStatuses.length; i++) {
               final rawName = refStatuses[i]['nama_status'] ?? '';
-              final bool isDropOff = order['tipe_logistik'] == 'Drop-off';
+              final bool isDropOff = order['tipe_logistik'] == 'Drop-off' || order['tipe_logistik'] == 'Self Pickup';
               final String shortLabel = _getShortStatusLabel(
                 rawName,
                 lang,

@@ -50,7 +50,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
   Future<void> _loadArrivedStatus() async {
     final prefs = await SharedPreferences.getInstance();
-    final bool arrived = prefs.getBool('arrived_delivery_${_currentOrder['id_order']}') ?? false;
+    final bool arrived = _currentOrder['is_courier_arrived'] == true ||
+        (prefs.getBool('arrived_delivery_${_currentOrder['id_order']}') ?? false);
     if (mounted) {
       setState(() {
         _hasArrivedAtDestination = arrived;
@@ -185,7 +186,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     if (status.contains('antar') ||
         status.contains('ready') ||
         status.contains('siap diantar')) {
-      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
       return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
     if (status.contains('selesai') ||
@@ -259,7 +260,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   String _translateStatusWithLogistics(String statusName) {
     final bool isEn = TranslationService.currentLang == 'en';
     final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     
     final lower = statusName.toLowerCase().trim();
     if (lower.contains('antar') || lower.contains('ready') || lower.contains('siap diantar')) {
@@ -736,7 +737,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   Future<void> _updateStatus(String newStatus) async {
     final isEn = TranslationService.currentLang == 'en';
     final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
 
     String translatedStatus = TranslationService.translateStatus(newStatus);
     if (isDropOff && (newStatus.toLowerCase().contains('antar') || newStatus.toLowerCase().contains('siap diantar'))) {
@@ -1667,6 +1668,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }) {
     final bool isEn = TranslationService.currentLang == 'en';
 
+    // Compute isSelesai from statusInfo
+    final bool isSelesai = statusInfo['is_selesai'] == true;
+
     // Retrieve cancellation time if cancelled
     String cancelTime = '-';
     if (isCancelled) {
@@ -1683,6 +1687,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         cancelTime = _formatDate(
           sortedHistory.last['waktu_update'] ??
               sortedHistory.last['WaktuUpdate'],
+        );
+      }
+    }
+
+    // Retrieve finished time if completed
+    String finishedTime = '-';
+    if (isSelesai) {
+      final historyList = order['RiwayatStatusDetail'];
+      if (historyList != null && historyList is List && historyList.isNotEmpty) {
+        List<dynamic> sortedHistory = List.from(historyList);
+        sortedHistory.sort(
+          (a, b) => (a['id_riwayat_status_detail'] as num? ?? 0).compareTo(
+            b['id_riwayat_status_detail'] as num? ?? 0,
+          ),
+        );
+        finishedTime = _formatDate(
+          sortedHistory.last['waktu_update'] ?? sortedHistory.last['WaktuUpdate'],
         );
       }
     }
@@ -1746,24 +1767,42 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.access_time_rounded,
-                      size: 14,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isCancelled
-                          ? (isEn
-                                ? 'Cancelled: $cancelTime'
-                                : 'Dibatalkan: $cancelTime')
-                          : (isEn ? 'Est: $estDate' : 'Estimasi: $estDate'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
+                    if (isCancelled || isSelesai) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isCancelled
+                              ? const Color(0xFFFF3B30)
+                              : const Color(0xFF4CAF50),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isCancelled
+                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                              : (isEn ? 'Completed' : 'Selesai'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      const Icon(
+                        Icons.access_time_rounded,
+                        size: 14,
+                        color: Colors.redAccent,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -1781,77 +1820,108 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 color: isCancelled ? Colors.red.shade900 : orderColor,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              qtyStr,
-              style: GoogleFonts.poppins(
-                fontSize: 12.5,
-                color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
-                fontWeight: FontWeight.w600,
+            if (qtyStr.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                qtyStr,
+                style: GoogleFonts.poppins(
+                  fontSize: 12.5,
+                  color: isCancelled ? Colors.red.shade700 : orderColor.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
+            ],
             if (!isCancelled) ...[
               const SizedBox(height: 8),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    price,
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: orderColor.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  (() {
-                    final double kuantitas =
-                        (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-                    if (kuantitas > 0.0) {
-                      final String paymentStatus = _getPaymentStatus(order);
-                      final bool isLunas = paymentStatus == 'Lunas';
-                      final Color capBg = isLunas
-                          ? const Color(0xFFE8F5E9)
-                          : const Color(0xFFFFF3E0);
-                      final Color capText = isLunas
-                          ? const Color(0xFF2E7D32)
-                          : const Color(0xFFE65100);
-                      final bool isEn = TranslationService.currentLang == 'en';
-                      final String capLabel = isLunas
-                          ? (isEn ? 'Paid' : 'Lunas')
-                          : (isEn ? 'Unpaid' : 'Belum Lunas');
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        price,
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          color: orderColor.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      (() {
+                        final double kuantitas =
+                            (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                        if (kuantitas > 0.0) {
+                          final String paymentStatus = _getPaymentStatus(order);
+                          final bool isLunas = paymentStatus == 'Lunas';
+                          final Color capBg = isLunas
+                              ? const Color(0xFFE8F5E9)
+                              : const Color(0xFFFFF3E0);
+                          final Color capText = isLunas
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFFE65100);
+                          final bool isEn = TranslationService.currentLang == 'en';
+                          final String capLabel = isLunas
+                              ? (isEn ? 'Paid' : 'Lunas')
+                              : (isEn ? 'Unpaid' : 'Belum Lunas');
 
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: capBg,
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: capText.withValues(alpha: 0.2),
-                                width: 1,
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: capBg,
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(
+                                    color: capText.withValues(alpha: 0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  capLabel,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: capText,
+                                  ),
+                                ),
                               ),
-                            ),
-                            child: Text(
-                              capLabel,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: capText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  })(),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      })(),
+                    ],
+                  ),
+                  if (isSelesai)
+                    Text(
+                      isEn
+                          ? 'Finished: $finishedTime'
+                          : 'Selesai: $finishedTime',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: orderColor.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                 ],
+              ),
+            ] else ...[
+              const SizedBox(height: 8),
+              Text(
+                isEn
+                    ? 'Cancelled: $cancelTime'
+                    : 'Dibatalkan: $cancelTime',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: Colors.red.shade800,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
             if (isCancelled &&
@@ -2516,7 +2586,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     required String logistikType,
     required Color navyColor,
   }) {
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     final isEn = TranslationService.currentLang == 'en';
     final String translatedLogistik = isDropOff
         ? (isEn ? 'Drop-off' : 'Drop-off (Mandiri)')
@@ -2670,7 +2740,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         ? _currentOrder['Layanan']['gambar_layanan'].toString()
         : 'assets/images/services/wash_only.png';
 
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyText = kuantitasVal == 0.0
@@ -2978,13 +3048,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ),
             child: Column(
               children: [
-                _buildDetailRow(
-                  isEn ? 'Order Type' : 'Tipe Pemesanan',
-                  !isDropOff
-                      ? (isEn ? 'Online (App)' : 'Online (Aplikasi)')
-                      : (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)'),
-                  Icons.devices_rounded,
-                ),
+                (() {
+                  final bool hasPickup = (_currentOrder['id_alamat_pengambilan'] != null && _currentOrder['id_alamat_pengambilan'] != 0) ||
+                      (_currentOrder['AlamatPengambilan'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != 0);
+                  final bool isWalkIn = !hasPickup;
+                  return _buildDetailRow(
+                    isEn ? 'Order Type' : 'Tipe Pemesanan',
+                    isWalkIn
+                        ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                        : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                    Icons.devices_rounded,
+                  );
+                })(),
                 const Divider(height: 20),
                 _buildDetailRow(
                   isEn ? 'Order Date' : 'Tanggal Pesanan',
@@ -3512,7 +3587,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       isEn ? 'Package & Perfume' : 'Paket & Pewangi',
                       '$packageName - $perfumeName',
                     ),
-                    if (logistikType != 'Drop-off')
+                    if (logistikType != 'Drop-off' && logistikType != 'Self Pickup')
                       _buildReceiptRow(
                         isEn ? 'Pickup Address' : 'Alamat Jemput',
                         pickupAddr,
@@ -3526,16 +3601,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         isEn ? 'Location Notes' : 'Patokan Lokasi',
                         patokanLokasi,
                       ),
-                    _buildReceiptRow(
-                      isEn ? 'Order Type' : 'Tipe Pemesanan',
-                      logistikType.toLowerCase().contains('drop')
-                          ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
-                          : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
-                    ),
+                    (() {
+                      final bool hasPickup = (_currentOrder['id_alamat_pengambilan'] != null && _currentOrder['id_alamat_pengambilan'] != 0) ||
+                          (_currentOrder['AlamatPengambilan'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != 0);
+                      final bool isWalkIn = !hasPickup;
+                      return _buildReceiptRow(
+                        isEn ? 'Order Type' : 'Tipe Pemesanan',
+                        isWalkIn
+                            ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                            : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                      );
+                    })(),
                     _buildReceiptRow(
                       isEn ? 'Logistics Method' : 'Metode Logistik',
-                      logistikType.toLowerCase().contains('drop')
-                          ? 'Drop-off'
+                      (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
+                          ? (logistikType == 'Self Pickup' ? 'Self Pickup' : 'Drop-off')
                           : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                     ),
                     _buildReceiptRow(
@@ -3947,7 +4027,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final String logistikType =
         _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
 
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
@@ -3958,7 +4038,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final bool showTandaiLunas = isBelumLunas &&
         kuantitas > 0.0 &&
         (paymentMethod == 'CASH' || paymentMethod == 'COD') &&
-        (isDropOff || isCourierOnWay || _hasArrivedAtDestination);
+        (isDropOff || _hasArrivedAtDestination);
 
     if (isWaitingCustomer && !showTandaiLunas) {
       return Container(
@@ -4027,7 +4107,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     );
 
     final bool isPaymentConfirmed =
-        pembayaran != null && paymentMethod.isNotEmpty;
+        pembayaran != null &&
+        paymentMethod.isNotEmpty &&
+        paymentMethod != 'BELUM DIBAYAR' &&
+        paymentMethod != 'UNPAID' &&
+        paymentMethod != '-';
     final bool canDeliver =
         isPaymentConfirmed &&
         (paymentMethod == 'CASH' ||
@@ -4035,7 +4119,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
     if (status == 'siap diantar' && !isDropOff) {
-      if (!isCourierOnWay && !_hasArrivedAtDestination) {
+      if (!canDeliver || (!isCourierOnWay && !_hasArrivedAtDestination)) {
         // Belum mulai perjalanan
         actionBtnText = TranslationService.currentLang == 'en'
             ? 'View Delivery Route'
@@ -4353,8 +4437,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     Expanded(
                       child: Text(
                         TranslationService.currentLang == 'en'
-                            ? 'Waiting for customer to come and pick up the laundry.'
-                            : 'Menunggu pelanggan datang untuk mengambil cucian.',
+                            ? 'Waiting for customer to come to the store to pick up the laundry.'
+                            : 'Menunggu pelanggan datang ke toko untuk mengambil cucian.',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

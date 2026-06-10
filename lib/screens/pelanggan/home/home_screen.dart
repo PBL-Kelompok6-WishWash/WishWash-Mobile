@@ -1946,7 +1946,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               List<Widget> steps = [];
               for (int i = 0; i < refStatuses.length; i++) {
                 final rawName = refStatuses[i]['nama_status'] ?? '';
-                final bool isDropOff = order['tipe_logistik'] == 'Drop-off';
+                final bool isDropOff = order['tipe_logistik'] == 'Drop-off' || order['tipe_logistik'] == 'Self Pickup';
                 final String shortLabel = _getShortStatusLabel(
                   rawName,
                   lang,

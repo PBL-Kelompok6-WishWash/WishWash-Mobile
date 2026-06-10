@@ -1245,7 +1245,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final String customerPhone = (pelanggan['no_telp'] ?? pelanggan['NoTelp'] ?? pelanggan['no_hp'] ?? '-').toString();
     
     final logistikType = widget.order['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
 
     final alamatPengambilan = widget.order['AlamatPengambilan'] ?? {};
     final String pickupAddr = alamatPengambilan['alamat_lengkap'] ?? '-';
@@ -1716,16 +1716,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               _buildReceiptRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                               if (patokanLokasi != '-')
                                 _buildReceiptRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
-                              _buildReceiptRow(
-                                isEn ? 'Order Type' : 'Tipe Pemesanan',
-                                logistikType.toLowerCase().contains('drop')
-                                    ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
-                                    : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
-                              ),
+                              (() {
+                                final bool hasPickup = (widget.order['id_alamat_pengambilan'] != null && widget.order['id_alamat_pengambilan'] != 0) ||
+                                    (widget.order['AlamatPengambilan'] != null && widget.order['AlamatPengambilan']['id_alamat'] != null && widget.order['AlamatPengambilan']['id_alamat'] != 0);
+                                final bool isWalkIn = !hasPickup;
+                                return _buildReceiptRow(
+                                  isEn ? 'Order Type' : 'Tipe Pemesanan',
+                                  isWalkIn
+                                      ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
+                                      : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
+                                );
+                              })(),
                               _buildReceiptRow(
                                 isEn ? 'Logistics Method' : 'Metode Logistik', 
-                                logistikType.toLowerCase().contains('drop')
-                                    ? 'Drop-off'
+                                (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
+                                    ? (logistikType == 'Self Pickup' ? 'Self Pickup' : 'Drop-off')
                                     : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                               ),
                               _buildReceiptRow(isEn ? 'Courier / Worker' : 'Kurir / Petugas', employeeName),

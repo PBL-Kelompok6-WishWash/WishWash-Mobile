@@ -360,10 +360,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           if (_currentOrder['tipe_logistik'] == null ||
               _currentOrder['tipe_logistik'].toString().isEmpty) {
             _currentOrder['tipe_logistik'] = 'Courier Delivery';
-            _updateLogisticsBackend(
-              'Courier Delivery',
-              idAlamatPenyerahan: primary['id_alamat'],
-            );
           }
         }
       });
@@ -509,30 +505,68 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           }
         });
 
+        final bool isEn = TranslationService.currentLang == 'en';
+        final bool isComplete = message.toLowerCase().contains('selesai') || message.toLowerCase().contains('complete');
+
         return Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              padding: const EdgeInsets.all(24),
+              margin: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 40),
-                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFC8E6C9), width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF2E7D32),
+                      size: 40,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   Text(
                     message,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
-                      color: Colors.white,
+                      color: navyColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 16,
+                      height: 1.4,
                     ),
                   ),
+                  if (isComplete) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      isEn
+                          ? 'Redirecting to review page...'
+                          : 'Mengarahkan ke halaman ulasan...',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w400,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -588,32 +622,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _confirmOrderSelesai() async {
     final bool isEn = TranslationService.currentLang == 'en';
-    
+
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
           child: Container(
             padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: const Color(0xFFE8F5E9),
                     shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFC8E6C9), width: 2),
                   ),
                   child: const Icon(
-                    Icons.check_circle_rounded,
+                    Icons.assignment_turned_in_rounded,
                     color: Color(0xFF2E7D32),
                     size: 40,
                   ),
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  isEn ? 'Confirm Completed?' : 'Konfirmasi Selesai?',
+                  isEn ? 'Confirm Order Complete' : 'Konfirmasi Pesanan Selesai',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -623,8 +672,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(height: 12),
                 Text(
                   isEn
-                      ? 'Are you sure you want to mark this order as completed?'
-                      : 'Apakah Anda yakin ingin menandai pesanan ini telah selesai?',
+                      ? 'Are you sure you have received your laundry and want to mark this order as completed?'
+                      : 'Apakah Anda sudah menerima cucian dan ingin menandai pesanan ini sebagai selesai?',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
                     fontSize: 12,
@@ -639,6 +688,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey.shade300, width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -648,6 +698,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn ? 'Cancel' : 'Batal',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey.shade700,
                           ),
                         ),
                       ),
@@ -659,6 +711,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           backgroundColor: const Color(0xFF2E7D32),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -699,6 +752,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn ? 'Yes, Complete' : 'Ya, Selesai',
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
+                            fontSize: 13,
                           ),
                         ),
                       ),
@@ -1107,7 +1161,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (status.contains('antar') ||
         status.contains('ready') ||
         status.contains('siap diantar')) {
-      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+      final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
       return isEn ? 'Ready' : (isDropOff ? 'Ambil' : 'Kirim');
     }
     if (status.contains('selesai') ||
@@ -1181,7 +1235,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   String _translateStatusWithLogistics(String statusName) {
     final bool isEn = TranslationService.currentLang == 'en';
     final String logistikType = _currentOrder['tipe_logistik'] ?? 'Courier Delivery';
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     
     final lower = statusName.toLowerCase().trim();
     if (lower.contains('antar') || lower.contains('ready') || lower.contains('siap diantar')) {
@@ -2793,21 +2847,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     pdfRow(isEn ? 'Finished Date & Time' : 'Tanggal & Waktu Selesai', finishedTimeText),
                   pdfRow(isEn ? 'Weight' : 'Berat Cucian', weightText),
                   pdfRow(isEn ? 'Package & Perfume' : 'Paket & Pewangi', '$packageName - $perfumeName'),
-                  if (logistikType != 'Drop-off')
+                  if (logistikType != 'Drop-off' && logistikType != 'Self Pickup')
                     pdfRow(isEn ? 'Pickup Address' : 'Alamat Jemput', pickupAddr),
                   pdfRow(isEn ? 'Delivery Address' : 'Alamat Antar', deliveryAddr),
                   if (patokanLokasi != '-')
                     pdfRow(isEn ? 'Location Notes' : 'Patokan Lokasi', patokanLokasi),
                   pdfRow(
                     isEn ? 'Order Type' : 'Tipe Pemesanan',
-                    logistikType.toLowerCase().contains('drop')
+                    (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
                         ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
                         : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
                   ),
                   pdfRow(
                     isEn ? 'Logistics Method' : 'Metode Logistik',
-                    logistikType.toLowerCase().contains('drop')
-                        ? 'Drop-off'
+                    (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
+                        ? (logistikType == 'Self Pickup' ? 'Self Pickup' : 'Drop-off')
                         : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                   ),
                   pdfRow(isEn ? 'Employee / Courier' : 'Karyawan', employeeName),
@@ -3252,7 +3306,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final bool hasPickup = (_currentOrder['id_alamat_pengambilan'] != null && _currentOrder['id_alamat_pengambilan'] != 0) ||
         (_currentOrder['AlamatPengambilan'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != null && _currentOrder['AlamatPengambilan']['id_alamat'] != 0);
     final bool isWalkIn = !hasPickup;
-    final bool isDropOffLogistik = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool isDropOffLogistik = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String qtyText = kuantitasVal == 0.0
@@ -3726,7 +3780,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // --- DELIVERY LOCATION SECTION (Consistent with LaundryOrderScreen pickup location) ---
   Widget _buildDeliveryLocationSection(bool isEn) {
-    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
 
     final String paymentStatus = _getPaymentStatus(_currentOrder);
     final double kuantitasVal =
@@ -4598,7 +4652,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ? pembayaran['metode_bayar'].toString().toUpperCase()
         : null;
 
-    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
 
     // Dynamic Cash payment label based on logistics method (Ambil di Toko / Antar ke Rumah)
     final String cashLabel = isDropOff
@@ -5463,11 +5517,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required String logistikType,
     required Color navyColor,
   }) {
-    final bool isDropOff = logistikType == 'Drop-off';
+    final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     final bool isEn = TranslationService.currentLang == 'en';
     final String translatedLogistik =
-        logistikType.toLowerCase().contains('drop')
-        ? 'Drop-off'
+        (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
+        ? (logistikType == 'Self Pickup' ? 'Self Pickup' : 'Drop-off')
         : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir');
 
     return Container(
@@ -6504,7 +6558,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       isEn ? 'Package & Perfume' : 'Paket & Pewangi',
                       '$packageName - $perfumeName',
                     ),
-                    if (logistikType != 'Drop-off')
+                    if (logistikType != 'Drop-off' && logistikType != 'Self Pickup')
                       _buildReceiptRow(
                         isEn ? 'Pickup Address' : 'Alamat Jemput',
                         pickupAddr,
@@ -6520,14 +6574,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                     _buildReceiptRow(
                       isEn ? 'Order Type' : 'Tipe Pemesanan',
-                      logistikType.toLowerCase().contains('drop')
+                      (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
                           ? (isEn ? 'Walk-in (Outlet)' : 'Walk-in (Di Toko)')
                           : (isEn ? 'Online (App)' : 'Online (Aplikasi)'),
                     ),
                     _buildReceiptRow(
                       isEn ? 'Logistics Method' : 'Metode Logistik',
-                      logistikType.toLowerCase().contains('drop')
-                          ? 'Drop-off'
+                      (logistikType.toLowerCase().contains('drop') || logistikType.toLowerCase().contains('self') || logistikType.toLowerCase().contains('pickup'))
+                          ? (logistikType == 'Self Pickup' ? 'Self Pickup' : 'Drop-off')
                           : (isEn ? 'Courier Delivery' : 'Pengiriman Kurir'),
                     ),
                     _buildReceiptRow(
@@ -7004,7 +7058,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
-    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off';
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
     final bool isReadyForDelivery = lowerCurrent.contains('antar') || lowerCurrent.contains('ambil') || lowerCurrent.contains('ready');
 
     final pembayaran = _currentOrder['Pembayaran'];
@@ -7115,8 +7169,101 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       );
     }
 
-    // If PAID, we do not need the redundant sticky footer since we already have the download invoice modal button on the screen
+    // If PAID, show the barcode instruction box when the order is in delivery/pickup phase (stage 7)
+    final bool isReady = lowerCurrent.contains('antar') ||
+        lowerCurrent.contains('ambil') ||
+        lowerCurrent.contains('ready') ||
+        lowerCurrent.contains('kirim') ||
+        lowerCurrent.contains('siap diantar');
+
     if (isPaid) {
+      if (isReady) {
+        final bool showCourierArrivedText = !isDropOff &&
+            _currentOrder['is_courier_arrived'] == true &&
+            dbMetodeBayar != 'CASH';
+
+        final bool isCourierArrived = _currentOrder['is_courier_arrived'] == true;
+        final String infoText = isDropOff
+            ? (isEn
+                ? 'Payment successful! Please go to the store and show your transaction receipt/barcode to the outlet staff to receive your laundry.'
+                : 'Pembayaran telah berhasil! Silakan ke toko dan tunjukkan resi/barcode transaksi Anda kepada outlet/kasir untuk menerima cucian.')
+            : (isCourierArrived
+                ? (isEn
+                    ? 'Payment confirmed! Please show your transaction receipt/barcode to the courier to receive your laundry.'
+                    : 'Pembayaran telah dikonfirmasi! Tunjukkan resi/barcode transaksi Anda kepada kurir untuk menerima cucian.')
+                : (isEn
+                    ? 'Awaiting courier to deliver your laundry.'
+                    : 'Menunggu kurir mengantarkan cucian Anda.'));
+
+        // Show amber info box telling customer payment is confirmed and to show barcode/receipt
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(28),
+              topRight: Radius.circular(28),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 15,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3CD),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade900,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (showCourierArrivedText) ...[
+                            Text(
+                              isEn ? 'Courier Has Arrived!' : 'Kurir Telah Sampai!',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.amber.shade900,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                          ],
+                          Text(
+                            infoText,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.amber.shade900,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return const SizedBox.shrink();
     }
 
@@ -7301,9 +7448,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        isEn
-                            ? 'Awaiting courier to deliver your laundry.'
-                            : 'Menunggu kurir mengantarkan cucian Anda.',
+                        (_currentOrder['is_courier_arrived'] == true && isPaymentMethodConfirmed)
+                            ? (() {
+                                final pembayaran = _currentOrder['Pembayaran'];
+                                final bool isPaidStatus = pembayaran != null &&
+                                    (pembayaran['status_pembayaran'] == 'Lunas' ||
+                                     pembayaran['status_pembayaran'] == 'Paid');
+                                return isPaidStatus
+                                    ? (isEn
+                                        ? 'Courier has arrived at your location! Please show the barcode below to the courier to receive your clothes.'
+                                        : 'Kurir telah sampai di lokasi Anda! Silakan tunjukkan barcode di bawah kepada kurir untuk menerima pakaian.')
+                                    : (isEn
+                                        ? 'Courier has arrived at your location! Please pay and receive your laundry.'
+                                        : 'Kurir telah sampai di lokasi Anda! Silakan bayar dan terima cucian.');
+                              })()
+                            : (!isPaymentMethodConfirmed
+                                ? (isEn
+                                    ? 'Please select a payment method (Cash/QRIS) to proceed.'
+                                    : 'Silakan pilih metode pembayaran (Cash/QRIS) untuk melanjutkan.')
+                                : (isEn
+                                    ? 'Awaiting courier to deliver your laundry.'
+                                    : 'Menunggu kurir mengantarkan cucian Anda.')),
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: Colors.amber.shade900,
@@ -7371,12 +7536,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: (isAlreadyConfirmedCash && _currentOrder['is_courier_arrived'] == true) ? 0 : 12),
                     SizedBox(
-                      width: 180,
-                      height: 48,
-                      child: isAlreadyConfirmedCash
-                        ? ElevatedButton.icon(
+                      width: (isAlreadyConfirmedCash && _currentOrder['is_courier_arrived'] == true) ? 0 : 180,
+                      height: (isAlreadyConfirmedCash && _currentOrder['is_courier_arrived'] == true) ? 0 : 48,
+                      child: (isAlreadyConfirmedCash && _currentOrder['is_courier_arrived'] == true)
+                        ? const SizedBox.shrink()
+                        : isAlreadyConfirmedCash
+                          ? ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.red.shade700,
                               foregroundColor: Colors.white,

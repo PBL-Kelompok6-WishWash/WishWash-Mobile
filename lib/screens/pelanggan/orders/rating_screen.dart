@@ -566,7 +566,7 @@ class _RatingScreenState extends State<RatingScreen> {
                               List<Widget> steps = [];
                               for (int i = 0; i < refStatuses.length; i++) {
                                 final rName = refStatuses[i]['nama_status'] ?? '';
-                                final bool isDrop = widget.order['tipe_logistik'] == 'Drop-off';
+                                final bool isDrop = widget.order['tipe_logistik'] == 'Drop-off' || widget.order['tipe_logistik'] == 'Self Pickup';
                                 final String shortLabel = _getShortStatusLabel(
                                   rName,
                                   lang,
