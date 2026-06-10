@@ -114,24 +114,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     final double maxBgSize = size.height * 2.5; // Cukup besar menutupi layar
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Color(0xFFBCEFF2),
-              Color(0xFF00BCD4),
-            ],
-            stops: [0.3, 0.7, 1.0],
-          ),
-        ),
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_bgController, _logoController, _exitController]),
+      backgroundColor: Colors.white,
+      body: AnimatedBuilder(
+        animation: Listenable.merge([_bgController, _logoController, _exitController]),
         builder: (context, child) {
           
           // --- KALKULASI POSISI BACKGROUND BOLA CYAN ---
@@ -225,7 +210,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
           );
         },
       ),
-     ),
     );
   }
 }

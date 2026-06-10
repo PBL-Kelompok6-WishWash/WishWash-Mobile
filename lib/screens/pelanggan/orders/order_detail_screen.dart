@@ -178,8 +178,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     super.initState();
     _currentOrder = Map<String, dynamic>.from(widget.order);
     _loadAddresses();
-    _loadOrderDetail();
-    _loadPromos();
+    _loadOrderDetail().then((_) {
+      final double qty = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+      final lay = _currentOrder['Layanan'] ?? {};
+      final double prc = (lay['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+      final double subtotal = qty * prc;
+      _loadPromos().then((_) {
+        _restorePromoSelection(subtotal);
+      });
+    });
     _fetchRouteDistanceAndDuration();
     _trackingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
       final String currentStatus = _getOrderStatus(_currentOrder);
@@ -195,6 +202,53 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
   }
 
+  Future<void> _savePromoSelection(String code, double discount, bool isApplied) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final orderId = _currentOrder['id_order']?.toString() ?? '';
+      if (orderId.isNotEmpty) {
+        if (isApplied) {
+          await prefs.setString('saved_promo_code_$orderId', code);
+          await prefs.setDouble('saved_promo_discount_$orderId', discount);
+        } else {
+          await prefs.remove('saved_promo_code_$orderId');
+          await prefs.remove('saved_promo_discount_$orderId');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error saving promo selection: $e');
+    }
+  }
+
+  Future<void> _restorePromoSelection(double subtotalCucian) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final orderId = _currentOrder['id_order']?.toString() ?? '';
+      if (orderId.isNotEmpty) {
+        final code = prefs.getString('saved_promo_code_$orderId') ?? '';
+        if (code.isNotEmpty) {
+          final promo = _claimedPromos.firstWhere(
+            (p) => (p['kode_promo'] ?? '').toString() == code,
+            orElse: () => null,
+          );
+          if (promo != null) {
+            final double discount = _calculatePromoDiscount(promo, subtotalCucian);
+            if (mounted) {
+              setState(() {
+                _appliedPromoCode = code;
+                _appliedPromoDiscount = discount;
+                _isPromoApplied = true;
+                _promoController.text = code;
+              });
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring promo selection: $e');
+    }
+  }
+
   @override
   void dispose() {
     _trackingTimer?.cancel();
@@ -203,15 +257,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _loadPromos() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final claimedIds = prefs.getStringList('claimed_promo_ids') ?? [];
       final promosData = await PromoService.getPromos();
       final now = DateTime.now();
       
       final filtered = promosData.where((p) {
-        final String promoId = p['id_promo']?.toString() ?? '';
-        if (!claimedIds.contains(promoId)) return false;
-
         final status = p['status_promo']?.toString() ?? 'Aktif';
         if (status.toLowerCase() != 'aktif') return false;
 
@@ -275,6 +324,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     } catch (e) {
       debugPrint('Error loading order details: $e');
     }
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      _loadOrderDetail(),
+      _loadAddresses(),
+      _loadPromos(),
+    ]);
   }
 
   Future<void> _loadAddresses() async {
@@ -1371,6 +1428,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _isPromoApplied = true;
           _promoError = '';
           _appliedPromoCode = promo['kode_promo'] ?? '';
+          _savePromoSelection(_appliedPromoCode, _appliedPromoDiscount, true);
         } else {
           _appliedPromoDiscount = 0.0;
           _isPromoApplied = false;
@@ -1378,6 +1436,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ? 'Your order does not meet the promo requirements!'
               : 'pesanan anda tidak memenuhi syarat promo';
           _appliedPromoCode = '';
+          _savePromoSelection('', 0.0, false);
         }
       } else {
         _appliedPromoDiscount = 0.0;
@@ -1386,6 +1445,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ? 'Invalid or unclaimed promo code!'
             : 'Kode promo tidak valid atau belum diklaim!';
         _appliedPromoCode = '';
+        _savePromoSelection('', 0.0, false);
       }
     });
   }
@@ -1651,10 +1711,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                child: RefreshIndicator(
+                  color: navyColor,
+                  onRefresh: _handleRefresh,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 1. Progress Stepper Card (always shown, with all red cross icons if cancelled)
                       _buildProgressCard(
@@ -1787,6 +1851,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                 ),
               ),
+            ),
             ],
           ),
         ),
@@ -1861,6 +1926,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             _promoController.clear();
                             _promoError = '';
                           });
+                          _savePromoSelection('', 0.0, false);
                           setModalState(() {});
                           Navigator.pop(context);
                         },
@@ -1986,7 +2052,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 24),
                                   child: Text(
-                                    isEn ? 'No claimed promos available' : 'Tidak ada promo yang diklaim',
+                                    isEn ? 'No promos available' : 'Tidak ada promo yang tersedia',
                                     style: GoogleFonts.poppins(
                                       color: Colors.grey.shade500,
                                       fontSize: 12,
@@ -2006,6 +2072,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   final bool eligible = _isPromoEligible(promo, subtotalCucian);
                                   final bool isCurrent = _appliedPromoCode == code;
 
+                                  final String tipePromo = promo['tipe_promo']?.toString() ?? 'Nominal';
+                                  final double nominalPotongan = (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+                                  final double maksimalPotongan = (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+                                  final double minimalOrder = (promo['minimal_order'] as num?)?.toDouble() ?? 0.0;
+
+                                  String discountText = '';
+                                  if (tipePromo.toLowerCase().contains('persen')) {
+                                    discountText = isEn 
+                                        ? 'Discount ${nominalPotongan.toInt()}%' 
+                                        : 'Diskon ${nominalPotongan.toInt()}%';
+                                    if (maksimalPotongan > 0.0) {
+                                      discountText += isEn 
+                                          ? ' (Max ${_formatRupiah(maksimalPotongan)})' 
+                                          : ' (Maks. ${_formatRupiah(maksimalPotongan)})';
+                                    }
+                                  } else {
+                                    discountText = isEn 
+                                        ? 'Discount ${_formatRupiah(nominalPotongan)}' 
+                                        : 'Potongan ${_formatRupiah(nominalPotongan)}';
+                                  }
+
+                                  final double diff = minimalOrder - subtotalCucian;
+                                  final String restrictionText = isEn
+                                      ? 'Min. order ${_formatRupiah(minimalOrder)} (Need ${_formatRupiah(diff)} more)'
+                                      : 'Min. transaksi ${_formatRupiah(minimalOrder)} (Kurang ${_formatRupiah(diff)} lagi)';
+
                                   final Color itemNavy = eligible ? navyColor : Colors.grey.shade400;
                                   final Color itemCyan = eligible ? cyanColor : Colors.grey.shade300;
                                   final Color itemBg = eligible ? Colors.white : Colors.grey.shade100;
@@ -2013,7 +2105,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                       ? (isCurrent ? cyanColor : Colors.grey.shade200)
                                       : Colors.grey.shade300;
 
-                                  return Container(
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
                                     margin: const EdgeInsets.only(bottom: 12),
                                     decoration: BoxDecoration(
                                       color: itemBg,
@@ -2024,7 +2118,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.02),
+                                          color: isCurrent && eligible
+                                              ? cyanColor.withOpacity(0.08)
+                                              : Colors.black.withOpacity(0.02),
                                           blurRadius: 10,
                                           offset: const Offset(0, 4),
                                         ),
@@ -2037,17 +2133,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                         location: BannerLocation.topEnd,
                                         color: itemCyan,
                                         child: InkWell(
+                                          borderRadius: BorderRadius.circular(16),
                                           onTap: eligible
-                                              ? () {
-                                                  setState(() {
-                                                    _appliedPromoDiscount = _calculatePromoDiscount(promo, subtotalCucian);
-                                                    _isPromoApplied = true;
+                                              ? () async {
+                                                  setModalState(() {
                                                     _appliedPromoCode = code;
-                                                    _promoController.text = code;
-                                                    _promoError = '';
                                                   });
-                                                  setModalState(() {});
-                                                  Navigator.pop(context);
+                                                  await Future.delayed(const Duration(milliseconds: 300));
+                                                  if (context.mounted) {
+                                                    final double disc = _calculatePromoDiscount(promo, subtotalCucian);
+                                                    setState(() {
+                                                      _appliedPromoDiscount = disc;
+                                                      _isPromoApplied = true;
+                                                      _appliedPromoCode = code;
+                                                      _promoController.text = code;
+                                                      _promoError = '';
+                                                    });
+                                                    _savePromoSelection(code, disc, true);
+                                                    setModalState(() {});
+                                                    Navigator.pop(context);
+                                                  }
                                                 }
                                               : null,
                                           child: Padding(
@@ -2089,6 +2194,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                                           color: eligible ? Colors.grey.shade500 : Colors.grey.shade400,
                                                         ),
                                                       ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        discountText,
+                                                        style: GoogleFonts.poppins(
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.bold,
+                                                          color: eligible ? const Color(0xFF2E7D32) : Colors.grey.shade500,
+                                                        ),
+                                                      ),
+                                                      if (!eligible) ...[
+                                                        const SizedBox(height: 4),
+                                                        Text(
+                                                          restrictionText,
+                                                          style: GoogleFonts.poppins(
+                                                            fontSize: 10,
+                                                            fontWeight: FontWeight.w600,
+                                                            color: Colors.redAccent,
+                                                          ),
+                                                        ),
+                                                      ],
                                                       const SizedBox(height: 6),
                                                       Container(
                                                         padding: const EdgeInsets.symmetric(
@@ -2111,13 +2236,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                                     ],
                                                   ),
                                                 ),
-                                                Icon(
-                                                  isCurrent && eligible
-                                                      ? Icons.radio_button_checked_rounded
-                                                      : Icons.radio_button_off_rounded,
-                                                  color: isCurrent && eligible
-                                                      ? cyanColor
-                                                      : Colors.grey.shade300,
+                                                AnimatedSwitcher(
+                                                  duration: const Duration(milliseconds: 250),
+                                                  child: Icon(
+                                                    isCurrent && eligible
+                                                        ? Icons.radio_button_checked_rounded
+                                                        : Icons.radio_button_off_rounded,
+                                                    key: ValueKey<bool>(isCurrent && eligible),
+                                                    color: isCurrent && eligible
+                                                        ? cyanColor
+                                                        : Colors.grey.shade300,
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -4233,7 +4362,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           InkWell(
             onTap: () => _showPromoSelectorBottomSheet(subtotalCucian),
             borderRadius: BorderRadius.circular(12),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: bgGrey,
@@ -4252,37 +4383,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _isPromoApplied
-                              ? (isEn
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      alignment: Alignment.topCenter,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isPromoApplied
+                                ? (isEn
                                     ? 'Voucher Applied: $_appliedPromoCode'
                                     : 'Promo Terpasang: $_appliedPromoCode')
-                              : (isEn
+                                : (isEn
                                     ? 'Use promo voucher to save more'
                                     : 'Pilih promo untuk hemat lebih banyak!'),
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: _isPromoApplied ? cyanColor : navyColor,
-                          ),
-                        ),
-                        if (_isPromoApplied) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            isEn
-                                ? 'Saving: -${_formatRupiah(_appliedPromoDiscount)}'
-                                : 'Hemat: -${_formatRupiah(_appliedPromoDiscount)}',
                             style: GoogleFonts.poppins(
-                              fontSize: 9,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Colors.green.shade700,
+                              color: _isPromoApplied ? cyanColor : navyColor,
                             ),
                           ),
+                          if (_isPromoApplied) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              isEn
+                                  ? 'Saving: -${_formatRupiah(_appliedPromoDiscount)}'
+                                  : 'Hemat: -${_formatRupiah(_appliedPromoDiscount)}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade700,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                   Icon(
