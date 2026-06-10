@@ -1077,7 +1077,11 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
         status == 'penjemputan' || status == 'pesanan diterima';
 
     final alamatAmbil = widget.order['AlamatPengambilan'] ?? {};
-    final alamatKirim = widget.order['AlamatPenyerahan'] ?? {};
+    final rawAlamatKirim = widget.order['AlamatPenyerahan'] ?? {};
+    final alamatKirim = (rawAlamatKirim['alamat_lengkap'] != null &&
+            rawAlamatKirim['alamat_lengkap'].toString().isNotEmpty)
+        ? rawAlamatKirim
+        : alamatAmbil;
     final targetAddrObj = isPickup ? alamatAmbil : alamatKirim;
     final String rawTargetAddress = isPickup
         ? (alamatAmbil['alamat_lengkap'] ?? 'Alamat Pelanggan')

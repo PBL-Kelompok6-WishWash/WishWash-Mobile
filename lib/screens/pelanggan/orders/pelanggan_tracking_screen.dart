@@ -76,7 +76,11 @@ class _PelangganTrackingScreenState extends State<PelangganTrackingScreen> with 
     final status = _getOrderStatus(_currentOrder).toLowerCase();
     final bool isPickup = status.contains('jemput') || status.contains('diterima');
     final alamatAmbil = _currentOrder['AlamatPengambilan'] ?? {};
-    final alamatKirim = _currentOrder['AlamatPenyerahan'] ?? {};
+    final rawAlamatKirim = _currentOrder['AlamatPenyerahan'] ?? {};
+    final alamatKirim = (rawAlamatKirim['alamat_lengkap'] != null &&
+            rawAlamatKirim['alamat_lengkap'].toString().isNotEmpty)
+        ? rawAlamatKirim
+        : alamatAmbil;
     final targetAddrObj = isPickup ? alamatAmbil : alamatKirim;
 
     final double storeLat = -7.0499;
@@ -358,7 +362,11 @@ class _PelangganTrackingScreenState extends State<PelangganTrackingScreen> with 
 
     // Alamat tujuan
     final alamatAmbil = _currentOrder['AlamatPengambilan'] ?? {};
-    final alamatKirim = _currentOrder['AlamatPenyerahan'] ?? {};
+    final rawAlamatKirim = _currentOrder['AlamatPenyerahan'] ?? {};
+    final alamatKirim = (rawAlamatKirim['alamat_lengkap'] != null &&
+            rawAlamatKirim['alamat_lengkap'].toString().isNotEmpty)
+        ? rawAlamatKirim
+        : alamatAmbil;
     final targetAddrObj = isPickup ? alamatAmbil : alamatKirim;
     final String rawTargetAddress = isPickup 
         ? (alamatAmbil['alamat_lengkap'] ?? 'Alamat Pelanggan')
