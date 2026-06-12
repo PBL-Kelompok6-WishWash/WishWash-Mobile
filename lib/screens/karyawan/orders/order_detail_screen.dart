@@ -1467,7 +1467,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       }
     }
 
-    final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+    final double biayaPenjemputan = (_currentOrder['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (_currentOrder['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
+    final double computedTotal = subtotalCucian + biayaTambahan + biayaPenjemputan + biayaPengantaran - promoDiscount;
     final double totalTagihan = kuantitas > 0.0
         ? (computedTotal > 0.0 ? computedTotal : 0.0)
         : 0.0;
@@ -3241,7 +3243,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       }
     }
 
-    final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+    final double biayaPenjemputan = (_currentOrder['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (_currentOrder['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
+    final double computedTotal = subtotalCucian + biayaTambahan + biayaPenjemputan + biayaPengantaran - promoDiscount;
     final double totalTagihan = kuantitas > 0.0
         ? (computedTotal > 0.0 ? computedTotal : 0.0)
         : 0.0;
@@ -3385,6 +3389,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final paketLayanan = order['PaketLayanan'] ?? {};
     final double biayaTambahan =
         (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPenjemputan = (order['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (order['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
 
     final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
     double promoDiscount = 0.0;
@@ -3663,6 +3669,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       isEn ? 'Package Surcharge' : 'Biaya Paket',
                       _formatRupiah(biayaTambahan),
                       detailText: packageName,
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+                      _formatRupiah(biayaPenjemputan),
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+                      _formatRupiah(biayaPengantaran),
                       isBoldLabel: false,
                     ),
                     const SizedBox(height: 8),

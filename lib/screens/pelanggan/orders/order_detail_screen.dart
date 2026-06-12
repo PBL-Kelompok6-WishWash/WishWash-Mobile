@@ -18,12 +18,13 @@ import 'package:mobile/utils/constants.dart';
 import 'package:mobile/services/promo_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' hide Path;
+import 'package:latlong2/latlong.dart' hide Path, DistanceCalculator;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:mobile/utils/distance_calculator.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -471,9 +472,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Future<void> _updateLogisticsBackend(
     String newType, {
     int? idAlamatPenyerahan,
+    double biayaPengantaran = 0.0,
   }) async {
     try {
-      final Map<String, dynamic> body = {'tipe_logistik': newType};
+      final Map<String, dynamic> body = {
+        'tipe_logistik': newType,
+        'biaya_pengantaran': biayaPengantaran,
+      };
       if (idAlamatPenyerahan != null) {
         body['id_alamat_penyerahan'] = idAlamatPenyerahan;
       }
@@ -1701,7 +1706,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       }
     }
 
-    final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+    final double biayaPenjemputan = (order['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (order['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
+    final double computedTotal = subtotalCucian + biayaTambahan + biayaPenjemputan + biayaPengantaran - promoDiscount;
     final double totalTagihan = kuantitas > 0.0
         ? (computedTotal > 0.0 ? computedTotal : 0.0)
         : 0.0;
@@ -2754,8 +2761,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           }
         }
       }
-      
-      final double computedTotal = subtotalCucian + biayaTambahan - promoDiscount;
+      final double biayaPenjemputan = (order['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+      final double biayaPengantaran = (order['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
+      final double computedTotal = subtotalCucian + biayaTambahan + biayaPenjemputan + biayaPengantaran - promoDiscount;
       final double totalTagihan = kuantitas > 0.0
           ? (computedTotal > 0.0 ? computedTotal : 0.0)
           : 0.0;
@@ -2887,6 +2895,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     isEn ? 'Package Surcharge' : 'Biaya Paket',
                     _formatRupiah(biayaTambahan),
                     detail: packageName,
+                  ),
+                  pdfPriceRow(
+                    isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+                    _formatRupiah(biayaPenjemputan),
+                  ),
+                  pdfPriceRow(
+                    isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+                    _formatRupiah(biayaPengantaran),
                   ),
                   pdfPriceRow(
                     promoCode.isNotEmpty
@@ -3880,11 +3896,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               orElse: () => addresses.first,
                             )
                           : null;
+                      double fee = 0.0;
+                      if (primary != null) {
+                        final double? lat = double.tryParse(primary['latitude'].toString());
+                        final double? lng = double.tryParse(primary['longitude'].toString());
+                        if (lat != null && lng != null) {
+                          fee = DistanceCalculator.getFee(lat, lng);
+                        }
+                      }
                       _updateLogisticsBackend(
                         'Courier Delivery',
                         idAlamatPenyerahan: primary != null
                             ? primary['id_alamat']
                             : null,
+                        biayaPengantaran: fee,
                       );
                     }
                   },
@@ -6353,6 +6378,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final paketLayanan = order['PaketLayanan'] ?? {};
     final double biayaTambahan =
         (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPenjemputan = (order['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (order['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
 
     final List<dynamic> promoOrders = order['PromoOrder'] ?? [];
     double promoDiscount = _isPromoApplied ? _appliedPromoDiscount : 0.0;
@@ -6628,6 +6655,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       isEn ? 'Package Surcharge' : 'Biaya Paket',
                       _formatRupiah(biayaTambahan),
                       detailText: packageName,
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+                      _formatRupiah(biayaPenjemputan),
+                      isBoldLabel: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPriceRow(
+                      isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+                      _formatRupiah(biayaPengantaran),
                       isBoldLabel: false,
                     ),
                     const SizedBox(height: 8),

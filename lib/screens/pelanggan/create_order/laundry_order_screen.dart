@@ -10,7 +10,8 @@ import 'package:mobile/screens/pelanggan/main_pelanggan.dart';
 import 'package:mobile/screens/karyawan/main_karyawan.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' hide Path;
+import 'package:latlong2/latlong.dart' hide Path, DistanceCalculator;
+import 'package:mobile/utils/distance_calculator.dart';
 
 class LaundryOrderScreen extends StatefulWidget {
   final Map<String, dynamic> service;
@@ -1644,8 +1645,16 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
           DateTime.now().toIso8601String().split('T')[0];
 
       final double basePrice = (widget.service['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
-
       final isWalkIn = widget.selectedCustomer != null;
+
+      double biayaPenjemputan = 0.0;
+      if (!isWalkIn && selectedPickupAddress != null) {
+        final double? lat = double.tryParse(selectedPickupAddress!['latitude'].toString());
+        final double? lng = double.tryParse(selectedPickupAddress!['longitude'].toString());
+        if (lat != null && lng != null) {
+          biayaPenjemputan = DistanceCalculator.getFee(lat, lng);
+        }
+      }
 
       final orderData = {
         if (isWalkIn)
@@ -1658,6 +1667,8 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
         'keterangan_lokasi': isWalkIn ? '' : (selectedPickupAddress!['tipe_alamat'] ?? 'Rumah'),
         'jadwal_pickup': isWalkIn ? null : '$dateStr ${selectedTime == 'Morning' ? '08:00' : '13:00'}',
         'tipe_logistik': isWalkIn ? 'Drop-off' : 'Courier Delivery',
+        'biaya_penjemputan': biayaPenjemputan,
+        'biaya_pengantaran': 0.0,
         'harga_saat_ini': basePrice,
         'kuantitas': 0.0,
         'total_bayar': 0.0,
@@ -1903,6 +1914,23 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                       icon: Icons.person_outline_rounded,
                       label: isEn ? 'Recipient' : 'Penerima',
                       value: recipient,
+                    ),
+                    Builder(
+                      builder: (context) {
+                        double biayaPenjemputan = 0.0;
+                        if (selectedPickupAddress != null) {
+                          final double? lat = double.tryParse(selectedPickupAddress!['latitude'].toString());
+                          final double? lng = double.tryParse(selectedPickupAddress!['longitude'].toString());
+                          if (lat != null && lng != null) {
+                            biayaPenjemputan = DistanceCalculator.getFee(lat, lng);
+                          }
+                        }
+                        return _buildConfirmRow(
+                          icon: Icons.local_shipping_rounded,
+                          label: isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+                          value: _formatPrice(biayaPenjemputan),
+                        );
+                      }
                     ),
                   ],
                   if (instructionController.text.trim().isNotEmpty)

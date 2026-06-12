@@ -56,6 +56,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
   final PageController _promoController = PageController(viewportFraction: 0.9);
   final PageController _activeOrderController = PageController();
+  final ScrollController _activeOrderDotsScrollController = ScrollController();
   Timer? _promoTimer;
 
   String _namaLengkap = 'User';
@@ -84,13 +85,41 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     _fetchPromosData();
     _checkUnreadNotifications();
     NotificationListenerManager().addCallback(_onNewNotificationWS);
+    _activeOrderController.addListener(_onActiveOrderScroll);
+  }
+
+  void _onActiveOrderScroll() {
+    if (_activeOrderController.hasClients && _activeOrderDotsScrollController.hasClients) {
+      final double page = _activeOrderController.page ?? 0.0;
+      final int nearestPage = page.round();
+      if (nearestPage != _currentActiveOrderIndex) {
+        setState(() {
+          _currentActiveOrderIndex = nearestPage;
+        });
+      }
+      
+      final double screenWidth = MediaQuery.of(context).size.width;
+      final double targetWidth = screenWidth - 80 - 32;
+      final int maxDots = ((targetWidth - 6) / 11).floor().clamp(5, 25);
+      final int visibleDots = _activeOrders.length > maxDots ? maxDots : _activeOrders.length;
+      final double dotsContainerWidth = (visibleDots - 1) * 11.0 + 23.0;
+
+      final double dotPosition = (page * 11.0) + 11.5;
+      final double targetScroll = dotPosition - (dotsContainerWidth / 2);
+      
+      _activeOrderDotsScrollController.jumpTo(
+        targetScroll.clamp(0.0, _activeOrderDotsScrollController.position.maxScrollExtent),
+      );
+    }
   }
 
   @override
   void dispose() {
     _promoTimer?.cancel();
     _promoController.dispose();
+    _activeOrderController.removeListener(_onActiveOrderScroll);
     _activeOrderController.dispose();
+    _activeOrderDotsScrollController.dispose();
     NotificationListenerManager().removeCallback(_onNewNotificationWS);
     super.dispose();
   }
@@ -720,7 +749,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                                         if (_isLoadingActiveOrders || _activeOrders.isNotEmpty) ...[
                                           const SizedBox(height: 20),
                                           Container(
-                                            padding: const EdgeInsets.all(20),
+                                            padding: const EdgeInsets.symmetric(vertical: 20),
+                                            clipBehavior: Clip.antiAlias,
                                             decoration: BoxDecoration(
                                               color: Colors.white,
                                               borderRadius: BorderRadius.circular(24),
@@ -1435,7 +1465,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           margin: const EdgeInsets.symmetric(horizontal: 2),
-          width: _currentPromoIndex == index ? 12 : 6,
+          width: _currentPromoIndex == index ? 18 : 6,
           height: 6,
           decoration: BoxDecoration(
             color: _currentPromoIndex == index
@@ -1737,17 +1767,20 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          TranslationService.currentLang == 'en' ? 'Your Order Status' : 'Status Pesanan Anda',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF0D47A1),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Text(
+            TranslationService.currentLang == 'en' ? 'Your Order Status' : 'Status Pesanan Anda',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0D47A1),
+            ),
           ),
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: MediaQuery.of(context).size.width >= 600 ? 260 : 246,
+          height: MediaQuery.of(context).size.width >= 600 ? 275 : 260,
           child: PageView.builder(
             controller: _activeOrderController,
             itemCount: _activeOrders.length,
@@ -1764,22 +1797,39 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
         ),
         if (_activeOrders.length > 1) ...[
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_activeOrders.length, (index) {
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                width: _currentActiveOrderIndex == index ? 12 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: _currentActiveOrderIndex == index
-                      ? const Color(0xFF0C4B8E)
-                      : Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
+          Center(
+            child: SizedBox(
+              width: (() {
+                final double screenWidth = MediaQuery.of(context).size.width;
+                final double targetWidth = screenWidth - 80 - 32;
+                final int maxDots = ((targetWidth - 6) / 11).floor().clamp(5, 25);
+                final int visibleDots = _activeOrders.length > maxDots ? maxDots : _activeOrders.length;
+                return (visibleDots - 1) * 11.0 + 23.0;
+              })(),
+              height: 10,
+              child: SingleChildScrollView(
+                controller: _activeOrderDotsScrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_activeOrders.length, (index) {
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                      width: _currentActiveOrderIndex == index ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: _currentActiveOrderIndex == index
+                            ? const Color(0xFF0C4B8E)
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  }),
                 ),
-              );
-            }),
+              ),
+            ),
           ),
         ],
       ],
@@ -1815,7 +1865,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     return Align(
       alignment: Alignment.center,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         padding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 12,
@@ -1932,7 +1982,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               ],
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
             (() {
@@ -1978,7 +2028,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               );
             })(),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             // Tombol View Detail
             SizedBox(
               width: double.infinity,
@@ -2089,16 +2139,17 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           const SizedBox(height: 6),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? themeColor : Colors.grey.shade600,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.normal,
+                  color: isActive ? themeColor : Colors.grey.shade600,
+                ),
               ),
             ),
           ),

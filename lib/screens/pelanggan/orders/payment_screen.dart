@@ -1270,6 +1270,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final paketLayanan = widget.order['PaketLayanan'] ?? {};
     final double biayaTambahan = (paketLayanan['biaya_tambahan'] as num?)?.toDouble() ?? 0.0;
     final String packageName = paketLayanan['nama_paket'] ?? 'Reguler';
+    final double biayaPenjemputan = (widget.order['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+    final double biayaPengantaran = (widget.order['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
     final parfum = widget.order['Parfum'] ?? {};
     final String perfumeName = parfum['nama_parfum'] ?? 'Lavender Bliss';
 
@@ -1761,6 +1763,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 isEn ? 'Package Surcharge' : 'Biaya Paket',
                                 _formatRupiah(biayaTambahan),
                                 detailText: packageName,
+                                isBoldLabel: false,
+                              ),
+                              const SizedBox(height: 8),
+                              _buildPriceRow(
+                                isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+                                _formatRupiah(biayaPenjemputan),
+                                isBoldLabel: false,
+                              ),
+                              const SizedBox(height: 8),
+                              _buildPriceRow(
+                                isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+                                _formatRupiah(biayaPengantaran),
                                 isBoldLabel: false,
                               ),
                               const SizedBox(height: 8),
