@@ -56,6 +56,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   bool _isTargetTyping = false;
   bool _isTyping = false;
   Timer? _typingTimer;
+  bool _isTargetOnline = false;
 
   @override
   void initState() {
@@ -180,6 +181,26 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
             _isTargetTyping = incomingData['is_typing'] == true;
           });
           _scrollToBottom();
+        }
+        return;
+      }
+
+      if (incomingData['type'] == 'initial_status') {
+        if (mounted) {
+          setState(() {
+            _isTargetOnline = incomingData['online'] == true;
+          });
+        }
+        return;
+      }
+
+      if (incomingData['type'] == 'status') {
+        if (incomingData['id_user'] != currentUserID) {
+          if (mounted) {
+            setState(() {
+              _isTargetOnline = incomingData['online'] == true;
+            });
+          }
         }
         return;
       }
@@ -488,11 +509,67 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                           widget.targetName,
                           style: GoogleFonts.poppins(color: navyColor, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        if (widget.subtitle.isNotEmpty && widget.subtitle != '-')
-                          Text(
-                            widget.subtitle,
-                            style: GoogleFonts.poppins(color: navyColor.withOpacity(0.8), fontSize: 12),
-                          ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            if (_isTargetOnline) ...[
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF4ADE80),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(
+                              _isTargetOnline
+                                  ? TranslationService.translate('online')
+                                  : (() {
+                                      final String offlineLabel = TranslationService.translate('offline');
+                                      if (_messages.isEmpty) return offlineLabel;
+                                      final otherMessages = _messages.where((m) => (m['id_user'] as num?)?.toInt() != currentUserID).toList();
+                                      if (otherMessages.isEmpty) return offlineLabel;
+                                      final lastMsg = otherMessages.last;
+                                      final String rawTime = lastMsg['waktu_kirim'] ?? '';
+                                      if (rawTime.isNotEmpty) {
+                                        try {
+                                          final dt = DateTime.parse(rawTime).toLocal();
+                                          final String timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                                          final String lastSeenLabel = TranslationService.translate('last_seen_at');
+                                          return '$lastSeenLabel $timeStr';
+                                        } catch (_) {}
+                                      }
+                                      return offlineLabel;
+                                    })(),
+                              style: GoogleFonts.poppins(
+                                color: _isTargetOnline ? const Color(0xFF4ADE80) : navyColor.withOpacity(0.55),
+                                fontSize: 11.5,
+                                fontWeight: _isTargetOnline ? FontWeight.bold : FontWeight.w500,
+                              ),
+                            ),
+                            if (widget.subtitle.isNotEmpty && widget.subtitle != '-') ...[
+                              Text(
+                                '  \u2022  ',
+                                style: GoogleFonts.poppins(
+                                  color: navyColor.withOpacity(0.4),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Flexible(
+                                child: Text(
+                                  widget.subtitle,
+                                  style: GoogleFonts.poppins(
+                                    color: navyColor.withOpacity(0.7),
+                                    fontSize: 12,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -627,13 +704,33 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                                   ? const EdgeInsets.all(4)
                                   : const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
-                                color: isMe ? navyColor : const Color(0xFFEBF8FA),
+                                gradient: isMe
+                                    ? const LinearGradient(
+                                        colors: [Color(0xFF0C4B8E), Color(0xFF1E88E5)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : null,
+                                color: isMe ? null : Colors.white,
                                 borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(16),
-                                  topRight: const Radius.circular(16),
-                                  bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
-                                  bottomRight: isMe ? Radius.zero : const Radius.circular(16),
+                                  topLeft: const Radius.circular(20),
+                                  topRight: const Radius.circular(20),
+                                  bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(4),
+                                  bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(20),
                                 ),
+                                border: isMe
+                                    ? null
+                                    : Border.all(
+                                        color: const Color(0xFFE2E8F0),
+                                        width: 1,
+                                      ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
                               child: Builder(
                                 builder: (context) {
@@ -712,61 +809,83 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                                     );
                                   }
 
-                                  return Stack(
+                                  return Column(
+                                    crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 14, right: 45),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
+                                      if (hasGambar) ...[
+                                        Container(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 220,
+                                            maxHeight: 220,
+                                          ),
+                                          margin: const EdgeInsets.only(bottom: 6),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: GestureDetector(
+                                              onTap: () => _openFullScreenImage(
+                                                Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                              ),
+                                              child: Image.network(
+                                                Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
+                                                },
+                                                loadingBuilder: (context, child, loadingProgress) {
+                                                  if (loadingProgress == null) return child;
+                                                  return const SizedBox(
+                                                    width: 100,
+                                                    height: 100,
+                                                    child: Center(child: CircularProgressIndicator()),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        if (hasText) const SizedBox(height: 4),
+                                      ],
+                                      if (hasText)
+                                        Wrap(
+                                          alignment: WrapAlignment.start,
+                                          crossAxisAlignment: WrapCrossAlignment.end,
+                                          spacing: 10,
+                                          runSpacing: 4,
                                           children: [
-                                            if (hasGambar) ...[
-                                              Container(
-                                                constraints: const BoxConstraints(
-                                                  maxWidth: 220,
-                                                  maxHeight: 220,
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  child: GestureDetector(
-                                                    onTap: () => _openFullScreenImage(
-                                                      Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
-                                                    ),
-                                                    child: Image.network(
-                                                      Constants.baseUrl.replaceAll('/api/v1', '') + pathGambar,
-                                                      fit: BoxFit.contain,
-                                                      errorBuilder: (context, error, stackTrace) {
-                                                        return const Icon(Icons.broken_image, size: 50, color: Colors.grey);
-                                                      },
-                                                      loadingBuilder: (context, child, loadingProgress) {
-                                                        if (loadingProgress == null) return child;
-                                                        return const SizedBox(
-                                                          width: 100,
-                                                          height: 100,
-                                                          child: Center(child: CircularProgressIndicator()),
-                                                        );
-                                                      },
-                                                    ),
+                                            Text(
+                                              text,
+                                              style: GoogleFonts.poppins(
+                                                color: isMe ? Colors.white : navyColor,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  timeText,
+                                                  style: GoogleFonts.poppins(
+                                                    color: isMe ? Colors.white.withOpacity(0.65) : navyColor.withOpacity(0.55),
+                                                    fontSize: 10,
                                                   ),
                                                 ),
-                                              ),
-                                              if (hasText) const SizedBox(height: 8),
-                                            ],
-                                            if (hasText)
-                                              Text(
-                                                text,
-                                                style: GoogleFonts.poppins(
-                                                  color: isMe ? Colors.white : navyColor,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
+                                                if (isMe) ...[
+                                                  const SizedBox(width: 4),
+                                                  Icon(
+                                                    Icons.done_all_rounded,
+                                                    size: 15,
+                                                    color: (msg['status_baca'] == true)
+                                                        ? const Color(0xFF40C4FF)
+                                                        : Colors.white.withOpacity(0.6),
+                                                  ),
+                                                ],
+                                              ],
+                                            ),
                                           ],
-                                        ),
-                                      ),
-                                      Positioned(
-                                        bottom: 0,
-                                        right: 0,
-                                        child: Row(
+                                        )
+                                      else
+                                        Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Text(
@@ -782,13 +901,12 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                                                 Icons.done_all_rounded,
                                                 size: 15,
                                                 color: (msg['status_baca'] == true)
-                                                    ? const Color(0xFF40C4FF) // Centang biru
-                                                    : Colors.white.withOpacity(0.6), // Centang abu-abu
+                                                    ? const Color(0xFF40C4FF)
+                                                    : Colors.white.withOpacity(0.6),
                                               ),
                                             ],
                                           ],
                                         ),
-                                      ),
                                     ],
                                   );
                                 },

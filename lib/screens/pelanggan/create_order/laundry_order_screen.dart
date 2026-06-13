@@ -816,10 +816,18 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
     final int pageCount = (perfumes.length / 4).ceil();
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double gridWidth = screenWidth - 80; // horizontal margins + card padding
+    final double cellWidth = (gridWidth - 12) / 2;
+    // Calculate a responsive cell height that clamps between 108 and 130 to fit text content
+    final double cellHeight = (cellWidth / 1.35).clamp(108.0, 130.0);
+    final double totalGridHeight = (cellHeight * 2) + 12;
+    final double dynamicAspectRatio = cellWidth / cellHeight;
+
     return Column(
       children: [
         SizedBox(
-          height: 250, // Height for a 2x2 grid
+          height: totalGridHeight,
           child: PageView.builder(
             itemCount: pageCount,
             onPageChanged: (int page) {
@@ -838,11 +846,11 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.35,
+                  childAspectRatio: dynamicAspectRatio,
                 ),
                 itemCount: pageItems.length,
                 itemBuilder: (context, index) {

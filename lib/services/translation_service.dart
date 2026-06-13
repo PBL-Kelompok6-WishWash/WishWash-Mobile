@@ -170,6 +170,9 @@ class TranslationService {
       'attach_order_summary': 'Attach Order Summary',
       'receipt_summary': 'Receipt',
       'no_order_details': 'No order details available for this chat',
+      'online': 'Online',
+      'offline': 'Offline',
+      'last_seen_at': 'Last seen at',
     },
     'id': {
       'welcome': 'Selamat Datang',
@@ -305,6 +308,9 @@ class TranslationService {
       'attach_order_summary': 'Lampirkan Ringkasan Pesanan',
       'receipt_summary': 'Ringkasan',
       'no_order_details': 'Tidak ada informasi pesanan untuk chat ini',
+      'online': 'Online',
+      'offline': 'Offline',
+      'last_seen_at': 'Terakhir dilihat pukul',
     }
   };
 

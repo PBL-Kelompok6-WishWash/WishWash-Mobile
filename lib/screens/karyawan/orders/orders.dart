@@ -733,36 +733,39 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
           ),
         ],
       ),
-      child: Center(
-        child: IconButton(
-          padding: EdgeInsets.zero,
-          onPressed: onTap,
-          icon: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(icon, color: color, size: 22),
-              if (hasBadge)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF3B30), // Premium Apple iOS Red
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF3B30).withOpacity(0.3),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Center(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 22),
+                if (hasBadge)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF3B30).withOpacity(0.3),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1264,6 +1267,9 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     final double totalBayar = (order['total_bayar'] as num? ?? 0.0).toDouble();
     final String priceStr = totalBayar == 0.0 ? 'Rp 0' : _formatPrice(totalBayar);
 
+    final double kuantitas = (order['kuantitas'] as num? ?? 0.0).toDouble();
+    final String logistikType = order['tipe_logistik'] ?? 'Courier Delivery';
+
     final statusColor = _getStatusColor(status);
     final String translatedStatus = TranslationService.translateStatus(status);
 
@@ -1277,167 +1283,264 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: navyColor.withOpacity(0.08), width: 1.2),
+        border: Border.all(color: navyColor.withOpacity(0.06), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: navyColor.withOpacity(0.03),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: navyColor.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderDetailScreenKaryawan(
-                  order: order,
-                  onOrderUpdated: (updatedOrder) {
-                    _fetchOrders();
-                  },
-                ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left accent status line
+              Container(
+                width: 6,
+                color: statusColor,
               ),
-            );
-          },
-          borderRadius: BorderRadius.circular(20),
-          splashColor: navyColor.withOpacity(0.04),
-          highlightColor: navyColor.withOpacity(0.02),
-          child: Padding(
-            padding: const EdgeInsets.all(18.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Kode Order & Tanggal
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      orderCode,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: cyanColor,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today_outlined, size: 12, color: Colors.grey.shade400),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(order['tgl_pesanan']),
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
-                            fontWeight: FontWeight.w500,
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OrderDetailScreenKaryawan(
+                            order: order,
+                            onOrderUpdated: (updatedOrder) {
+                              _fetchOrders();
+                            },
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 1. Kode Order Pill & Tanggal
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: cyanColor.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  orderCode,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: cyanColor,
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Icon(Icons.calendar_today_outlined, size: 12, color: Colors.grey.shade400),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _formatDate(order['tgl_pesanan']),
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade500,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
 
-                // 2. Nama Pelanggan
-                Text(
-                  customerName,
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: navyColor,
-                    letterSpacing: -0.2,
+                          // 2. Nama Pelanggan
+                          Text(
+                            customerName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: navyColor,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // 3. Container Detail Layanan, Berat, & Logistik
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: bgGrey,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: navyColor.withValues(alpha: 0.04), width: 1),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.local_laundry_service_outlined, size: 14, color: navyColor.withValues(alpha: 0.6)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        '$serviceName ($packageName)',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade800,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    // Kuantitas/Berat
+                                    Row(
+                                      children: [
+                                        Icon(Icons.scale_outlined, size: 14, color: navyColor.withValues(alpha: 0.6)),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          kuantitas > 0
+                                              ? '${kuantitas.toString().replaceAll(RegExp(r'\.0$'), '')} kg'
+                                              : (TranslationService.currentLang == 'en' ? 'Not weighed' : 'Belum ditimbang'),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            color: kuantitas > 0 ? navyColor : Colors.amber.shade800,
+                                            fontWeight: kuantitas > 0 ? FontWeight.bold : FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 20),
+                                    // Tipe Logistik
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          logistikType == 'Courier Delivery'
+                                              ? Icons.local_shipping_outlined
+                                              : Icons.storefront_outlined,
+                                          size: 14,
+                                          color: navyColor.withValues(alpha: 0.6),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          logistikType == 'Courier Delivery'
+                                              ? (TranslationService.currentLang == 'en' ? 'Delivery' : 'Kurir')
+                                              : (logistikType == 'Self Pickup'
+                                                  ? (TranslationService.currentLang == 'en' ? 'Self Pickup' : 'Ambil Sendiri')
+                                                  : (TranslationService.currentLang == 'en' ? 'Drop-off' : 'Antar Sendiri')),
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 11,
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // 4. Status Badges & Harga
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Badges (Operasional & Pembayaran)
+                              Row(
+                                children: [
+                                  // Status Operasional
+                                  (() {
+                                    final bool isCancelled = status.toLowerCase().contains('batal') ||
+                                        status.toLowerCase().contains('cancel') ||
+                                        status.toLowerCase().contains('tolak') ||
+                                        status.toLowerCase().contains('reject');
+                                    final bool isCompleted = status.toLowerCase() == 'selesai' ||
+                                        status.toLowerCase().contains('completed') ||
+                                        status.toLowerCase().contains('success');
+
+                                    final Color bgCol = isCancelled
+                                        ? const Color(0xFFFF3B30)
+                                        : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.08));
+                                    final Color textCol = (isCancelled || isCompleted)
+                                        ? Colors.white
+                                        : statusColor;
+                                    final Color borderCol = isCancelled
+                                        ? const Color(0xFFFF3B30)
+                                        : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.15));
+
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: bgCol,
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: borderCol,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        translatedStatus,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: textCol,
+                                        ),
+                                      ),
+                                    );
+                                  })(),
+                                  const SizedBox(width: 8),
+
+                                  // Status Pembayaran
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: paymentBg,
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(color: paymentText.withOpacity(0.15), width: 1),
+                                    ),
+                                    child: Text(
+                                      paymentLabel,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: paymentText,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Harga Total
+                              Text(
+                                priceStr,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  color: totalBayar == 0.0 ? Colors.grey.shade400 : const Color(0xFF2E7D32),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-
-                // 3. Layanan & Paket
-                Row(
-                  children: [
-                    Icon(Icons.local_laundry_service_outlined, size: 14, color: Colors.grey.shade500),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$serviceName ($packageName)',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // 4. Status Badges & Harga
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Badges (Operasional & Pembayaran)
-                    Row(
-                      children: [
-                        // Status Operasional
-                        (() {
-                          final bool isCancelled = status.toLowerCase().contains('batal') ||
-                              status.toLowerCase().contains('cancel') ||
-                              status.toLowerCase().contains('tolak') ||
-                              status.toLowerCase().contains('reject');
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: isCancelled ? const Color(0xFFFF3B30) : statusColor.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                color: isCancelled ? const Color(0xFFFF3B30) : statusColor.withOpacity(0.15),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              translatedStatus,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isCancelled ? Colors.white : statusColor,
-                              ),
-                            ),
-                          );
-                        })(),
-                        const SizedBox(width: 8),
-
-                        // Status Pembayaran
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: paymentBg,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: paymentText.withOpacity(0.15), width: 1),
-                          ),
-                          child: Text(
-                            paymentLabel,
-                            style: GoogleFonts.poppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: paymentText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Harga Total
-                    Text(
-                      priceStr,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: totalBayar == 0.0 ? Colors.grey.shade400 : const Color(0xFF2E7D32),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

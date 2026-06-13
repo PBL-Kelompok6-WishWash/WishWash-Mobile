@@ -662,36 +662,39 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           ),
         ],
       ),
-      child: Center(
-        child: IconButton(
-          padding: EdgeInsets.zero,
-          onPressed: onTap,
-          icon: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(icon, color: color, size: 22),
-              if (hasBadge)
-                Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF3B30), // Premium Apple iOS Red
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFFFF3B30).withOpacity(0.3),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: onTap,
+          child: Center(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 22),
+                if (hasBadge)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF3B30), // Premium Apple iOS Red
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF3B30).withOpacity(0.3),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -58,4 +58,36 @@ class NotifikasiService {
 
     return response.statusCode == 200;
   }
+
+  static Future<bool> deleteNotification(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token == null) throw Exception('No token found');
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/$id'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return response.statusCode == 200;
+  }
+
+  static Future<bool> deleteAllNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token');
+    if (token == null) throw Exception('No token found');
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/delete-all'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    return response.statusCode == 200;
+  }
 }

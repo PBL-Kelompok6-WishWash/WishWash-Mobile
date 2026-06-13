@@ -23,6 +23,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   int _selectedFilterIndex = 0; // 0: Semua, 1: Belum Dibaca, 2: Sudah Dibaca
+  final ValueNotifier<int?> _openCardIdNotifier = ValueNotifier<int?>(null);
 
   @override
   void initState() {
@@ -87,6 +88,143 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _showSuccessDialog();
       }
     } catch (_) {}
+  }
+
+  Future<void> _deleteAllNotifications() async {
+    try {
+      final success = await NotifikasiService.deleteAllNotifications();
+      if (success) {
+        setState(() {
+          _notifications.clear();
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Semua notifikasi berhasil dihapus')),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _deleteNotification(int id) async {
+    try {
+      final success = await NotifikasiService.deleteNotification(id);
+      if (success) {
+        setState(() {
+          _notifications.removeWhere((n) => n['id_notifikasi'] == id);
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _showDeleteAllConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFEBEE),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: const Color(0xFFFFCDD2),
+                      width: 2.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.delete_forever_rounded,
+                    color: Color(0xFFE53935),
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Hapus Semua Notifikasi',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F2F53),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Apakah Anda yakin ingin menghapus semua notifikasi? Tindakan ini tidak dapat dibatalkan.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
+                    height: 1.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: const Color(0xFFBCEFF2).withValues(alpha: 0.8), width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF0C4B8E).withValues(alpha: 0.6),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _deleteAllNotifications();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE53935),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Hapus',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _showSuccessDialog() {
@@ -546,12 +684,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildFilterSelector() {
     const Color navyColor = Color(0xFF0C4B8E);
     final filters = ['Semua', 'Belum Dibaca', 'Sudah Dibaca'];
+    final countSemua = _notifications.length;
+    final countBelum = _notifications.where((n) => !(n['is_read'] ?? false)).length;
+    final countSudah = _notifications.where((n) => n['is_read'] ?? false).length;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: List.generate(filters.length, (index) {
           final isSelected = _selectedFilterIndex == index;
+          final count = index == 0 ? countSemua : (index == 1 ? countBelum : countSudah);
+
           return Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _selectedFilterIndex = index),
@@ -572,14 +716,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         ]
                       : [],
                 ),
-                child: Text(
-                  filters[index],
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                    color: isSelected ? Colors.white : navyColor,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      filters[index],
+                      style: GoogleFonts.poppins(
+                        fontSize: 10.5,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                        color: isSelected ? Colors.white : navyColor,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '($count)',
+                      style: GoogleFonts.poppins(
+                        fontSize: 9.5,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? Colors.white.withOpacity(0.85) : navyColor.withOpacity(0.65),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -617,10 +775,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ),
                   ),
                   _notifications.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.done_all_rounded, color: navyColor, size: 22),
-                          tooltip: 'Tandai semua dibaca',
-                          onPressed: _showMarkAllAsReadConfirmation,
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.done_all_rounded, color: navyColor, size: 22),
+                              tooltip: 'Tandai semua dibaca',
+                              onPressed: _showMarkAllAsReadConfirmation,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red, size: 22),
+                              tooltip: 'Hapus semua notifikasi',
+                              onPressed: _showDeleteAllConfirmation,
+                            ),
+                          ],
                         )
                       : const SizedBox(width: 48),
                 ],
@@ -788,29 +956,36 @@ class _NotificationScreenState extends State<NotificationScreen> {
         final String time = _formatTime(notif['created_at'] ?? DateTime.now().toIso8601String());
         final bool isRead = notif['is_read'] ?? false;
 
-        return TweenAnimationBuilder<double>(
-          duration: Duration(milliseconds: 300 + (index * 60).clamp(0, 300)),
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Transform.translate(
-              offset: Offset(0, 30 * (1.0 - value)),
-              child: Opacity(
-                opacity: value,
-                child: child,
-              ),
-            );
+        return SlidableNotificationCard(
+          id: id,
+          openCardIdNotifier: _openCardIdNotifier,
+          onDelete: () {
+            _deleteNotification(id);
           },
-          child: _buildNotificationCard(
-            id: id,
-            index: index,
-            title: title,
-            description: desc,
-            time: time,
-            isRead: isRead,
-            icon: _getIcon(title),
-            iconBg: _getIconBgColor(title),
-            iconColor: _getIconColor(title),
+          child: TweenAnimationBuilder<double>(
+            duration: Duration(milliseconds: 300 + (index * 60).clamp(0, 300)),
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Transform.translate(
+                offset: Offset(0, 30 * (1.0 - value)),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: _buildNotificationCard(
+              id: id,
+              index: index,
+              title: title,
+              description: desc,
+              time: time,
+              isRead: isRead,
+              icon: _getIcon(title),
+              iconBg: _getIconBgColor(title),
+              iconColor: _getIconColor(title),
+            ),
           ),
         );
       },
@@ -975,5 +1150,178 @@ class _AutoDismissDialogState extends State<AutoDismissDialog> {
   @override
   Widget build(BuildContext context) {
     return widget.child;
+  }
+}
+
+class SlidableNotificationCard extends StatefulWidget {
+  final Widget child;
+  final int id;
+  final ValueNotifier<int?> openCardIdNotifier;
+  final VoidCallback onDelete;
+
+  const SlidableNotificationCard({
+    super.key,
+    required this.child,
+    required this.id,
+    required this.openCardIdNotifier,
+    required this.onDelete,
+  });
+
+  @override
+  State<SlidableNotificationCard> createState() => _SlidableNotificationCardState();
+}
+
+class _SlidableNotificationCardState extends State<SlidableNotificationCard> with SingleTickerProviderStateMixin {
+  double _dragOffset = 0.0;
+  static const double _maxDragWidth = 80.0;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  bool _isDeleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    widget.openCardIdNotifier.addListener(_onNotifierChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.openCardIdNotifier.removeListener(_onNotifierChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onNotifierChanged() {
+    if (widget.openCardIdNotifier.value != widget.id && _dragOffset != 0.0) {
+      _animateTo(0.0);
+    }
+  }
+
+  void _animateTo(double target) {
+    _animation = Tween<double>(begin: _dragOffset, end: target).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    )..addListener(() {
+        setState(() {
+          _dragOffset = _animation.value;
+        });
+      });
+    _controller.reset();
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 250),
+      opacity: _isDeleting ? 0.0 : 1.0,
+      curve: Curves.easeOut,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        child: _isDeleting
+            ? const SizedBox(width: double.infinity, height: 0)
+            : Stack(
+                children: [
+                  // Background delete button
+                  if (_dragOffset != 0.0)
+                  Positioned.fill(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFD32F2F), // Rich crimson red
+                            Color(0xFFFF5252), // Modern coral red
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFFFF8A80).withValues(alpha: 0.4),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: _maxDragWidth,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(24),
+                                bottomRight: Radius.circular(24),
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _isDeleting = true;
+                                });
+                                _animateTo(0.0);
+                                Future.delayed(const Duration(milliseconds: 250), () {
+                                  if (mounted) {
+                                    widget.onDelete();
+                                  }
+                                });
+                              },
+                              child: const Center(
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Foreground sliding card
+                  Transform.translate(
+                    offset: Offset(_dragOffset, 0),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragUpdate: (details) {
+                        setState(() {
+                          _dragOffset += details.primaryDelta!;
+                          if (_dragOffset > 0.0) _dragOffset = 0.0;
+                          if (_dragOffset < -_maxDragWidth - 20) _dragOffset = -_maxDragWidth - 20;
+                        });
+                        if (_dragOffset < 0.0 && widget.openCardIdNotifier.value != widget.id) {
+                          widget.openCardIdNotifier.value = widget.id;
+                        }
+                      },
+                      onHorizontalDragEnd: (details) {
+                        if (_dragOffset < -_maxDragWidth / 2) {
+                          _animateTo(-_maxDragWidth);
+                          widget.openCardIdNotifier.value = widget.id;
+                        } else {
+                          _animateTo(0.0);
+                          if (widget.openCardIdNotifier.value == widget.id) {
+                            widget.openCardIdNotifier.value = null;
+                          }
+                        }
+                      },
+                      onTap: _dragOffset < 0.0 ? () {
+                        _animateTo(0.0);
+                        if (widget.openCardIdNotifier.value == widget.id) {
+                          widget.openCardIdNotifier.value = null;
+                        }
+                      } : null,
+                      child: AbsorbPointer(
+                        absorbing: _dragOffset < 0.0,
+                        child: widget.child,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
   }
 }
