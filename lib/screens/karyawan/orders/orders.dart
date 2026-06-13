@@ -1362,15 +1362,50 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                           ),
                           const SizedBox(height: 10),
 
-                          // 2. Nama Pelanggan
-                          Text(
-                            customerName,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: navyColor,
-                              letterSpacing: -0.2,
-                            ),
+                          // 2. Nama Pelanggan & Rating Badge (kalo ada)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  customerName,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                    color: navyColor,
+                                    letterSpacing: -0.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (order['Penilaian'] != null) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.amber.shade200, width: 1),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${(order['Penilaian']['bintang'] as num?)?.toInt() ?? 5}.0',
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber.shade900,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 10),
 

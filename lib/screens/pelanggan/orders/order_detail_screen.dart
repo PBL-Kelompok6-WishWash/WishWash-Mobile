@@ -1816,7 +1816,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   onRefresh: _handleRefresh,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 140),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      10,
+                      20,
+                      (statusInfo['is_selesai'] == true ||
+                              statusInfo['raw_status'].toString().toLowerCase().contains('selesai'))
+                          ? 30
+                          : 140,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -3345,6 +3353,30 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         rawStatus.contains('success');
     final String finishedTime = _getCompletionTime(_currentOrder);
 
+    String deliveryDateDisplay = isEn ? 'Awaiting Est. Finish' : 'Menunggu Estimasi Selesai';
+    final List<dynamic> historyList = _currentOrder['RiwayatStatusDetail'] ?? [];
+    for (final h in historyList) {
+      try {
+        final String name = ((h['ReferensiStatus'] != null
+                ? h['ReferensiStatus']['nama_status']
+                : null) ??
+            h['nama_status'] ??
+            '')
+            .toString()
+            .toLowerCase();
+        final dynamic timeVal = h['waktu_update'] ?? h['WaktuUpdate'];
+        if (name.contains('antar') || name.contains('delivery')) {
+          if (timeVal != null && timeVal.toString().isNotEmpty) {
+            deliveryDateDisplay = _formatDate(timeVal.toString());
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (deliveryDateDisplay.contains('Awaiting') || deliveryDateDisplay.contains('Menunggu')) {
+      deliveryDateDisplay = estDate;
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -3685,6 +3717,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
                 if (!isDropOffLogistik) ...[
                   _buildDetailRow(
+                    isEn ? 'Delivery Date' : 'Tanggal Pengantaran',
+                    deliveryDateDisplay,
+                    Icons.local_shipping_rounded,
+                  ),
+                  const Divider(height: 20),
+                  _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
                     (_currentOrder['AlamatPenyerahan'] != null &&
                             _currentOrder['AlamatPenyerahan']['alamat_lengkap'] != null &&
@@ -3711,7 +3749,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
           ),
-          if (kuantitasVal > 0.0) ...[
+          if (kuantitasVal > 0.0 && !isFinished) ...[
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,

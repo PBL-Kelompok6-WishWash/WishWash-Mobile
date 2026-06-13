@@ -1559,7 +1559,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   onRefresh: _handleRefresh,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 260),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      10,
+                      20,
+                      (rawStatus.contains('selesai') ||
+                              rawStatus.contains('completed') ||
+                              rawStatus.contains('success'))
+                          ? 30
+                          : 260,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1639,6 +1648,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           estDate: estDate,
                         );
                       })(),
+                      if (rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success')) ...[
+                        const SizedBox(height: 16),
+                        _buildInvoiceCard(context, isEn),
+                        if (_currentOrder['Penilaian'] != null) ...[
+                          const SizedBox(height: 16),
+                          _buildPenilaianDetailsCard(_currentOrder['Penilaian'], isEn),
+                        ],
+                      ],
                     ],
                   ),
                 ),
@@ -2749,6 +2766,34 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
         : '$kuantitasVal kg';
 
+    final statusInfo = _getCurrentStatusInfo(_currentOrder);
+    final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
+    final bool isCompleted = rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success');
+
+    String deliveryDateDisplay = isEn ? 'Awaiting Est. Finish' : 'Menunggu Estimasi Selesai';
+    final List<dynamic> historyList = _currentOrder['RiwayatStatusDetail'] ?? [];
+    for (final h in historyList) {
+      try {
+        final String name = ((h['ReferensiStatus'] != null
+                ? h['ReferensiStatus']['nama_status']
+                : null) ??
+            h['nama_status'] ??
+            '')
+            .toString()
+            .toLowerCase();
+        final dynamic timeVal = h['waktu_update'] ?? h['WaktuUpdate'];
+        if (name.contains('antar') || name.contains('delivery')) {
+          if (timeVal != null && timeVal.toString().isNotEmpty) {
+            deliveryDateDisplay = _formatDate(timeVal.toString());
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+    if (deliveryDateDisplay.contains('Awaiting') || deliveryDateDisplay.contains('Menunggu')) {
+      deliveryDateDisplay = estDate;
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -3104,6 +3149,12 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
                 if (!isDropOff) ...[
                   _buildDetailRow(
+                    isEn ? 'Delivery Date' : 'Tanggal Pengantaran',
+                    deliveryDateDisplay,
+                    Icons.local_shipping_rounded,
+                  ),
+                  const Divider(height: 20),
+                  _buildDetailRow(
                     isEn ? 'Delivery Address' : 'Alamat Pengantaran',
                     deliveryAddr,
                     Icons.location_on_rounded,
@@ -3119,7 +3170,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ),
           ),
 
-          if (kuantitasVal > 0.0) ...[
+          if (kuantitasVal > 0.0 && !isCompleted) ...[
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
@@ -4882,6 +4933,251 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildInvoiceCard(BuildContext context, bool isEn) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color: Colors.green.shade700,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEn ? 'Official Invoice' : 'Nota Resmi Pembayaran',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isEn
+                          ? 'This order has been fully paid.'
+                          : 'Pesanan ini telah lunas dibayarkan.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: navyColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              onPressed: () => _showReceiptModal(),
+              icon: const Icon(Icons.receipt_long_rounded, size: 18),
+              label: Text(
+                isEn ? 'View Invoice' : 'Lihat Nota',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPenilaianDetailsCard(Map<String, dynamic> penilaian, bool isEn) {
+    final int bintangOverall = (penilaian['bintang'] as num?)?.toInt() ?? 5;
+    final int bintangLayanan = (penilaian['bintang_layanan'] as num?)?.toInt() ?? bintangOverall;
+    final int bintangKurir = (penilaian['bintang_kurir'] as num?)?.toInt() ?? bintangOverall;
+    final int bintangKecepatan = (penilaian['bintang_kecepatan'] as num?)?.toInt() ?? bintangOverall;
+    final String ulasanText = (penilaian['ulasan'] ?? '').toString();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: navyColor.withOpacity(0.12), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.rate_review_rounded, color: navyColor, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                isEn ? 'Customer Review' : 'Ulasan Pelanggan',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Overall Score Row
+          Row(
+            children: [
+              Text(
+                isEn ? 'Overall Rating:' : 'Rating Keseluruhan:',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const Spacer(),
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < bintangOverall ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: Colors.amber,
+                    size: 20,
+                  );
+                }),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '$bintangOverall.0',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 12),
+
+          // Aspect 1
+          _buildDetailAspectRow(
+            label: isEn ? 'Laundry Quality' : 'Kualitas Hasil Cuci',
+            score: bintangLayanan,
+          ),
+          const SizedBox(height: 8),
+
+          // Aspect 2
+          _buildDetailAspectRow(
+            label: isEn ? 'Courier Friendliness' : 'Pelayanan Kurir',
+            score: bintangKurir,
+          ),
+          const SizedBox(height: 8),
+
+          // Aspect 3
+          _buildDetailAspectRow(
+            label: isEn ? 'Punctuality' : 'Ketepatan Waktu',
+            score: bintangKecepatan,
+          ),
+
+          if (ulasanText.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              isEn ? 'Feedback / Notes:' : 'Kritik & Saran / Ulasan:',
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade500,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: bgGrey,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                ulasanText,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailAspectRow({required String label, required int score}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade600),
+        ),
+        Row(
+          children: List.generate(5, (index) {
+            return Icon(
+              index < score ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: Colors.amber,
+              size: 16,
+            );
+          }),
+        ),
+      ],
     );
   }
 }
