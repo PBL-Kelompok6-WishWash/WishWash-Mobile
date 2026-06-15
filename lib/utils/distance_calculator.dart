@@ -3,7 +3,7 @@ import 'dart:math';
 class DistanceCalculator {
   static const double outletLat = -7.0499;
   static const double outletLng = 110.4381;
-  static const double ratePerMeter = 2.0; // Rp 2.000 / km = Rp 2 / meter
+  static const double ratePerMeter = 1.0; // Rp 1.000 / km = Rp 1 / meter
 
   static double calculateDistance(double lat2, double lon2) {
     const p = 0.017453292519943295;
@@ -15,6 +15,8 @@ class DistanceCalculator {
 
   static double getFee(double lat, double lng) {
     final distanceInMeters = calculateDistance(lat, lng);
-    return (distanceInMeters * ratePerMeter).roundToDouble();
+    final distanceInKm = distanceInMeters / 1000.0;
+    // Dibulatkan ke atas per km agar selalu kelipatan Rp 1.000
+    return (distanceInKm.ceil() * 1000.0);
   }
 }

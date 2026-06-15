@@ -221,6 +221,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  Future<void> _updatePromoBackend(int idPromo) async {
+    try {
+      final updatedOrder = await OrderService.updateOrder(
+        _currentOrder['id_order'],
+        {'id_promo': idPromo},
+      );
+      if (mounted) {
+        setState(() {
+          _currentOrder = Map<String, dynamic>.from(updatedOrder);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating promo on backend: $e');
+    }
+  }
+
   Future<void> _restorePromoSelection(double subtotalCucian) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -319,6 +335,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       if (mounted) {
         setState(() {
           _currentOrder = Map<String, dynamic>.from(updated);
+          
+          // Restore promo state from backend if present
+          final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
+          if (promoOrders.isNotEmpty) {
+            final promoOrderObj = promoOrders.first;
+            final promo = promoOrderObj['Promo'] ?? {};
+            if (promo.isNotEmpty) {
+              final String code = promo['kode_promo'] ?? '';
+              final double kuantitas = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+              final layanan = _currentOrder['Layanan'] ?? {};
+              final double hargaPerSatuan = (layanan['harga_per_satuan'] as num?)?.toDouble() ?? 0.0;
+              final double subtotalCucian = kuantitas * hargaPerSatuan;
+              
+              _appliedPromoCode = code;
+              _appliedPromoDiscount = _calculatePromoDiscount(promo, subtotalCucian);
+              _isPromoApplied = true;
+              _promoController.text = code;
+              _promoError = '';
+            }
+          } else {
+            // If backend has no promo, clear local state
+            _appliedPromoCode = '';
+            _appliedPromoDiscount = 0.0;
+            _isPromoApplied = false;
+            _promoController.clear();
+            _promoError = '';
+          }
         });
         await _fetchRouteDistanceAndDuration();
       }
@@ -392,9 +435,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<void> _updateOrderAddressBackend(int idAlamat) async {
     try {
+      double fee = 0.0;
+      final selectedAddr = addresses.firstWhere(
+        (element) => element['id_alamat'] == idAlamat,
+        orElse: () => null,
+      );
+      if (selectedAddr != null) {
+        final double? lat = double.tryParse(selectedAddr['latitude'].toString());
+        final double? lng = double.tryParse(selectedAddr['longitude'].toString());
+        if (lat != null && lng != null) {
+          fee = DistanceCalculator.getFee(lat, lng);
+        }
+      }
+
       final Map<String, dynamic> body = {
         'id_alamat_penyerahan': idAlamat,
         'tipe_logistik': _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
+        'biaya_pengantaran': fee,
       };
       await OrderService.updateOrder(
         _currentOrder['id_order'],
@@ -1527,6 +1584,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           _promoError = '';
           _appliedPromoCode = promo['kode_promo'] ?? '';
           _savePromoSelection(_appliedPromoCode, _appliedPromoDiscount, true);
+          _updatePromoBackend(promo['id_promo']);
         } else {
           _appliedPromoDiscount = 0.0;
           _isPromoApplied = false;
@@ -1535,6 +1593,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               : 'pesanan anda tidak memenuhi syarat promo';
           _appliedPromoCode = '';
           _savePromoSelection('', 0.0, false);
+          _updatePromoBackend(0);
         }
       } else {
         _appliedPromoDiscount = 0.0;
@@ -1544,6 +1603,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             : 'Kode promo tidak valid atau belum diklaim!';
         _appliedPromoCode = '';
         _savePromoSelection('', 0.0, false);
+        _updatePromoBackend(0);
       }
     });
   }
@@ -1820,10 +1880,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       20,
                       10,
                       20,
-                      (statusInfo['is_selesai'] == true ||
-                              statusInfo['raw_status'].toString().toLowerCase().contains('selesai'))
-                          ? 30
-                          : 140,
+                      (!isCancelled &&
+                              (!(statusInfo['is_selesai'] == true ||
+                                  statusInfo['raw_status'].toString().toLowerCase().contains('selesai')) ||
+                                  order['Penilaian'] == null))
+                          ? 140
+                          : 30,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1891,7 +1953,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         const SizedBox(height: 16),
                         _buildDeliveryLocationSection(isEn),
                         const SizedBox(height: 16),
-                        _buildPromoCard(subtotalCucian, isEn),
+                        _buildPromoCard(subtotalCucian + biayaTambahan, isEn),
                         const SizedBox(height: 16),
                         _buildChoosePaymentMethodCard(isEn),
                         const SizedBox(height: 16),
@@ -1913,6 +1975,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                            '')
                                      : ''),
                           isEn: isEn,
+                          biayaPenjemputan: biayaPenjemputan,
+                          biayaPengantaran: biayaPengantaran,
                         ),
                       ] else ...[
                         // Show Review Order card just like unpaid state as requested
@@ -1949,6 +2013,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           price,
                           totalBayar,
                           isEn,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildPriceSummaryCard(
+                          subtotalCucian: subtotalCucian,
+                          biayaTambahan: biayaTambahan,
+                          promoDiscount: promoDiscount,
+                          totalTagihan: totalTagihan,
+                          kuantitas: kuantitas,
+                          hargaPerSatuan: hargaPerSatuan,
+                          packageName: packageName,
+                          promoCode: _isPromoApplied
+                              ? _appliedPromoCode
+                              : (order['PromoOrder'] != null &&
+                                        (order['PromoOrder'] as List).isNotEmpty
+                                     ? ((order['PromoOrder'] as List)
+                                               .first['Promo']?['code']
+                                               ?.toString() ??
+                                           '')
+                                     : ''),
+                          isEn: isEn,
+                          biayaPenjemputan: biayaPenjemputan,
+                          biayaPengantaran: biayaPengantaran,
                         ),
                         if (order['Penilaian'] != null) ...[
                           const SizedBox(height: 16),
@@ -2035,6 +2121,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             _promoError = '';
                           });
                           _savePromoSelection('', 0.0, false);
+                          _updatePromoBackend(0);
                           setModalState(() {});
                           Navigator.pop(context);
                         },
@@ -2258,6 +2345,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                                       _promoError = '';
                                                     });
                                                     _savePromoSelection(code, disc, true);
+                                                    _updatePromoBackend(promo['id_promo']);
                                                     setModalState(() {});
                                                     Navigator.pop(context);
                                                   }
@@ -3749,50 +3837,59 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ],
             ),
           ),
-          if (kuantitasVal > 0.0 && !isFinished) ...[
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                icon: Icon(
-                  Icons.receipt_long_rounded,
-                  color: navyColor,
-                  size: 18,
-                ),
-                label: Text(
-                  isEn ? 'View Transaction Receipt' : 'Lihat Resi Transaksi',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    color: navyColor,
-                    fontSize: 13,
+          (() {
+            final String paymentStatus = _getPaymentStatus(_currentOrder);
+            final bool isPaid = paymentStatus == 'Lunas' && kuantitasVal > 0.0;
+            if (kuantitasVal > 0.0 && !isFinished && !isPaid) {
+              return Column(
+                children: [
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      icon: Icon(
+                        Icons.receipt_long_rounded,
+                        color: navyColor,
+                        size: 18,
+                      ),
+                      label: Text(
+                        isEn ? 'View Transaction Receipt' : 'Lihat Resi Transaksi',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          color: navyColor,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: navyColor,
+                        elevation: 2,
+                        shadowColor: const Color(0xFFCAD4DE).withOpacity(0.4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                        ),
+                      ),
+                      onPressed: () => _showInvoiceModal(
+                        context,
+                        _currentOrder,
+                        orderId,
+                        orderDate,
+                        customerName,
+                        packageName,
+                        perfumeName,
+                        price,
+                        totalBayar,
+                        isEn,
+                      ),
+                    ),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: navyColor,
-                  elevation: 2,
-                  shadowColor: const Color(0xFFCAD4DE).withOpacity(0.4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: Colors.grey.shade200, width: 1.5),
-                  ),
-                ),
-                onPressed: () => _showInvoiceModal(
-                  context,
-                  _currentOrder,
-                  orderId,
-                  orderDate,
-                  customerName,
-                  packageName,
-                  perfumeName,
-                  price,
-                  totalBayar,
-                  isEn,
-                ),
-              ),
-            ),
-          ],
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          })(),
         ],
       ),
     );
@@ -4128,17 +4225,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: navyColor.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.location_on_rounded,
-                    color: navyColor,
-                    size: 20,
-                  ),
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: navyColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: navyColor,
+                        size: 20,
+                      ),
+                    ),
+                    if (address != null)
+                      (() {
+                        final double? latVal = double.tryParse(address['latitude']?.toString() ?? '');
+                        final double? lngVal = double.tryParse(address['longitude']?.toString() ?? '');
+                        if (latVal == null || lngVal == null) return const SizedBox.shrink();
+
+                        final distanceInMeters = DistanceCalculator.calculateDistance(latVal, lngVal);
+                        final distanceInKm = distanceInMeters / 1000.0;
+                        final String distanceStr = distanceInKm < 1.0
+                            ? '${distanceInMeters.round()} m'
+                            : '${distanceInKm.toStringAsFixed(1)} km';
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            distanceStr,
+                            style: GoogleFonts.poppins(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        );
+                      })(),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -4291,43 +4416,70 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           ],
                         );
                       }(),
-                      if (!isPaid) ...[
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: _chooseAddress,
-                          icon: Icon(
-                            address != null
-                                ? Icons.edit_location_alt_rounded
-                                : Icons.add_location_alt_rounded,
-                            size: 14,
-                          ),
-                          label: Text(
-                            address != null
-                                ? (isEn ? 'Change Address' : 'Ubah Alamat')
-                                : (isEn ? 'Add Address' : 'Tambah Alamat'),
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: navyColor,
-                            side: BorderSide(
-                              color: navyColor.withValues(alpha: 0.5),
-                              width: 1.2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (!isPaid)
+                            OutlinedButton.icon(
+                              onPressed: _chooseAddress,
+                              icon: Icon(
+                                address != null
+                                    ? Icons.edit_location_alt_rounded
+                                    : Icons.add_location_alt_rounded,
+                                size: 14,
+                              ),
+                              label: Text(
+                                address != null
+                                    ? (isEn ? 'Change Address' : 'Ubah Alamat')
+                                    : (isEn ? 'Add Address' : 'Tambah Alamat'),
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: navyColor,
+                                side: BorderSide(
+                                  color: navyColor.withValues(alpha: 0.5),
+                                  width: 1.2,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          if (address != null)
+                            (() {
+                              final double? latVal = double.tryParse(address['latitude']?.toString() ?? '');
+                              final double? lngVal = double.tryParse(address['longitude']?.toString() ?? '');
+                              if (latVal == null || lngVal == null) return const SizedBox.shrink();
+
+                              final double fee = DistanceCalculator.getFee(latVal, lngVal);
+                              final String feeStr = _formatRupiah(fee);
+
+                              return Text(
+                                '+ $feeStr',
+                                style: GoogleFonts.poppins(
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13.5,
+                                ),
+                              );
+                            })()
+                          else
+                            const SizedBox.shrink(),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -4605,6 +4757,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required String packageName,
     required String promoCode,
     required bool isEn,
+    required double biayaPenjemputan,
+    required double biayaPengantaran,
   }) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -4662,6 +4816,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             isEn ? 'Package Surcharge' : 'Biaya Paket',
             _formatRupiah(biayaTambahan),
             detailText: packageName,
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+            _formatRupiah(biayaPenjemputan),
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+            _formatRupiah(biayaPengantaran),
             isBoldLabel: false,
           ),
           const SizedBox(height: 8),
@@ -6167,43 +6333,88 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               // Animated Line (Grab Style)
               Row(
                 children: [
-                  Icon(Icons.motorcycle_rounded, color: Colors.green.shade600, size: 20),
+                  Icon(Icons.storefront_rounded, color: Colors.grey.shade400, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Stack(
-                      alignment: Alignment.centerLeft,
-                      children: [
-                        Container(
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        // Animated green progress bar
-                        TweenAnimationBuilder<double>(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return TweenAnimationBuilder<double>(
                           tween: Tween<double>(begin: 0.0, end: _routeProgress),
-                          duration: const Duration(milliseconds: 800),
+                          duration: const Duration(milliseconds: 1500),
+                          curve: Curves.easeInOutCubic,
                           builder: (context, val, _) {
-                            return FractionallySizedBox(
-                              widthFactor: val,
-                              child: Container(
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.green.shade400, Colors.green.shade700],
+                            final double iconSize = 20.0;
+                            final double leftOffset = val * (constraints.maxWidth - iconSize);
+
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.centerLeft,
+                              children: [
+                                // Background track
+                                Container(
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(3),
+                                    border: Border.all(color: Colors.grey.shade200, width: 0.5),
                                   ),
-                                  borderRadius: BorderRadius.circular(2),
                                 ),
-                              ),
+                                // Progress track
+                                FractionallySizedBox(
+                                  widthFactor: val,
+                                  child: Container(
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.green.shade300,
+                                          Colors.green.shade600,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(3),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.shade400.withOpacity(0.3),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Moving motorcycle
+                                Positioned(
+                                  left: leftOffset,
+                                  child: Container(
+                                    width: iconSize,
+                                    height: iconSize,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.15),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.motorcycle_rounded,
+                                      color: Colors.green.shade600,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             );
                           },
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.home_rounded, color: Colors.grey.shade400, size: 20),
+                  Icon(Icons.home_rounded, color: Colors.green.shade600, size: 20),
                 ],
               ),
             ],
@@ -7007,42 +7218,88 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             // Progress Bar (Grab Style)
             Row(
               children: [
-                Icon(Icons.motorcycle_rounded, color: Colors.green.shade600, size: 18),
+                Icon(Icons.storefront_rounded, color: Colors.grey.shade400, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Stack(
-                    alignment: Alignment.centerLeft,
-                    children: [
-                      Container(
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      TweenAnimationBuilder<double>(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return TweenAnimationBuilder<double>(
                         tween: Tween<double>(begin: 0.0, end: _routeProgress),
-                        duration: const Duration(milliseconds: 800),
+                        duration: const Duration(milliseconds: 1500),
+                        curve: Curves.easeInOutCubic,
                         builder: (context, val, _) {
-                          return FractionallySizedBox(
-                            widthFactor: val,
-                            child: Container(
-                              height: 4,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Colors.green.shade400, Colors.green.shade700],
+                          final double iconSize = 20.0;
+                          final double leftOffset = val * (constraints.maxWidth - iconSize);
+
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              // Background track
+                              Container(
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(color: Colors.grey.shade200, width: 0.5),
                                 ),
-                                borderRadius: BorderRadius.circular(2),
                               ),
-                            ),
+                              // Progress track
+                              FractionallySizedBox(
+                                widthFactor: val,
+                                child: Container(
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.green.shade300,
+                                        Colors.green.shade600,
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.green.shade400.withOpacity(0.3),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Moving motorcycle
+                              Positioned(
+                                  left: leftOffset,
+                                  child: Container(
+                                    width: iconSize,
+                                    height: iconSize,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.15),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.motorcycle_rounded,
+                                      color: Colors.green.shade600,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           );
                         },
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.home_rounded, color: Colors.grey.shade400, size: 18),
+                Icon(Icons.home_rounded, color: Colors.green.shade600, size: 18),
               ],
             ),
             const SizedBox(height: 16),

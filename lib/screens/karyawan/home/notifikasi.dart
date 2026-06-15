@@ -576,7 +576,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       return Icons.iron_outlined;
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return Icons.dry_cleaning_outlined;
+      return Icons.wb_sunny_outlined;
     }
     if (lower.contains('dicuci') || lower.contains('pencucian')) {
       return Icons.local_laundry_service_outlined;

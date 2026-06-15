@@ -388,6 +388,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
   }
 
+  String _formatDateOnly(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final months = TranslationService.currentLang == 'en'
+          ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      try {
+        return isoString.split('T')[0];
+      } catch (_) {
+        return isoString;
+      }
+    }
+  }
+
   String _getEstSelesaiDate(Map<String, dynamic> order) {
     final String? pickupStr = order['jadwal_pickup']?.toString();
     final String? tglPesananStr = order['tgl_pesanan']?.toString();
@@ -1335,8 +1352,35 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             return;
                           }
                           Navigator.pop(context);
-                          final double computedTotal =
-                              (weight * hargaPerKg) + biayaTambahan;
+                          final double subtotalCucian = weight * hargaPerKg;
+                          final double biayaPenjemputan = (_currentOrder['biaya_penjemputan'] as num?)?.toDouble() ?? 0.0;
+                          final double biayaPengantaran = (_currentOrder['biaya_pengantaran'] as num?)?.toDouble() ?? 0.0;
+                          
+                          // Diskon Promo
+                          final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
+                          double promoDiscount = 0.0;
+                          if (promoOrders.isNotEmpty) {
+                            final promoOrderObj = promoOrders.first;
+                            final promo = promoOrderObj['Promo'] ?? {};
+                            if (promo.isNotEmpty) {
+                              final String tipePromo = promo['tipe_promo'] ?? 'Nominal';
+                              final double nominalPotongan =
+                                  (promo['nominal_potongan'] as num?)?.toDouble() ?? 0.0;
+                              final double maksimalPotongan =
+                                  (promo['maksimal_potongan'] as num?)?.toDouble() ?? 0.0;
+
+                              if (tipePromo.toLowerCase().contains('persen')) {
+                                promoDiscount = subtotalCucian * (nominalPotongan / 100);
+                                if (maksimalPotongan > 0.0 && promoDiscount > maksimalPotongan) {
+                                  promoDiscount = maksimalPotongan;
+                                }
+                              } else {
+                                promoDiscount = nominalPotongan;
+                              }
+                            }
+                          }
+                          
+                          final double computedTotal = subtotalCucian + biayaTambahan + biayaPenjemputan + biayaPengantaran - promoDiscount;
 
                           final List<Map<String, dynamic>> refStatuses =
                               _getSortedReferenceStatuses(_currentOrder);
@@ -4351,6 +4395,126 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             ? 'View Pickup Route'
             : 'Lihat Rute Penjemputan';
         customAction = () async {
+          final String? jadwalPickupStr = _currentOrder['jadwal_pickup']?.toString();
+          bool isPickupDayReached = true;
+          if (jadwalPickupStr != null && jadwalPickupStr.isNotEmpty) {
+            try {
+              final DateTime scheduledDate = DateTime.parse(jadwalPickupStr).toLocal();
+              final DateTime today = DateTime.now();
+              final DateTime scheduledDateOnly = DateTime(scheduledDate.year, scheduledDate.month, scheduledDate.day);
+              final DateTime todayDateOnly = DateTime(today.year, today.month, today.day);
+              if (scheduledDateOnly.isAfter(todayDateOnly)) {
+                isPickupDayReached = false;
+              }
+            } catch (_) {}
+          }
+
+          if (!isPickupDayReached) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) {
+                final isEn = TranslationService.currentLang == 'en';
+                final DateTime scheduledDate = DateTime.parse(jadwalPickupStr!).toLocal();
+                final String dateFormatted = _formatDateOnly(jadwalPickupStr);
+                final bool isMorning = scheduledDate.hour < 12;
+                final String timeRange = isMorning 
+                    ? '08:00 AM - 12:00 PM' 
+                    : '12:00 PM - 04:00 PM';
+                final String displaySchedule = '$dateFormatted, $timeRange';
+
+                final String warningContent = isEn
+                    ? 'This order is scheduled for pickup on $displaySchedule. You cannot start pickup today.'
+                    : 'Pesanan ini dijadwalkan untuk dijemput pada $displaySchedule. Anda belum bisa melakukan penjemputan hari ini.';
+
+                return Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: navyColor.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          spreadRadius: 0,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 72,
+                          height: 72,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFFF3E0),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.history_toggle_off_rounded,
+                            color: Color(0xFFE65100),
+                            size: 36,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          isEn ? 'Pickup Scheduled Later' : 'Jadwal Penjemputan Belum Tiba',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          warningContent,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: navyColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text(
+                              isEn ? 'Understood' : 'Mengerti',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+            return;
+          }
+
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
@@ -4420,6 +4584,57 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (status == 'penjemputan' || nextStatus == 'penjemputan') ...[
+            (() {
+              final String? jadwalPickupStr = _currentOrder['jadwal_pickup']?.toString();
+              if (jadwalPickupStr == null || jadwalPickupStr.isEmpty) return const SizedBox.shrink();
+
+              String scheduleLabel = '';
+              try {
+                final DateTime scheduledDate = DateTime.parse(jadwalPickupStr).toLocal();
+                final String dateFormatted = _formatDateOnly(jadwalPickupStr);
+                final bool isMorning = scheduledDate.hour < 12;
+                final String timeRange = isMorning 
+                    ? '08:00 AM - 12:00 PM' 
+                    : '12:00 PM - 04:00 PM';
+                scheduleLabel = '$dateFormatted, $timeRange';
+              } catch (_) {
+                scheduleLabel = _formatDateOnly(jadwalPickupStr);
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        TranslationService.currentLang == 'en'
+                            ? 'Pickup scheduled: $scheduleLabel'
+                            : 'Penjemputan dijadwalkan: $scheduleLabel',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            })(),
+          ],
           if (isWaitingCustomer) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 12),

@@ -555,6 +555,48 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _navigateToOrderDetailWithFallback(String titleLower) async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF0C4B8E))),
+      );
+
+      final orders = await OrderService.getOrders();
+      
+      if (mounted) {
+        Navigator.pop(context); // close loader
+      }
+
+      if (orders.isEmpty) return;
+
+      Map<String, dynamic>? selectedOrder;
+      if (titleLower.contains('kurir') || titleLower.contains('jemput') || titleLower.contains('menuju')) {
+        selectedOrder = orders.firstWhere(
+          (o) {
+            final status = (o['status'] ?? '').toString().toLowerCase();
+            return status.contains('jemput') || status.contains('pickup') || o['is_courier_on_way'] == true;
+          },
+          orElse: () => null,
+        );
+      }
+      
+      selectedOrder ??= orders.first;
+
+      if (selectedOrder != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailScreen(order: selectedOrder!),
+          ),
+        ).then((_) => _fetchNotifications());
+      }
+    } catch (e) {
+      debugPrint("Error navigating with fallback: $e");
+    }
+  }
+
   String _formatTime(String rawDate) {
     try {
       final dt = DateTime.parse(rawDate).toLocal();
@@ -575,7 +617,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       return Icons.iron_outlined;
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return Icons.dry_cleaning_outlined;
+      return Icons.wb_sunny_outlined;
     }
     if (lower.contains('dicuci') || lower.contains('pencucian')) {
       return Icons.local_laundry_service_outlined;
@@ -583,14 +625,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (lower.contains('timbang')) {
       return Icons.scale_outlined;
     }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
-      return Icons.local_shipping_outlined;
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim') || lower.contains('kurir') || lower.contains('menuju')) {
+      return Icons.electric_moped_rounded;
     }
     if (lower.contains('bayar') || lower.contains('pembayaran') || lower.contains('confirm') || lower.contains('diterima') || lower.contains('terima') || lower.contains('konfirm') || lower.contains('dikonfirmasi')) {
       return Icons.account_balance_wallet_outlined;
     }
-    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success')) {
+    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success') || lower.contains('siap')) {
       return Icons.check_circle_outline_rounded;
+    }
+    if (lower.contains('dibuat') || lower.contains('baru') || lower.contains('diajukan') || lower.contains('masuk')) {
+      return Icons.local_laundry_service_outlined;
     }
     if (lower.contains('promo')) {
       return Icons.local_offer_outlined;
@@ -618,14 +663,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (lower.contains('timbang')) {
       return const Color(0xFFE0F2F1);
     }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim') || lower.contains('kurir') || lower.contains('menuju')) {
       return const Color(0xFFE8F5E9);
     }
     if (lower.contains('bayar') || lower.contains('pembayaran') || lower.contains('confirm') || lower.contains('diterima') || lower.contains('terima') || lower.contains('konfirm') || lower.contains('dikonfirmasi')) {
       return const Color(0xFFFFF3E0);
     }
-    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success')) {
+    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success') || lower.contains('siap')) {
       return const Color(0xFFE2F3E4);
+    }
+    if (lower.contains('dibuat') || lower.contains('baru') || lower.contains('diajukan') || lower.contains('masuk')) {
+      return const Color(0xFFE3F2FD);
     }
     if (lower.contains('promo')) {
       return const Color(0xFFFDEEF6);
@@ -653,14 +701,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (lower.contains('timbang')) {
       return const Color(0xFF00796B);
     }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
+    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim') || lower.contains('kurir') || lower.contains('menuju')) {
       return const Color(0xFF2E7D32);
     }
     if (lower.contains('bayar') || lower.contains('pembayaran') || lower.contains('confirm') || lower.contains('diterima') || lower.contains('terima') || lower.contains('konfirm') || lower.contains('dikonfirmasi')) {
       return const Color(0xFFFF9800);
     }
-    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success')) {
+    if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success') || lower.contains('siap')) {
       return const Color(0xFF2E7D32);
+    }
+    if (lower.contains('dibuat') || lower.contains('baru') || lower.contains('diajukan') || lower.contains('masuk')) {
+      return const Color(0xFF1E88E5);
     }
     if (lower.contains('promo')) {
       return const Color(0xFFE91E63);
@@ -1010,6 +1061,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           final orderCode = _extractOrderCode(title, description);
           if (orderCode != null) {
             _navigateToOrderDetail(orderCode);
+          } else {
+            _navigateToOrderDetailWithFallback(titleLower);
           }
         }
       },

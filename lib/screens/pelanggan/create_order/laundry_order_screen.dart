@@ -160,9 +160,17 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     _initDefaultPackage();
     _loadPerfumes();
 
-    // Automatically switch default selectedTime to Afternoon if today is already past 12:00 PM
-    if (DateTime.now().hour >= 12) {
+    // Automatically switch default selectedDateIndex & selectedTime based on current hour
+    final now = DateTime.now();
+    if (now.hour >= 16) {
+      selectedDateIndex = 1;
+      selectedTime = 'Morning';
+    } else if (now.hour >= 12) {
+      selectedDateIndex = 0;
       selectedTime = 'Afternoon';
+    } else {
+      selectedDateIndex = 0;
+      selectedTime = 'Morning';
     }
   }
 
@@ -1181,13 +1189,41 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: activeSelectionColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.location_on_rounded, color: activeSelectionColor, size: 20),
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: activeSelectionColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.location_on_rounded, color: activeSelectionColor, size: 20),
+                ),
+                (() {
+                  if (address == null) return const SizedBox.shrink();
+                  final double? lat = double.tryParse(address['latitude'].toString());
+                  final double? lng = double.tryParse(address['longitude'].toString());
+                  if (lat == null || lng == null) return const SizedBox.shrink();
+
+                  final distanceInMeters = DistanceCalculator.calculateDistance(lat, lng);
+                  final distanceInKm = distanceInMeters / 1000.0;
+                  final String distanceStr = distanceInKm < 1.0
+                      ? '${distanceInMeters.round()} m'
+                      : '${distanceInKm.toStringAsFixed(1)} km';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      distanceStr,
+                      style: GoogleFonts.poppins(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  );
+                })(),
+              ],
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1204,6 +1240,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                           fontSize: 13,
                         ),
                       ),
+
                       if (address != null) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -1339,31 +1376,56 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     );
                   }(),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => _chooseAddress(false),
-                    icon: Icon(
-                      address != null ? Icons.edit_location_alt_rounded : Icons.add_location_alt_rounded,
-                      size: 14,
-                    ),
-                    label: Text(
-                      address != null 
-                          ? (TranslationService.currentLang == 'en' ? 'Change Address' : 'Ubah Alamat')
-                          : (TranslationService.currentLang == 'en' ? 'Add Address' : 'Tambah Alamat'),
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => _chooseAddress(false),
+                        icon: Icon(
+                          address != null ? Icons.edit_location_alt_rounded : Icons.add_location_alt_rounded,
+                          size: 14,
+                        ),
+                        label: Text(
+                          address != null 
+                              ? (TranslationService.currentLang == 'en' ? 'Change Address' : 'Ubah Alamat')
+                              : (TranslationService.currentLang == 'en' ? 'Add Address' : 'Tambah Alamat'),
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: activeSelectionColor,
+                          side: BorderSide(color: activeSelectionColor.withOpacity(0.5), width: 1.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: activeSelectionColor,
-                      side: BorderSide(color: activeSelectionColor.withOpacity(0.5), width: 1.2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+                      if (address != null) ...[
+                        (() {
+                          final double? lat = double.tryParse(address['latitude'].toString());
+                          final double? lng = double.tryParse(address['longitude'].toString());
+                          if (lat == null || lng == null) return const SizedBox.shrink();
+
+                          final double fee = DistanceCalculator.getFee(lat, lng);
+                          final String feeStr = _formatPrice(fee);
+
+                          return Text(
+                            '+ $feeStr',
+                            style: GoogleFonts.poppins(
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13.5,
+                            ),
+                          );
+                        })(),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -1387,8 +1449,13 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
             onTap: () {
               setState(() {
                 selectedDateIndex = index;
-                if (index == 0 && DateTime.now().hour >= 12) {
-                  selectedTime = 'Afternoon';
+                final bool isTodaySelected = dates[index]['fullDate'] == DateTime.now().toIso8601String().split('T')[0];
+                if (isTodaySelected) {
+                  if (DateTime.now().hour >= 12) {
+                    selectedTime = 'Afternoon';
+                  } else {
+                    selectedTime = 'Morning';
+                  }
                 }
               });
             },
@@ -1469,9 +1536,11 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   Widget _buildTimeOption(String title, String time, Color themeColor) {
     final isSelected = selectedTime == title;
     final isMorning = title == 'Morning';
-    final bool isToday = selectedDateIndex == 0;
-    final bool isPastMidday = DateTime.now().hour >= 12;
-    final bool isOptionDisabled = isToday && isPastMidday && isMorning;
+    final bool isToday = dates.isNotEmpty && dates[selectedDateIndex]['fullDate'] == DateTime.now().toIso8601String().split('T')[0];
+    final bool isOptionDisabled = isToday && (
+      (isMorning && DateTime.now().hour >= 12) ||
+      (!isMorning && DateTime.now().hour >= 16)
+    );
 
     Color cardBgColor = Colors.white;
     Color borderCol = Colors.grey.shade200;
@@ -1642,6 +1711,29 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   }
 
   Future<void> _placeOrder() async {
+    final dateStr =
+        dates[selectedDateIndex]['fullDate'] ??
+        DateTime.now().toIso8601String().split('T')[0];
+    final isWalkIn = widget.selectedCustomer != null;
+    final bool isToday = dateStr == DateTime.now().toIso8601String().split('T')[0];
+    final bool isMorning = selectedTime == 'Morning';
+    final bool isOptionDisabled = isToday && (
+      (isMorning && DateTime.now().hour >= 12) ||
+      (!isMorning && DateTime.now().hour >= 16)
+    );
+
+    if (isOptionDisabled && !isWalkIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(TranslationService.currentLang == 'en'
+              ? 'The selected time slot has already passed. Please choose a different date or time.'
+              : 'Waktu penjemputan yang dipilih sudah terlewat. Silakan pilih tanggal atau waktu lain.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isPlacingOrder = true);
     try {
       final perf = perfumes.firstWhere(
