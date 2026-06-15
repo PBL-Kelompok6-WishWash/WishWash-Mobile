@@ -406,18 +406,22 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       dynamic completionEntry;
       for (var history in historyList) {
         final refStatus = history['ReferensiStatus'];
+        String statusName = '';
         if (refStatus != null && refStatus is Map) {
-          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
-          if (statusName.contains('selesai') ||
-              statusName.contains('completed') ||
-              statusName.contains('success') ||
-              statusName.contains('batal') ||
-              statusName.contains('cancel') ||
-              statusName.contains('tolak') ||
-              statusName.contains('reject')) {
-            completionEntry = history;
-            break;
-          }
+          statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+        } else {
+          statusName = (history['nama_status'] ?? '').toString().toLowerCase();
+        }
+
+        if (statusName.contains('selesai') ||
+            statusName.contains('completed') ||
+            statusName.contains('success') ||
+            statusName.contains('batal') ||
+            statusName.contains('cancel') ||
+            statusName.contains('tolak') ||
+            statusName.contains('reject')) {
+          completionEntry = history;
+          break;
         }
       }
       final timeSource = completionEntry ?? historyList.last;
