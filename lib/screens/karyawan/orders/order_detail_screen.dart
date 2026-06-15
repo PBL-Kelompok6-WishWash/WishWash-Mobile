@@ -388,6 +388,47 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     }
   }
 
+  String _getCompletionTime(Map<String, dynamic> order) {
+    final String rawStatus = (order['status'] ?? 'Pesanan Diterima').toString().toLowerCase();
+    final bool isFinished =
+        rawStatus.contains('selesai') ||
+        rawStatus.contains('completed') ||
+        rawStatus.contains('success') ||
+        rawStatus.contains('batal') ||
+        rawStatus.contains('cancel') ||
+        rawStatus.contains('tolak') ||
+        rawStatus.contains('reject');
+        
+    if (!isFinished) return '-';
+    
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      dynamic completionEntry;
+      for (var history in historyList) {
+        final refStatus = history['ReferensiStatus'];
+        if (refStatus != null && refStatus is Map) {
+          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+          if (statusName.contains('selesai') ||
+              statusName.contains('completed') ||
+              statusName.contains('success') ||
+              statusName.contains('batal') ||
+              statusName.contains('cancel') ||
+              statusName.contains('tolak') ||
+              statusName.contains('reject')) {
+            completionEntry = history;
+            break;
+          }
+        }
+      }
+      final timeSource = completionEntry ?? historyList.last;
+      final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
+      if (rawTime != null) {
+        return _formatDate(rawTime.toString());
+      }
+    }
+    return '-';
+  }
+
   String _formatDateOnly(String? isoString) {
     if (isoString == null || isoString.isEmpty) return '-';
     try {
@@ -3466,6 +3507,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final String estDateText = _getEstSelesaiDate(order);
 
+    final String rawStatus = (order['status'] ?? 'Pesanan Diterima').toString().toLowerCase();
+    final bool isFinished =
+        rawStatus.contains('selesai') ||
+        rawStatus.contains('completed') ||
+        rawStatus.contains('success');
+    final String finishedTimeText = _getCompletionTime(order);
+
     final pelanggan = order['Pelanggan'] ?? {};
     final String customerPhone =
         (pelanggan['no_telp'] ??
@@ -3697,6 +3745,11 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       isEn ? 'Estimated Finish' : 'Estimasi Selesai',
                       estDateText,
                     ),
+                    if (isFinished && finishedTimeText != '-')
+                      _buildReceiptRow(
+                        isEn ? 'Finished Date & Time' : 'Tanggal & Waktu Selesai',
+                        finishedTimeText,
+                      ),
                     _buildReceiptRow(
                       isEn ? 'Weight' : 'Berat Cucian',
                       weightText,
