@@ -614,39 +614,39 @@ class _NotificationScreenState extends State<NotificationScreen> {
   IconData _getIcon(String title) {
     final lower = title.toLowerCase();
     if (lower.contains('setrika')) {
-      return Icons.iron_outlined;
+      return Icons.iron_rounded;
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return Icons.wb_sunny_outlined;
+      return Icons.wb_sunny_rounded;
     }
     if (lower.contains('dicuci') || lower.contains('pencucian')) {
-      return Icons.local_laundry_service_outlined;
+      return Icons.local_laundry_service_rounded;
     }
     if (lower.contains('timbang')) {
-      return Icons.scale_outlined;
+      return Icons.scale_rounded;
     }
     if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim') || lower.contains('kurir') || lower.contains('menuju')) {
-      return Icons.electric_moped_rounded;
+      return Icons.local_shipping_rounded;
     }
     if (lower.contains('bayar') || lower.contains('pembayaran') || lower.contains('confirm') || lower.contains('diterima') || lower.contains('terima') || lower.contains('konfirm') || lower.contains('dikonfirmasi')) {
-      return Icons.account_balance_wallet_outlined;
+      return Icons.account_balance_wallet_rounded;
     }
     if (lower.contains('selesai') || lower.contains('sukses') || lower.contains('success') || lower.contains('siap')) {
-      return Icons.check_circle_outline_rounded;
+      return Icons.check_circle_rounded;
     }
     if (lower.contains('dibuat') || lower.contains('baru') || lower.contains('diajukan') || lower.contains('masuk')) {
-      return Icons.local_laundry_service_outlined;
+      return Icons.local_laundry_service_rounded;
     }
     if (lower.contains('promo')) {
-      return Icons.local_offer_outlined;
+      return Icons.local_offer_rounded;
     }
     if (lower.contains('chat') || lower.contains('pesan baru')) {
-      return Icons.sms_outlined;
+      return Icons.chat_bubble_rounded;
     }
     if (lower.contains('batal') || lower.contains('cancel')) {
-      return Icons.cancel_outlined;
+      return Icons.cancel_rounded;
     }
-    return Icons.notifications_active_outlined;
+    return Icons.notifications_active_rounded;
   }
 
   Color _getIconBgColor(String title) {

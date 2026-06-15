@@ -561,78 +561,91 @@ class _NotificationScreenState extends State<NotificationScreen> {
   IconData _getIcon(String title) {
     final lower = title.toLowerCase();
     if (lower.contains('baru masuk') || (lower.contains('pesanan') && lower.contains('baru'))) {
-      return Icons.add_shopping_cart_rounded;
+      return Icons.shopping_basket_rounded;
     }
     if (lower.contains('pelanggan baru')) {
-      return Icons.person_add_outlined;
+      return Icons.person_add_rounded;
     }
-    if (lower.contains('pembayaran') || lower.contains('bayar')) {
-      return Icons.payments_outlined;
+    if (lower.contains('pembayaran berhasil') || lower.contains('pembayaran lunas')) {
+      return Icons.check_circle_rounded;
+    }
+    if (lower.contains('metode bayar') || lower.contains('pembayaran') || lower.contains('bayar')) {
+      return Icons.account_balance_wallet_rounded;
+    }
+    if (lower.contains('metode penyerahan') ||
+        lower.contains('penyerahan') ||
+        lower.contains('jemput') ||
+        lower.contains('antar') ||
+        lower.contains('kirim') ||
+        lower.contains('logistik')) {
+      return Icons.local_shipping_rounded;
     }
     if (lower.contains('selesai')) {
-      return Icons.check_circle_outline_rounded;
+      return Icons.check_circle_rounded;
     }
     if (lower.contains('setrika')) {
-      return Icons.iron_outlined;
+      return Icons.iron_rounded;
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return Icons.wb_sunny_outlined;
+      return Icons.wb_sunny_rounded;
     }
-    if (lower.contains('dicuci') || lower.contains('pencucian')) {
-      return Icons.local_laundry_service_outlined;
+    if (lower.contains('dicuci') || lower.contains('pencucian') || lower.contains('cuci')) {
+      return Icons.local_laundry_service_rounded;
     }
     if (lower.contains('timbang')) {
-      return Icons.scale_outlined;
-    }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
-      return Icons.local_shipping_outlined;
+      return Icons.scale_rounded;
     }
     if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
-      return Icons.sms_outlined;
+      return Icons.chat_bubble_rounded;
     }
-    if (lower.contains('batal') || lower.contains('cancel')) {
-      return Icons.cancel_outlined;
+    if (lower.contains('batal') || lower.contains('cancel') || lower.contains('dibatalkan')) {
+      return Icons.cancel_rounded;
     }
     if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
-      return Icons.star_rate_rounded;
+      return Icons.star_rounded;
     }
-    return Icons.notifications_active_outlined;
+    return Icons.notifications_active_rounded;
   }
 
   Color _getIconBgColor(String title) {
     final lower = title.toLowerCase();
     if (lower.contains('baru masuk') || (lower.contains('pesanan') && lower.contains('baru'))) {
-      return const Color(0xFFFFF3E0); // Orange/Peach
+      return const Color(0xFFFFF3E0); // Soft Orange
     }
     if (lower.contains('pelanggan baru')) {
-      return const Color(0xFFE2F3E4); // Soft Green
+      return const Color(0xFFE0F2F1); // Soft Teal
     }
-    if (lower.contains('pembayaran') || lower.contains('bayar')) {
-      return const Color(0xFFF1E1FB); // Soft Purple
+    if (lower.contains('pembayaran berhasil') || lower.contains('pembayaran lunas') || lower.contains('selesai')) {
+      return const Color(0xFFE8F5E9); // Soft Green
     }
-    if (lower.contains('selesai')) {
-      return const Color(0xFFE2F3E4); // Soft Green
+    if (lower.contains('metode bayar') || lower.contains('pembayaran') || lower.contains('bayar')) {
+      return const Color(0xFFFFF8E1); // Soft Amber
+    }
+    if (lower.contains('metode penyerahan') ||
+        lower.contains('penyerahan') ||
+        lower.contains('jemput') ||
+        lower.contains('antar') ||
+        lower.contains('kirim') ||
+        lower.contains('logistik')) {
+      return const Color(0xFFE8EAF6); // Soft Indigo/Blue
     }
     if (lower.contains('setrika')) {
-      return const Color(0xFFF1E1FB);
+      return const Color(0xFFF3E5F5); // Soft Purple
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return const Color(0xFFFFF3E0);
+      return const Color(0xFFFFF3E0); // Soft Orange
     }
-    if (lower.contains('dicuci') || lower.contains('pencucian')) {
-      return const Color(0xFFE3F2FD);
+    if (lower.contains('dicuci') || lower.contains('pencucian') || lower.contains('cuci')) {
+      return const Color(0xFFE1F5FE); // Soft Light Blue
     }
     if (lower.contains('timbang')) {
-      return const Color(0xFFE0F2F1);
-    }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
-      return const Color(0xFFE8F5E9);
+      return const Color(0xFFE0F2F1); // Soft Teal
     }
     if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
-      return const Color(0xFFE3F2FD);
+      return const Color(0xFFE3F2FD); // Soft Blue
     }
-    if (lower.contains('batal') || lower.contains('cancel')) {
-      return const Color(0xFFFFEBEE);
+    if (lower.contains('batal') || lower.contains('cancel') || lower.contains('dibatalkan')) {
+      return const Color(0xFFFFEBEE); // Soft Red
     }
     if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
       return const Color(0xFFFFFDE7); // Soft Gold
@@ -646,37 +659,42 @@ class _NotificationScreenState extends State<NotificationScreen> {
       return const Color(0xFFFF9800); // Orange
     }
     if (lower.contains('pelanggan baru')) {
+      return const Color(0xFF00796B); // Teal
+    }
+    if (lower.contains('pembayaran berhasil') || lower.contains('pembayaran lunas') || lower.contains('selesai')) {
       return const Color(0xFF2E7D32); // Green
     }
-    if (lower.contains('pembayaran') || lower.contains('bayar')) {
-      return const Color(0xFF6A1B9A); // Purple
+    if (lower.contains('metode bayar') || lower.contains('pembayaran') || lower.contains('bayar')) {
+      return const Color(0xFFFF8F00); // Amber
     }
-    if (lower.contains('selesai')) {
-      return const Color(0xFF2E7D32); // Green
+    if (lower.contains('metode penyerahan') ||
+        lower.contains('penyerahan') ||
+        lower.contains('jemput') ||
+        lower.contains('antar') ||
+        lower.contains('kirim') ||
+        lower.contains('logistik')) {
+      return const Color(0xFF3F51B5); // Indigo/Blue
     }
     if (lower.contains('setrika')) {
-      return const Color(0xFF6A1B9A);
+      return const Color(0xFF7B1FA2); // Purple
     }
     if (lower.contains('kering') || lower.contains('pengering')) {
-      return const Color(0xFFFF9800);
+      return const Color(0xFFFF9800); // Orange
     }
-    if (lower.contains('dicuci') || lower.contains('pencucian')) {
-      return const Color(0xFF1E88E5);
+    if (lower.contains('dicuci') || lower.contains('pencucian') || lower.contains('cuci')) {
+      return const Color(0xFF0288D1); // Light Blue
     }
     if (lower.contains('timbang')) {
-      return const Color(0xFF00796B);
-    }
-    if (lower.contains('jemput') || lower.contains('antar') || lower.contains('kirim')) {
-      return const Color(0xFF2E7D32);
+      return const Color(0xFF00796B); // Teal
     }
     if (lower.contains('chat') || lower.contains('pesan baru') || lower.contains('obrolan')) {
-      return const Color(0xFF1E88E5);
+      return const Color(0xFF1565C0); // Blue
     }
-    if (lower.contains('batal') || lower.contains('cancel')) {
-      return const Color(0xFFE53935);
+    if (lower.contains('batal') || lower.contains('cancel') || lower.contains('dibatalkan')) {
+      return const Color(0xFFC62828); // Red
     }
     if (lower.contains('ulasan') || lower.contains('rating') || lower.contains('penilaian') || lower.contains('review')) {
-      return const Color(0xFFFFB300); // Gold
+      return const Color(0xFFF9A825); // Gold
     }
     return const Color(0xFF6A1B9A);
   }

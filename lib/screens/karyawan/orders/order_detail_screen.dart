@@ -389,7 +389,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   }
 
   String _getCompletionTime(Map<String, dynamic> order) {
-    final String rawStatus = (order['status'] ?? 'Pesanan Diterima').toString().toLowerCase();
+    final String rawStatus = _getOrderStatus(order).toLowerCase();
     final bool isFinished =
         rawStatus.contains('selesai') ||
         rawStatus.contains('completed') ||
@@ -3511,11 +3511,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final String estDateText = _getEstSelesaiDate(order);
 
-    final String rawStatus = (order['status'] ?? 'Pesanan Diterima').toString().toLowerCase();
+    final String rawStatus = _getOrderStatus(order).toLowerCase();
     final bool isFinished =
         rawStatus.contains('selesai') ||
         rawStatus.contains('completed') ||
-        rawStatus.contains('success');
+        rawStatus.contains('success') ||
+        rawStatus.contains('batal') ||
+        rawStatus.contains('cancel') ||
+        rawStatus.contains('tolak') ||
+        rawStatus.contains('reject');
     final String finishedTimeText = _getCompletionTime(order);
 
     final pelanggan = order['Pelanggan'] ?? {};
