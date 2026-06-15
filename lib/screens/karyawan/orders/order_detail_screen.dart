@@ -1607,11 +1607,13 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       20,
                       10,
                       20,
-                      (rawStatus.contains('selesai') ||
-                              rawStatus.contains('completed') ||
-                              rawStatus.contains('success'))
-                          ? 30
-                          : 260,
+                      (statusInfo['is_waiting_customer_confirm'] == true)
+                          ? 160
+                          : (rawStatus.contains('selesai') ||
+                                  rawStatus.contains('completed') ||
+                                  rawStatus.contains('success'))
+                              ? 30
+                              : 260,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1692,13 +1694,28 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           estDate: estDate,
                         );
                       })(),
-                      if (rawStatus.contains('selesai') || rawStatus.contains('completed') || rawStatus.contains('success')) ...[
+                      (() {
+                        final pembayaran = _currentOrder['Pembayaran'];
+                        final bool isPaid = pembayaran != null &&
+                            pembayaran['status_pembayaran'] == 'Lunas' &&
+                            kuantitas > 0.0;
+                        if (isPaid ||
+                            rawStatus.contains('selesai') ||
+                            rawStatus.contains('completed') ||
+                            rawStatus.contains('success')) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 16),
+                              _buildInvoiceCard(context, isEn),
+                            ],
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      })(),
+                      if (_currentOrder['Penilaian'] != null) ...[
                         const SizedBox(height: 16),
-                        _buildInvoiceCard(context, isEn),
-                        if (_currentOrder['Penilaian'] != null) ...[
-                          const SizedBox(height: 16),
-                          _buildPenilaianDetailsCard(_currentOrder['Penilaian'], isEn),
-                        ],
+                        _buildPenilaianDetailsCard(_currentOrder['Penilaian'], isEn),
                       ],
                     ],
                   ),
