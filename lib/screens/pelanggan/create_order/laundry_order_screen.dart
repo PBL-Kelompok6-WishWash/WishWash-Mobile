@@ -986,9 +986,26 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   }
 
   Widget _buildCareInstruction(Color themeColor) {
-    final List<String> tags = TranslationService.currentLang == 'en'
-        ? ['Do not mix colors', 'Gentle fabric', 'Extra perfume', 'No hangers', 'Flat dry']
-        : ['Jangan campur warna', 'Bahan sensitif', 'Parfum ekstra', 'Setrika licin', 'Gantung saja'];
+    final String rawName = (widget.service['nama_layanan'] ?? '').toString().toLowerCase();
+    final isEn = TranslationService.currentLang == 'en';
+    
+    List<String> tags = [];
+    if (rawName.contains('setrika') && !rawName.contains('cuci')) {
+      // Iron only (Setrika Saja / Setrika)
+      tags = isEn
+          ? ['Extra perfume', 'Hanger preferred', 'Fold neatly', 'Delicate fabric', 'No perfume']
+          : ['Parfum ekstra', 'Pakai gantungan', 'Lipat rapi', 'Bahan sensitif', 'Tanpa parfum'];
+    } else if (rawName.contains('kering') && !rawName.contains('setrika')) {
+      // Wash & Dry (Cuci Kering / Cuci Kering Lipat)
+      tags = isEn
+          ? ['Do not mix colors', 'Gentle wash', 'Flat dry', 'Fold neatly', 'No perfume']
+          : ['Jangan campur warna', 'Cuci lembut', 'Keringkan mendatar', 'Lipat rapi', 'Tanpa parfum'];
+    } else {
+      // Wash & Iron (Cuci & Setrika) or General
+      tags = isEn
+          ? ['Do not mix colors', 'Extra perfume', 'Gentle wash', 'Fold neatly', 'Hanger preferred']
+          : ['Jangan campur warna', 'Parfum ekstra', 'Cuci lembut', 'Lipat rapi', 'Pakai gantungan'];
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1762,13 +1779,13 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
         'id_layanan': widget.service['id_layanan'],
         'id_paket_layanan': selectedPackageMap!['id_paket_layanan'],
         'id_alamat_pengambilan': isWalkIn ? null : selectedPickupAddress!['id_alamat'],
-        'id_alamat_penyerahan': null,
+        'id_alamat_penyerahan': isWalkIn ? null : selectedPickupAddress!['id_alamat'],
         'id_parfum': perf['id'],
         'keterangan_lokasi': isWalkIn ? '' : (selectedPickupAddress!['tipe_alamat'] ?? 'Rumah'),
         'jadwal_pickup': isWalkIn ? null : '$dateStr ${selectedTime == 'Morning' ? '08:00' : '13:00'}',
         'tipe_logistik': isWalkIn ? 'Drop-off' : 'Courier Delivery',
         'biaya_penjemputan': biayaPenjemputan,
-        'biaya_pengantaran': 0.0,
+        'biaya_pengantaran': isWalkIn ? 0.0 : biayaPenjemputan,
         'harga_saat_ini': basePrice,
         'kuantitas': 0.0,
         'total_bayar': 0.0,

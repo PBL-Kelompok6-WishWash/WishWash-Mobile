@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/services/order_service.dart';
-import 'package:mobile/services/translation_service.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -40,7 +39,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
         if (res1.statusCode == 200) {
           final data = jsonDecode(res1.body);
           final orderData = data['data'];
-          if (orderData != null && orderData is Map && (orderData as Map).isNotEmpty) {
+          if (orderData != null && orderData is Map && orderData.isNotEmpty) {
             return Map<String, dynamic>.from(orderData);
           }
         }
@@ -589,13 +588,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
                             {'status': nextSt.isNotEmpty ? nextSt : 'selesai'},
                           );
 
-                          if (context.mounted) {
+                          if (mounted) {
                             Navigator.pop(context); // pop loading dialog
                             Navigator.pop(dialogCtx); // pop info dialog
                             Navigator.pop(context, updated); // pop scanner screen returning updated order map
                           }
                         } catch (e) {
-                          if (context.mounted) {
+                          if (mounted) {
                             Navigator.pop(context); // pop loading dialog
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -937,7 +936,7 @@ class BarcodeScannerOverlayShape extends ShapeBorder {
   final double cutOutWidth;
   final double cutOutHeight;
 
-  BarcodeScannerOverlayShape({
+  const BarcodeScannerOverlayShape({
     this.borderColor = Colors.red,
     this.borderWidth = 3.0,
     this.overlayColor = const Color.fromRGBO(0, 0, 0, 0.5),
@@ -959,14 +958,14 @@ class BarcodeScannerOverlayShape extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    Path _getLeftTopPath(Rect rect) {
+    Path getLeftTopPath(Rect rect) {
       return Path()
         ..moveTo(rect.left, rect.bottom)
         ..lineTo(rect.left, rect.top)
         ..lineTo(rect.right, rect.top);
     }
 
-    return _getLeftTopPath(rect)
+    return getLeftTopPath(rect)
       ..lineTo(rect.right, rect.bottom)
       ..lineTo(rect.left, rect.bottom)
       ..lineTo(rect.left, rect.top);
@@ -977,8 +976,8 @@ class BarcodeScannerOverlayShape extends ShapeBorder {
     final width = rect.width;
     final height = rect.height;
 
-    final _cutOutWidth = cutOutWidth < width ? cutOutWidth : width - 20;
-    final _cutOutHeight = cutOutHeight < height ? cutOutHeight : height - 20;
+    final actualCutOutWidth = cutOutWidth < width ? cutOutWidth : width - 20;
+    final actualCutOutHeight = cutOutHeight < height ? cutOutHeight : height - 20;
 
     final backgroundPaint = Paint()
       ..color = overlayColor
@@ -991,8 +990,8 @@ class BarcodeScannerOverlayShape extends ShapeBorder {
 
     final cutOutRect = Rect.fromCenter(
       center: Offset(rect.left + width / 2, rect.top + height / 2),
-      width: _cutOutWidth,
-      height: _cutOutHeight,
+      width: actualCutOutWidth,
+      height: actualCutOutHeight,
     );
 
     canvas

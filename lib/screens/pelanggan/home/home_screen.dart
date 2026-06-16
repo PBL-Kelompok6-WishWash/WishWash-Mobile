@@ -350,17 +350,8 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
       if (mounted) {
         setState(() {
           _activeOrders = orders.where((order) {
-            final historyList = order['RiwayatStatusDetail'];
-            if (historyList == null || historyList is! List || historyList.isEmpty) {
-              return true; // Active if no history
-            }
-            List<dynamic> sorted = List.from(historyList);
-            sorted.sort((a, b) => (a['id_riwayat_status_detail'] as num? ?? 0)
-                .compareTo(b['id_riwayat_status_detail'] as num? ?? 0));
-            final latest = sorted.last;
-            final ref = latest['ReferensiStatus'] ?? {};
-            final String rawStatus = (ref['nama_status'] ?? '').toString().toLowerCase();
-            return !rawStatus.contains('selesai') && !rawStatus.contains('completed') && !rawStatus.contains('success');
+            final statusInfo = _getCurrentStatusInfo(order);
+            return !statusInfo['is_selesai'];
           }).toList();
           _isLoadingActiveOrders = false;
         });

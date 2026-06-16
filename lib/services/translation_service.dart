@@ -173,6 +173,7 @@ class TranslationService {
       'online': 'Online',
       'offline': 'Offline',
       'last_seen_at': 'Last seen at',
+      'phone_length_invalid': 'Phone number must be between 9 and 13 digits',
     },
     'id': {
       'welcome': 'Selamat Datang',
@@ -311,6 +312,7 @@ class TranslationService {
       'online': 'Online',
       'offline': 'Offline',
       'last_seen_at': 'Terakhir dilihat pukul',
+      'phone_length_invalid': 'Nomor telepon harus berukuran antara 9 sampai 13 digit',
     }
   };
 

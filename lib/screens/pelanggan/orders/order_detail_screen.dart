@@ -1428,6 +1428,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  String _formatDateOnly(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final months = TranslationService.currentLang == 'en'
+          ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          : ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      try {
+        return isoString.split('T')[0];
+      } catch (_) {
+        return isoString;
+      }
+    }
+  }
+
   String _getEstSelesaiDate(Map<String, dynamic> order) {
     final String? pickupStr = order['jadwal_pickup']?.toString();
     final String? tglPesananStr = order['tgl_pesanan']?.toString();
@@ -2005,20 +2022,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         const SizedBox(height: 16),
                         _buildDeliveryLocationSection(isEn),
                         const SizedBox(height: 16),
-                        // Show official invoice card with "Lihat Nota" button
-                        _buildInvoiceCard(
-                          context,
-                          order,
-                          orderId,
-                          orderDate,
-                          customerName,
-                          packageName,
-                          perfumeName,
-                          price,
-                          totalBayar,
-                          isEn,
-                        ),
-                        const SizedBox(height: 16),
                         _buildPriceSummaryCard(
                           subtotalCucian: subtotalCucian,
                           biayaTambahan: biayaTambahan,
@@ -2039,6 +2042,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           isEn: isEn,
                           biayaPenjemputan: biayaPenjemputan,
                           biayaPengantaran: biayaPengantaran,
+                        ),
+                        const SizedBox(height: 16),
+                        // Show official invoice card with "Lihat Nota" button
+                        _buildInvoiceCard(
+                          context,
+                          order,
+                          orderId,
+                          orderDate,
+                          customerName,
+                          packageName,
+                          perfumeName,
+                          price,
+                          totalBayar,
+                          isEn,
                         ),
                         if (order['Penilaian'] != null) ...[
                           const SizedBox(height: 16),
@@ -3466,7 +3483,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       } catch (_) {}
     }
     if (deliveryDateDisplay.contains('Awaiting') || deliveryDateDisplay.contains('Menunggu')) {
-      deliveryDateDisplay = estDate;
+      deliveryDateDisplay = isEn ? 'Pending Delivery' : 'Belum diantar';
+    }
+
+    final String? jadwalPickupStr = _currentOrder['jadwal_pickup']?.toString();
+    String jadwalLabel = isEn ? 'Not Scheduled' : 'Belum dijadwalkan';
+    if (jadwalPickupStr != null && jadwalPickupStr.isNotEmpty) {
+      try {
+        final DateTime scheduledDate = DateTime.parse(jadwalPickupStr).toLocal();
+        final String dateFormatted = _formatDateOnly(jadwalPickupStr);
+        final bool isMorning = scheduledDate.hour < 12;
+        final String timeRange = isMorning 
+            ? '08:00 AM - 12:00 PM' 
+            : '12:00 PM - 04:00 PM';
+        jadwalLabel = '$dateFormatted, $timeRange';
+      } catch (_) {
+        jadwalLabel = _formatDateOnly(jadwalPickupStr);
+      }
     }
 
     return Container(
@@ -3763,6 +3796,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   Icons.calendar_month_rounded,
                 ),
                 const Divider(height: 20),
+
+                if (!isWalkIn && _currentOrder['jadwal_pickup'] != null && _currentOrder['jadwal_pickup'].toString().isNotEmpty) ...[
+                  _buildDetailRow(
+                    isEn ? 'Scheduled Pickup' : 'Jadwal Penjemputan',
+                    jadwalLabel,
+                    Icons.event_note_rounded,
+                  ),
+                  const Divider(height: 20),
+                ],
 
                 if (!isWalkIn) ...[
                   // Pick up date is shown if not walk-in

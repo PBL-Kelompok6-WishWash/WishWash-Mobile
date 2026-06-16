@@ -258,13 +258,13 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
       );
       return;
     }
-    if (phone.length < 10 || phone.length > 13) {
+    if (phone.length < 9 || phone.length > 13) {
       CustomDialog.showError(
         context: context,
         title: TranslationService.currentLang == 'en' ? 'Failed' : 'Gagal',
         message: TranslationService.currentLang == 'en' 
-            ? 'Phone number must be between 10 and 13 digits' 
-            : 'Nomor telepon harus berukuran antara 10 sampai 13 digit',
+            ? 'Phone number must be between 9 and 13 digits' 
+            : 'Nomor telepon harus berukuran antara 9 sampai 13 digit',
       );
       return;
     }

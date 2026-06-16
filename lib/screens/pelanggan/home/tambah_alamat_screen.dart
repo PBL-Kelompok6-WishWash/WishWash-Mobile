@@ -35,6 +35,8 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
   String? _longitude;
   String? _selectedMapAddress;
 
+  bool get _isEditMode => widget.alamatToEdit != null && widget.alamatToEdit!['id_alamat'] != null;
+
   @override
   void initState() {
     super.initState();
@@ -107,7 +109,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              widget.alamatToEdit != null 
+              _isEditMode 
                 ? TranslationService.translate('edit_address') 
                 : TranslationService.translate('add_new_address'),
               style: GoogleFonts.poppins(
@@ -467,7 +469,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                             'longitude': _longitude ?? '106.8271528',
                           };
 
-                          if (widget.alamatToEdit != null) {
+                          if (_isEditMode) {
                             await AlamatService.updateAlamat(widget.alamatToEdit!['id_alamat'], data);
                           } else {
                             await AlamatService.createAlamat(data);
@@ -476,10 +478,10 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                           if (context.mounted) {
                             CustomDialog.showSuccess(
                               context: context,
-                              title: widget.alamatToEdit != null
+                              title: _isEditMode
                                   ? (isEn ? 'Updated Successfully' : 'Berhasil Diubah')
                                   : (isEn ? 'Saved Successfully' : 'Berhasil Disimpan'),
-                              message: widget.alamatToEdit != null 
+                              message: _isEditMode 
                                   ? TranslationService.translate('address_updated') 
                                   : TranslationService.translate('address_added'),
                             ).then((_) {
@@ -490,7 +492,7 @@ class _TambahAlamatScreenState extends State<TambahAlamatScreen> {
                           if (context.mounted) {
                             CustomDialog.showError(
                               context: context,
-                              title: widget.alamatToEdit != null
+                              title: _isEditMode
                                   ? (isEn ? 'Update Failed' : 'Gagal Mengubah')
                                   : (isEn ? 'Save Failed' : 'Simpan Gagal'),
                               message: e.toString(),

@@ -104,6 +104,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    // 3.5. Validasi Panjang Nomor Telepon
+    if (noTelp.length < 9 || noTelp.length > 13) {
+      _showAutoClearError(TranslationService.translate('phone_length_invalid'));
+      return;
+    }
+
     // 4. Nyalakan Loading
     setState(() {
       _isLoading = true;

@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
 import 'package:mobile/services/order_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:mobile/utils/constants.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -57,7 +56,6 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
   // --- Responsive sheet sizes (computed in build) ---
   double _miniSize = 0.22;
   double _expandedSize = 0.60;
-  double _currentSheetSize = 0.22;
   final ValueNotifier<double> _sheetSizeNotifier = ValueNotifier<double>(0.22);
 
   // --- Animation ---
@@ -119,16 +117,6 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
       _sheetController.animateTo(
         _miniSize,
         duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
-      );
-    } catch (_) {}
-  }
-
-  void _expandSheet() {
-    try {
-      _sheetController.animateTo(
-        _expandedSize,
-        duration: const Duration(milliseconds: 350),
         curve: Curves.easeOut,
       );
     } catch (_) {}
@@ -283,16 +271,6 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
     } catch (_) {
       try {
         _mapController.moveAndRotate(destLocation, destZoom, destRotation);
-      } catch (_) {}
-    }
-  }
-
-  void _animatedMapMove(LatLng destLocation, double destZoom) {
-    try {
-      _animatedMapMoveAndRotate(destLocation, destZoom, _mapController.camera.rotation);
-    } catch (_) {
-      try {
-        _mapController.move(destLocation, destZoom);
       } catch (_) {}
     }
   }

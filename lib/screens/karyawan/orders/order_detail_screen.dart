@@ -12,6 +12,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
 import 'package:mobile/screens/karyawan/home/scanner_screen.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path, DistanceCalculator;
+import 'package:mobile/utils/distance_calculator.dart';
 
 class OrderDetailScreenKaryawan extends StatefulWidget {
   final Map<String, dynamic> order;
@@ -1534,6 +1537,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     // Diskon Promo
     final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
+    final String promoCode = promoOrders.isNotEmpty
+        ? (promoOrders.first['Promo']?['kode_promo'] ?? '').toString()
+        : '';
     double promoDiscount = 0.0;
     if (promoOrders.isNotEmpty) {
       final promoOrderObj = promoOrders.first;
@@ -1689,7 +1695,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       _buildCustomerCard(pelanggan),
                       const SizedBox(height: 16),
 
-                      // 4. Clean Order Preview Card (Tinjau Pesanan) with Slide-Up Receipt Modal Button
+                      // 3. Clean Order Preview Card (Tinjau Pesanan) with Slide-Up Receipt Modal Button
                       (() {
                         final List<dynamic> _historyList = _currentOrder['RiwayatStatusDetail'] ?? [];
                         final bool isEn = TranslationService.currentLang == 'en';
@@ -1739,6 +1745,30 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           estDate: estDate,
                         );
                       })(),
+                      const SizedBox(height: 16),
+
+                      // 4. Delivery Location Card (shown only if courier logistic)
+                      if (_currentOrder['tipe_logistik'] != 'Drop-off' && _currentOrder['tipe_logistik'] != 'Self Pickup') ...[
+                        _buildDeliveryLocationCardKaryawan(isEn),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // 5. Payment Details Card
+                      _buildPaymentDetailsCardKaryawan(
+                        subtotalCucian: subtotalCucian,
+                        biayaTambahan: biayaTambahan,
+                        promoDiscount: promoDiscount,
+                        totalTagihan: totalTagihan,
+                        kuantitas: kuantitas,
+                        hargaPerSatuan: hargaPerSatuan,
+                        packageName: packageName,
+                        promoCode: promoCode,
+                        isEn: isEn,
+                        biayaPenjemputan: biayaPenjemputan,
+                        biayaPengantaran: biayaPengantaran,
+                      ),
+
+                      // 6. Invoice Card (shown if paid/done)
                       (() {
                         final pembayaran = _currentOrder['Pembayaran'];
                         final bool isPaid = pembayaran != null &&
@@ -2704,6 +2734,469 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     );
   }
 
+  Widget _buildDeliveryLocationCardKaryawan(bool isEn) {
+    final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
+    if (isDropOff) {
+      return const SizedBox.shrink();
+    }
+
+    final address = _currentOrder['AlamatPenyerahan'] ?? _currentOrder['AlamatPengambilan'];
+    
+    // Parse coordinates
+    double lat = -7.0499; // Semarang fallback
+    double lon = 110.4381;
+    bool hasCoords = false;
+    if (address != null &&
+        address['latitude'] != null &&
+        address['longitude'] != null) {
+      final double? parsedLat = double.tryParse(address['latitude'].toString());
+      final double? parsedLon = double.tryParse(address['longitude'].toString());
+      if (parsedLat != null && parsedLon != null) {
+        lat = parsedLat;
+        lon = parsedLon;
+        hasCoords = true;
+      }
+    }
+
+    // Parse composite address string
+    String mainAddress = '';
+    String noteAddress = '';
+    final String rawAlamat = address?['alamat_lengkap'] ?? '';
+    if (rawAlamat.contains('(') && rawAlamat.endsWith(')')) {
+      final int startIdx = rawAlamat.indexOf('(');
+      mainAddress = rawAlamat.substring(0, startIdx).trim();
+      noteAddress = rawAlamat.substring(startIdx + 1, rawAlamat.length - 1).trim();
+    } else {
+      mainAddress = rawAlamat;
+    }
+
+    final String distanceStr = (() {
+      if (address == null) return '';
+      final double? latVal = double.tryParse(address['latitude']?.toString() ?? '');
+      final double? lngVal = double.tryParse(address['longitude']?.toString() ?? '');
+      if (latVal == null || lngVal == null) return '';
+
+      final distanceInMeters = DistanceCalculator.calculateDistance(latVal, lngVal);
+      final distanceInKm = distanceInMeters / 1000.0;
+      return distanceInKm < 1.0
+          ? '${distanceInMeters.round()} m'
+          : '${distanceInKm.toStringAsFixed(1)} km';
+    })();
+
+    final String typeAlamat = address != null ? (address['tipe_alamat'] ?? 'Rumah').toString() : '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.location_on_rounded, color: navyColor, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                isEn ? 'Delivery Location' : 'Lokasi Pengiriman',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // OSM Map preview
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 140,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    key: ValueKey('deliver_karyawan_${lat}_${lon}'),
+                    options: MapOptions(
+                      initialCenter: LatLng(lat, lon),
+                      initialZoom: 15.0,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.none,
+                      ),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                        subdomains: const ['a', 'b', 'c', 'd'],
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    right: 15,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: hasCoords ? const Color(0xFF42C6D4) : Colors.amber,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            hasCoords ? 'GPS ACTIVE' : 'NO LOCATION PIN',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.location_on,
+                          color: hasCoords ? navyColor : Colors.grey.shade400,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: navyColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.location_on_rounded,
+                      color: navyColor,
+                      size: 20,
+                    ),
+                  ),
+                  if (distanceStr.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        distanceStr,
+                        style: GoogleFonts.poppins(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          isEn ? 'Delivery Address' : 'Alamat Pengiriman',
+                          style: GoogleFonts.poppins(
+                            color: navyColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (typeAlamat.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: navyColor.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: navyColor.withValues(alpha: 0.2), width: 0.8),
+                            ),
+                            child: Text(
+                              _getTranslatedType(typeAlamat, isEn),
+                              style: GoogleFonts.poppins(
+                                color: navyColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    if (address == null)
+                      Text(
+                        isEn ? 'Address not set.' : 'Alamat belum disetel.',
+                        style: GoogleFonts.poppins(color: Colors.grey.shade500, fontSize: 11),
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            mainAddress,
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey.shade800,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11.5,
+                              height: 1.4,
+                            ),
+                          ),
+                          if (noteAddress.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.info_outline_rounded, color: Colors.orange.shade700, size: 13),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    isEn ? 'Note: $noteAddress' : 'Catatan: $noteAddress',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.orange.shade800,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded, color: Colors.grey.shade500, size: 13),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '${isEn ? 'Recipient' : 'Penerima'}: ${address['nama_penerima'] ?? _currentOrder['Pelanggan']?['nama_lengkap'] ?? '-'}',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.phone_outlined, color: Colors.grey.shade500, size: 13),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  '${isEn ? 'Phone' : 'No. Telp'}: ${address['nohp_penerima'] ?? _currentOrder['Pelanggan']?['no_telepon'] ?? '-'}',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getTranslatedType(String? rawType, bool isEn) {
+    if (rawType == null) return '';
+    final typeLower = rawType.toLowerCase();
+    if (typeLower == 'rumah') {
+      return isEn ? 'Home' : 'Rumah';
+    } else if (typeLower == 'kantor') {
+      return isEn ? 'Office' : 'Kantor';
+    } else if (typeLower == 'lainnya') {
+      return isEn ? 'Other' : 'Lainnya';
+    }
+    return rawType;
+  }
+
+  Widget _buildPaymentDetailsCardKaryawan({
+    required double subtotalCucian,
+    required double biayaTambahan,
+    required double promoDiscount,
+    required double totalTagihan,
+    required double kuantitas,
+    required double hargaPerSatuan,
+    required String packageName,
+    required String promoCode,
+    required bool isEn,
+    required double biayaPenjemputan,
+    required double biayaPengantaran,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: navyColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color: navyColor,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                isEn ? 'Payment Summary' : 'Rincian Pembayaran',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: navyColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildPriceRow(
+            isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
+            _formatRupiah(subtotalCucian),
+            detailText: kuantitas > 0.0
+                ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
+                : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Package Surcharge' : 'Biaya Paket',
+            _formatRupiah(biayaTambahan),
+            detailText: packageName,
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Pickup Fee' : 'Biaya Penjemputan',
+            _formatRupiah(biayaPenjemputan),
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            isEn ? 'Delivery Fee' : 'Biaya Pengantaran',
+            _formatRupiah(biayaPengantaran),
+            isBoldLabel: false,
+          ),
+          const SizedBox(height: 8),
+          _buildPriceRow(
+            promoCode.isNotEmpty
+                ? (isEn
+                      ? 'Promo Discount ($promoCode)'
+                      : 'Diskon Promo ($promoCode)')
+                : (isEn ? 'Promo Discount' : 'Diskon Promo'),
+            promoDiscount > 0.0
+                ? '- ${_formatRupiah(promoDiscount)}'
+                : _formatRupiah(0.0),
+            isBoldLabel: false,
+            textColor: promoDiscount > 0.0
+                ? Colors.red.shade700
+                : const Color(0xFF2D3748),
+          ),
+          _buildDashedDivider(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isEn ? 'TOTAL BILL' : 'TOTAL TAGIHAN',
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF2D3748),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                _formatRupiah(totalTagihan),
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFF2D3748),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildScheduleCard({
     required String pickupDate,
     required String pickupAddr,
@@ -2897,7 +3390,23 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
       } catch (_) {}
     }
     if (deliveryDateDisplay.contains('Awaiting') || deliveryDateDisplay.contains('Menunggu')) {
-      deliveryDateDisplay = estDate;
+      deliveryDateDisplay = isEn ? 'Pending Delivery' : 'Belum diantar';
+    }
+
+    final String? jadwalPickupStr = _currentOrder['jadwal_pickup']?.toString();
+    String jadwalLabel = isEn ? 'Not Scheduled' : 'Belum dijadwalkan';
+    if (jadwalPickupStr != null && jadwalPickupStr.isNotEmpty) {
+      try {
+        final DateTime scheduledDate = DateTime.parse(jadwalPickupStr).toLocal();
+        final String dateFormatted = _formatDateOnly(jadwalPickupStr);
+        final bool isMorning = scheduledDate.hour < 12;
+        final String timeRange = isMorning 
+            ? '08:00 AM - 12:00 PM' 
+            : '12:00 PM - 04:00 PM';
+        jadwalLabel = '$dateFormatted, $timeRange';
+      } catch (_) {
+        jadwalLabel = _formatDateOnly(jadwalPickupStr);
+      }
     }
 
     return Container(
@@ -3220,6 +3729,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   Icons.calendar_month_rounded,
                 ),
                 const Divider(height: 20),
+
+                if (!isDropOff && _currentOrder['jadwal_pickup'] != null && _currentOrder['jadwal_pickup'].toString().isNotEmpty) ...[
+                  _buildDetailRow(
+                    isEn ? 'Scheduled Pickup' : 'Jadwal Penjemputan',
+                    jadwalLabel,
+                    Icons.event_note_rounded,
+                  ),
+                  const Divider(height: 20),
+                ],
 
                 if (!isDropOff) ...[
                   _buildDetailRow(
