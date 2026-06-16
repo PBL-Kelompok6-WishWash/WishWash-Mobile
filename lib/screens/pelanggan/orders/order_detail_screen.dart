@@ -1466,6 +1466,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
+  /// Compact date+time for stepper tracker labels, e.g. "16 Jun, 09:30"
+  String _formatDateShort(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+      final String hh = dt.hour.toString().padLeft(2, '0');
+      final String mm = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day} ${months[dt.month - 1]}, $hh:$mm';
+    } catch (_) {
+      return '';
+    }
+  }
+
   String _getEstSelesaiDate(Map<String, dynamic> order) {
     final String? pickupStr = order['jadwal_pickup']?.toString();
     final String? tglPesananStr = order['tgl_pesanan']?.toString();
@@ -1945,6 +1959,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         orderColor: orderColor,
                         currentStatus: currentStatus,
                         isCancelled: isCancelled,
+                        serviceImagePath: (layanan['gambar_layanan'] ?? '').toString(),
                       ),
                       const SizedBox(height: 16),
 
@@ -5193,6 +5208,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required Color orderColor,
     required String currentStatus,
     bool isCancelled = false,
+    String serviceImagePath = '',
   }) {
     final bool isEn = TranslationService.currentLang == 'en';
 
@@ -5253,6 +5269,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 Row(
                   children: [
+                    // Service image thumbnail (top-left)
+                    if (serviceImagePath.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          width: 38,
+                          height: 38,
+                          child: _buildServiceImage(serviceImagePath),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ] else ...[
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: orderColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.local_laundry_service_rounded,
+                          color: orderColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
                     Text(
                       TranslationService.currentLang == 'en'
                           ? 'Order #$orderId'
@@ -5483,9 +5526,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               final int activeIdx = statusInfo['active_index'];
               final bool isSelesai = statusInfo['is_selesai'] == true;
 
+              // Build a lookup: status name (lower) -> waktu_update
+              final Map<String, String> statusTimeMap = {};
+              final historyList = order['RiwayatStatusDetail'];
+              if (historyList != null && historyList is List) {
+                for (final h in historyList) {
+                  final refStatus = h['ReferensiStatus'];
+                  final String hName = (refStatus != null && refStatus is Map
+                      ? (refStatus['nama_status'] ?? '').toString()
+                      : (h['nama_status'] ?? '').toString()).toLowerCase().trim();
+                  final String rawTime = (h['waktu_update'] ?? h['WaktuUpdate'] ?? '').toString();
+                  if (hName.isNotEmpty && rawTime.isNotEmpty) {
+                    statusTimeMap[hName] = rawTime;
+                  }
+                }
+              }
+
               List<Widget> steps = [];
               for (int i = 0; i < refStatuses.length; i++) {
-                final rawName = refStatuses[i]['nama_status'] ?? '';
+                final rawName = (refStatuses[i]['nama_status'] ?? '').toString();
                 final String shortLabel = _getShortStatusLabel(
                   rawName,
                   lang,
@@ -5499,6 +5558,35 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 final bool isCurrent = i == activeIdx && !isSelesai;
                 final bool isActive = isDone || isCurrent;
 
+                // Lookup timestamp for this step
+                String stepTimestamp = '';
+                if (isDone || isCurrent) {
+                  final String nameLower = rawName.toLowerCase().trim();
+                  // Try exact match first, then fuzzy keyword match
+                  String? matchedTime = statusTimeMap[nameLower];
+                  if (matchedTime == null) {
+                    for (final entry in statusTimeMap.entries) {
+                      final k = entry.key;
+                      if (nameLower.contains(k) || k.contains(nameLower) ||
+                          (nameLower.contains('diterima') && k.contains('diterima')) ||
+                          (nameLower.contains('jemput') && k.contains('jemput')) ||
+                          (nameLower.contains('timbang') && k.contains('timbang')) ||
+                          (nameLower.contains('cuci') && k.contains('cuci')) ||
+                          (nameLower.contains('kering') && k.contains('kering')) ||
+                          (nameLower.contains('lipat') && k.contains('lipat')) ||
+                          (nameLower.contains('setrika') && k.contains('setrika')) ||
+                          (nameLower.contains('antar') && k.contains('antar')) ||
+                          (nameLower.contains('selesai') && k.contains('selesai'))) {
+                        matchedTime = entry.value;
+                        break;
+                      }
+                    }
+                  }
+                  if (matchedTime != null && matchedTime.isNotEmpty) {
+                    stepTimestamp = _formatDateShort(matchedTime);
+                  }
+                }
+
                 steps.add(
                   _buildTimelineStep(
                     label: shortLabel,
@@ -5509,6 +5597,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     index: i,
                     totalSteps: refStatuses.length,
                     isCancelled: isCancelled,
+                    timestamp: stepTimestamp,
                   ),
                 );
               }
@@ -5739,6 +5828,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     required int index,
     required int totalSteps,
     bool isCancelled = false,
+    String timestamp = '',
   }) {
     final bool showLeftLine = index > 0;
     final bool showRightLine = index < totalSteps - 1;
@@ -5754,46 +5844,56 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            height: 20,
+            height: 22,
             child: Stack(
               children: [
                 if (showLeftLine)
                   Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Container(height: 2, color: leftLineColor),
+                    alignment: Alignment.center,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.5,
+                        child: Container(height: 2, color: leftLineColor),
+                      ),
                     ),
                   ),
                 if (showRightLine)
                   Align(
-                    alignment: Alignment.centerRight,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Container(height: 2, color: rightLineColor),
+                    alignment: Alignment.center,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.5,
+                        child: Container(height: 2, color: rightLineColor),
+                      ),
                     ),
                   ),
                 Align(
                   alignment: Alignment.center,
                   child: Container(
-                    width: 18,
-                    height: 18,
+                    width: 20,
+                    height: 20,
                     decoration: BoxDecoration(
                       color: isCancelled
                           ? const Color(0xFFFF3B30)
-                          : (isDone ? themeColor : Colors.white),
+                          : (isDone
+                              ? themeColor
+                              : (isCurrent
+                                  ? themeColor.withValues(alpha: 0.12)
+                                  : Colors.white)),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isCancelled
                             ? const Color(0xFFFF3B30)
                             : (isActive ? themeColor : Colors.grey.shade300),
-                        width: 1.5,
+                        width: 1.8,
                       ),
                       boxShadow: [
-                        if (isCurrent && !isCancelled)
+                        if ((isCurrent || isDone) && !isCancelled)
                           BoxShadow(
-                            color: themeColor.withValues(alpha: 0.3),
-                            blurRadius: 4,
+                            color: themeColor.withValues(alpha: 0.25),
+                            blurRadius: 5,
                             spreadRadius: 1,
                           ),
                       ],
@@ -5802,46 +5902,63 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       child: isCancelled
                           ? const Icon(
                               Icons.close_rounded,
-                              size: 10,
+                              size: 11,
                               color: Colors.white,
                             )
-                          : (isCurrent
-                                ? Icon(
-                                    Icons.fiber_manual_record,
-                                    size: 8,
-                                    color: themeColor,
-                                  )
-                                : (isDone
-                                      ? const Icon(
-                                          Icons.check,
-                                          size: 10,
-                                          color: Colors.white,
-                                        )
-                                      : const SizedBox.shrink())),
+                          : (isDone
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 12,
+                                  color: Colors.white,
+                                )
+                              : (isCurrent
+                                  ? Icon(
+                                      Icons.fiber_manual_record,
+                                      size: 9,
+                                      color: themeColor,
+                                    )
+                                  : const SizedBox.shrink())),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2),
             child: Text(
               label,
               textAlign: TextAlign.center,
-              maxLines: 1,
-              softWrap: false,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: 8,
                 fontWeight: isCurrent || isDone
                     ? FontWeight.bold
                     : FontWeight.normal,
-                color: isActive ? themeColor : Colors.grey.shade600,
+                color: isCancelled
+                    ? Colors.red.shade700
+                    : (isActive ? themeColor : Colors.grey.shade400),
               ),
             ),
           ),
+          // Timestamp below label for done steps
+          if (timestamp.isNotEmpty && (isDone || isCurrent) && !isCancelled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                timestamp,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                  fontSize: 7,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
         ],
       ),
     );
