@@ -643,6 +643,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                     await Future.wait([
                       _fetchProfileData(),
                       _fetchServicesData(),
+                      _fetchActiveOrders(),
+                      _fetchPromosData(),
+                      _checkUnreadNotifications(),
                     ]);
                   },
                   child: SingleChildScrollView(

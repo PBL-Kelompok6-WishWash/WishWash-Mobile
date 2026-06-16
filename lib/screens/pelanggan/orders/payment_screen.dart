@@ -1492,33 +1492,102 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                       valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
                                     ),
                                   )
-                                : _midtransQrUrl != null
-                                    ? Image.network(
-                                        _midtransQrUrl!,
-                                        fit: BoxFit.contain,
-                                        loadingBuilder: (context, child, loadingProgress) {
-                                          if (loadingProgress == null) return child;
-                                          return const Center(
-                                            child: CircularProgressIndicator(
-                                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+                                : _secondsRemaining <= 0
+                                    ? Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.history_toggle_off_rounded,
+                                            size: 64,
+                                            color: Colors.red.shade600,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            isEn ? 'QR Code Expired' : 'Kode QRIS Kadaluarsa',
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: Colors.red.shade800,
                                             ),
-                                          );
-                                        },
-                                        errorBuilder: (context, error, stackTrace) => const Icon(
-                                          Icons.qr_code_2_rounded,
-                                          size: 175,
-                                          color: Colors.black87,
-                                        ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            isEn
+                                                ? 'Please refresh to generate a new QR code.'
+                                                : 'Silakan refresh untuk membuat kode baru.',
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 11,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          ElevatedButton.icon(
+                                            onPressed: () {
+                                              final int orderId = widget.order['id_order'] ?? 0;
+                                              if (orderId != 0) {
+                                                _paymentExpirations[orderId] =
+                                                    DateTime.now().add(const Duration(minutes: 15));
+                                                setState(() {
+                                                  _secondsRemaining = 900;
+                                                });
+                                                // Call backend API to log and update the payment method selection
+                                                OrderService.updateOrder(orderId, {
+                                                  'metode_bayar': 'QRIS',
+                                                }).catchError((e) {
+                                                  print("Error notifying backend of QRIS refresh: $e");
+                                                });
+                                                _fetchMidtransQRIS();
+                                                _startTimer();
+                                              }
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: navyColor,
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                              elevation: 0,
+                                            ),
+                                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                                            label: Text(
+                                              isEn ? 'Refresh' : 'Refresh QR',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       )
-                                    : Image.network(
-                                        'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$qrisData',
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) => const Icon(
-                                          Icons.qr_code_2_rounded,
-                                          size: 175,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
+                                    : _midtransQrUrl != null
+                                        ? Image.network(
+                                            _midtransQrUrl!,
+                                            fit: BoxFit.contain,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return const Center(
+                                                child: CircularProgressIndicator(
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0C4B8E)),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) => const Icon(
+                                              Icons.qr_code_2_rounded,
+                                              size: 175,
+                                              color: Colors.black87,
+                                            ),
+                                          )
+                                        : Image.network(
+                                            'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$qrisData',
+                                            fit: BoxFit.contain,
+                                            errorBuilder: (context, error, stackTrace) => const Icon(
+                                              Icons.qr_code_2_rounded,
+                                              size: 175,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
                           ),
                           
                           const SizedBox(height: 20),
@@ -1550,21 +1619,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               height: 52,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF10B981), Color(0xFF059669)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
+                                gradient: _secondsRemaining > 0
+                                    ? const LinearGradient(
+                                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : null,
+                                color: _secondsRemaining > 0 ? null : Colors.grey.shade300,
+                                boxShadow: _secondsRemaining > 0
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                                          blurRadius: 15,
+                                          offset: const Offset(0, 5),
+                                        ),
+                                      ]
+                                    : null,
                               ),
                               child: ElevatedButton.icon(
-                                onPressed: () => _downloadQRIS(qrisData),
+                                onPressed: _secondsRemaining > 0 ? () => _downloadQRIS(qrisData) : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.transparent,
                                   shadowColor: Colors.transparent,
@@ -1572,13 +1646,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                icon: const Icon(Icons.download_rounded, size: 22, color: Colors.white),
+                                icon: Icon(
+                                  Icons.download_rounded, 
+                                  size: 22, 
+                                  color: _secondsRemaining > 0 ? Colors.white : Colors.grey.shade500,
+                                ),
                                 label: Text(
                                   isEn ? 'Download QRIS' : 'Unduh QRIS',
                                   style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: Colors.white,
+                                    color: _secondsRemaining > 0 ? Colors.white : Colors.grey.shade500,
                                     letterSpacing: 0.5,
                                   ),
                                 ),

@@ -5298,37 +5298,65 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
               ),
             ] else ...[
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      color: Colors.amber.shade800,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        TranslationService.currentLang == 'en'
-                            ? 'Waiting for customer to come to the store to pick up the laundry.'
-                            : 'Menunggu pelanggan datang ke toko untuk mengambil cucian.',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.amber.shade900,
+              (() {
+                final bool isPaid = paymentStatus == 'Lunas' || paymentStatus == 'Paid';
+                final bool isQRIS = paymentMethod == 'QRIS';
+                
+                String msg = '';
+                if (isPaid) {
+                  if (isQRIS) {
+                    msg = TranslationService.currentLang == 'en'
+                        ? 'QRIS payment verified. Please hand over the laundry to the customer and confirm pick-up.'
+                        : 'Pembayaran QRIS telah berhasil diverifikasi. Silakan serahkan cucian kepada pelanggan dan konfirmasi pengambilan.';
+                  } else {
+                    msg = TranslationService.currentLang == 'en'
+                        ? 'Cash payment received. Please hand over the laundry to the customer and confirm pick-up.'
+                        : 'Pembayaran tunai telah diterima. Silakan serahkan cucian kepada pelanggan dan konfirmasi pengambilan.';
+                  }
+                } else {
+                  if (isQRIS) {
+                    msg = TranslationService.currentLang == 'en'
+                        ? 'Waiting for customer to complete QRIS payment in the app.'
+                        : 'Menunggu pelanggan melakukan pembayaran QRIS di aplikasi.';
+                  } else {
+                    msg = TranslationService.currentLang == 'en'
+                        ? 'Waiting for customer to come to the store to pay and pick up the laundry.'
+                        : 'Menunggu pelanggan datang ke toko untuk membayar dan mengambil cucian.';
+                  }
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isPaid
+                            ? Icons.check_circle_outline_rounded
+                            : (isQRIS ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded),
+                        color: Colors.amber.shade800,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          msg,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade900,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              })(),
             ],
           ],
           if (status == 'siap diantar' && !isDropOff && !canDeliver) ...[

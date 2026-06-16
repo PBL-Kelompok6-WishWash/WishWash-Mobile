@@ -1825,7 +1825,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
           elevation: 10,
           backgroundColor: Colors.white,
           child: Padding(
-            padding: const EdgeInsets.all(28),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1843,6 +1843,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     size: 40,
                   ),
                 ),
+                const SizedBox(height: 20),
                 Text(
                   TranslationService.currentLang == 'en'
                       ? 'Order Created Successfully!'
@@ -1854,7 +1855,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   TranslationService.currentLang == 'en'
                       ? 'Your laundry order has been successfully created. We will pick up your laundry soon.'
@@ -1863,10 +1864,10 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                   style: GoogleFonts.poppins(
                     color: textGrey,
                     fontSize: 12,
-                    height: 1.4,
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

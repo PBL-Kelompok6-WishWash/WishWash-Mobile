@@ -178,6 +178,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void initState() {
     super.initState();
     _currentOrder = Map<String, dynamic>.from(widget.order);
+    
+    // Initialize _selectedPaymentMethod from DB if already selected
+    final pembayaran = _currentOrder['Pembayaran'];
+    final String dbMetodeBayar =
+        pembayaran != null && pembayaran['metode_bayar'] != null
+        ? pembayaran['metode_bayar'].toString().toUpperCase()
+        : '';
+    if (dbMetodeBayar.isNotEmpty && dbMetodeBayar != 'BELUM DIBAYAR') {
+      _selectedPaymentMethod = dbMetodeBayar;
+    }
+
     _loadAddresses();
     _loadOrderDetail().then((_) {
       final double qty = (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
@@ -329,12 +340,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return discount > subtotalCucian ? subtotalCucian : discount;
   }
 
-  Future<void> _loadOrderDetail() async {
+   Future<void> _loadOrderDetail() async {
     try {
       final updated = await OrderService.getOrderById(_currentOrder['id_order']);
       if (mounted) {
         setState(() {
           _currentOrder = Map<String, dynamic>.from(updated);
+
+          // Initialize _selectedPaymentMethod from DB if already selected
+          final pembayaran = _currentOrder['Pembayaran'];
+          final String dbMetodeBayar =
+              pembayaran != null && pembayaran['metode_bayar'] != null
+              ? pembayaran['metode_bayar'].toString().toUpperCase()
+              : '';
+          if (dbMetodeBayar.isNotEmpty && dbMetodeBayar != 'BELUM DIBAYAR') {
+            _selectedPaymentMethod = dbMetodeBayar;
+          }
           
           // Restore promo state from backend if present
           final List<dynamic> promoOrders = _currentOrder['PromoOrder'] ?? [];
@@ -3661,13 +3682,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        packageName,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
-                        ),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        children: [
+                          Text(
+                            packageName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
+                            ),
+                          ),
+                          (() {
+                            final paket = _currentOrder['PaketLayanan'] ?? {};
+                            final int durasiJam = (paket['durasi_jam'] as num?)?.toInt() ?? 0;
+                            if (durasiJam > 0) {
+                              return Text(
+                                isEn ? '($durasiJam hrs)' : '($durasiJam Jam)',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade500,
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          })(),
+                        ],
                       ),
                       if (biayaTambahan > 0) ...[
                         const SizedBox(height: 2),
@@ -4927,6 +4969,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ? pembayaran['metode_bayar'].toString().toUpperCase()
         : null;
 
+    final String paymentStatus = _getPaymentStatus(_currentOrder);
+    final bool isPaid = paymentStatus == 'Lunas';
+
     final bool isDropOff = _currentOrder['tipe_logistik'] == 'Drop-off' || _currentOrder['tipe_logistik'] == 'Self Pickup';
 
     // Dynamic Cash payment label based on logistics method (Ambil di Toko / Antar ke Rumah)
@@ -4940,7 +4985,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         dbMetodeBayar.isNotEmpty &&
         dbMetodeBayar != 'UNPAID' &&
         dbMetodeBayar != 'BELUM DIBAYAR' &&
-        dbMetodeBayar != '-') {
+        dbMetodeBayar != '-' &&
+        (dbMetodeBayar == 'CASH' || dbMetodeBayar == 'COD' || isPaid)) {
       final bool isCash = dbMetodeBayar == 'CASH' || dbMetodeBayar == 'COD';
 
       final String selectedLabel = isCash ? cashLabel : 'QRIS';
@@ -5063,14 +5109,30 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }) {
     final bool isSelected = _selectedPaymentMethod == methodId;
     return InkWell(
-      onTap: () {
-        setState(() {
-          if (_selectedPaymentMethod == methodId) {
-            _selectedPaymentMethod = null;
-          } else {
-            _selectedPaymentMethod = methodId;
+      onTap: () async {
+        if (_selectedPaymentMethod == methodId) {
+          try {
+            final updatedOrder = await OrderService.updateOrder(
+              _currentOrder['id_order'],
+              {
+                'status_pembayaran': 'Belum Lunas',
+                'metode_bayar': 'BELUM DIBAYAR',
+              },
+            );
+            if (mounted) {
+              setState(() {
+                _selectedPaymentMethod = null;
+                _currentOrder = Map<String, dynamic>.from(updatedOrder);
+              });
+            }
+          } catch (e) {
+            debugPrint('Error clearing payment method: $e');
           }
-        });
+        } else {
+          setState(() {
+            _selectedPaymentMethod = methodId;
+          });
+        }
       },
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
@@ -6379,7 +6441,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               // Animated Line (Grab Style)
               Row(
                 children: [
-                  Icon(Icons.storefront_rounded, color: Colors.grey.shade400, size: 20),
+                  Icon(Icons.storefront_rounded, color: navyColor, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: LayoutBuilder(
@@ -6406,28 +6468,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   ),
                                 ),
                                 // Progress track
-                                FractionallySizedBox(
-                                  widthFactor: val,
-                                  child: Container(
-                                    height: 6,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.green.shade300,
-                                          Colors.green.shade600,
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(3),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.green.shade400.withOpacity(0.3),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                ShimmerProgressTrack(value: val, height: 6),
                                 // Moving motorcycle
                                 Positioned(
                                   left: leftOffset,
@@ -7264,7 +7305,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             // Progress Bar (Grab Style)
             Row(
               children: [
-                Icon(Icons.storefront_rounded, color: Colors.grey.shade400, size: 18),
+                Icon(Icons.storefront_rounded, color: navyColor, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: LayoutBuilder(
@@ -7291,28 +7332,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 ),
                               ),
                               // Progress track
-                              FractionallySizedBox(
-                                widthFactor: val,
-                                child: Container(
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.green.shade300,
-                                        Colors.green.shade600,
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(3),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.green.shade400.withOpacity(0.3),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              ShimmerProgressTrack(value: val, height: 6),
                               // Moving motorcycle
                               Positioned(
                                   left: leftOffset,
@@ -7564,9 +7584,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
         final bool isCourierArrived = _currentOrder['is_courier_arrived'] == true;
         final String infoText = isDropOff
-            ? (isEn
-                ? 'Payment successful! Please go to the store and show your transaction receipt/barcode to the outlet staff to receive your laundry.'
-                : 'Pembayaran telah berhasil! Silakan ke toko dan tunjukkan resi/barcode transaksi Anda kepada outlet/kasir untuk menerima cucian.')
+            ? (dbMetodeBayar == 'CASH'
+                ? (isEn
+                    ? 'Cash payment received! Please show your transaction receipt/barcode to the cashier/staff to collect your laundry.'
+                    : 'Pembayaran tunai berhasil diterima! Silakan tunjukkan resi/barcode transaksi Anda kepada kasir/outlet untuk mengambil cucian.')
+                : (isEn
+                    ? 'Payment successful! Please go to the store and show your transaction receipt/barcode to the outlet staff to receive your laundry.'
+                    : 'Pembayaran telah berhasil! Silakan ke toko dan tunjukkan resi/barcode transaksi Anda kepada outlet/kasir untuk menerima cucian.'))
             : (isCourierArrived
                 ? (isEn
                     ? 'Payment confirmed! Please show your transaction receipt/barcode to the courier to receive your laundry.'
@@ -7598,16 +7622,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3CD),
+                  color: Colors.amber.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                  border: Border.all(color: Colors.amber.shade200),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      color: Colors.amber.shade900,
+                      color: Colors.amber.shade800,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -7684,23 +7708,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.storefront_rounded,
-                    color: Colors.amber.shade900,
-                    size: 18,
+                    dbMetodeBayar == 'QRIS' ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      isEn
-                          ? 'Please pick up your laundry at our store outlet.'
-                          : 'Silakan ambil cucian Anda di outlet toko.',
+                      dbMetodeBayar == 'QRIS'
+                          ? (isEn
+                              ? 'Please complete your QRIS payment first to collect your laundry.'
+                              : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
+                          : (isEn
+                              ? 'Please pick up your laundry at our store outlet.'
+                              : 'Silakan ambil cucian Anda di outlet toko.'),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.amber.shade900,
@@ -7717,18 +7745,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: Colors.amber.shade900,
-                    size: 18,
+                    color: Colors.amber.shade800,
+                    size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       isEn
@@ -7749,18 +7777,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: Colors.amber.shade900,
-                    size: 18,
+                    color: Colors.amber.shade800,
+                    size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       isEn
@@ -7781,23 +7809,55 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFF3CD),
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
-                    color: Colors.amber.shade900,
-                    size: 18,
+                    color: Colors.amber.shade800,
+                    size: 20,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       isEn
                           ? 'Awaiting weighing process by store employee.'
                           : 'Menunggu cucian ditimbang oleh outlet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (!isPaymentMethodConfirmed && _selectedPaymentMethod == null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'Please select a payment method (Cash/QRIS) to proceed with your order & logistics.'
+                          : 'Silakan pilih metode pembayaran (Cash/QRIS) terlebih dahulu untuk memproses pesanan & pengiriman.',
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.amber.shade900,
@@ -7814,18 +7874,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF3CD),
+                  color: Colors.amber.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFFFEEBA), width: 1),
+                  border: Border.all(color: Colors.amber.shade200),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline_rounded,
-                      color: Colors.amber.shade900,
-                      size: 18,
+                      color: Colors.amber.shade800,
+                      size: 20,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         (_currentOrder['is_courier_arrived'] == true && isPaymentMethodConfirmed)
@@ -8104,21 +8164,49 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ? null
                             : () {
                                 if (isQRIS) {
-                                  // Navigate to our premium dynamic QRIS Payment Screen!
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => PaymentScreen(
-                                        order: _currentOrder,
-                                        promoDiscount: promoDiscount,
-                                        totalTagihan: totalTagihan,
-                                        paymentMethod: 'QRIS',
-                                      ),
-                                    ),
-                                  ).then((result) {
-                                    if (result == true) {
-                                      _loadOrderDetail();
+                                  // Update backend first with selected payment method QRIS
+                                  OrderService.updateOrder(
+                                    _currentOrder['id_order'],
+                                    {
+                                      'status_pembayaran': 'Belum Lunas',
+                                      'metode_bayar': 'QRIS',
+                                    },
+                                  ).then((updatedOrder) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _currentOrder = Map<String, dynamic>.from(updatedOrder);
+                                      });
                                     }
+                                    // Navigate to our premium dynamic QRIS Payment Screen!
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PaymentScreen(
+                                          order: _currentOrder,
+                                          promoDiscount: promoDiscount,
+                                          totalTagihan: totalTagihan,
+                                          paymentMethod: 'QRIS',
+                                        ),
+                                      ),
+                                    ).then((result) {
+                                      _loadOrderDetail();
+                                    });
+                                  }).catchError((e) {
+                                    debugPrint('Error updating payment method QRIS: $e');
+                                    // Fallback to navigate anyway if backend fails
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PaymentScreen(
+                                          order: _currentOrder,
+                                          promoDiscount: promoDiscount,
+                                          totalTagihan: totalTagihan,
+                                          paymentMethod: 'QRIS',
+                                        ),
+                                      ),
+                                    ).then((result) {
+                                      _loadOrderDetail();
+                                    });
                                   });
                                 } else {
                                   // Confirm Cash Payment with beautiful modern custom Dialog
@@ -8585,3 +8673,85 @@ class DeliveryMapPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+class ShimmerProgressTrack extends StatefulWidget {
+  final double value;
+  final double height;
+
+  const ShimmerProgressTrack({
+    Key? key,
+    required this.value,
+    this.height = 6.0,
+  }) : super(key: key);
+
+  @override
+  _ShimmerProgressTrackState createState() => _ShimmerProgressTrackState();
+}
+
+class _ShimmerProgressTrackState extends State<ShimmerProgressTrack>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3), // Slow and elegant movement
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return FractionallySizedBox(
+          widthFactor: widget.value,
+          child: Container(
+            height: widget.height,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Colors.green.shade600,
+                  Colors.green.shade300,
+                  Colors.green.shade600,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+                tileMode: TileMode.repeated,
+                transform: _GradientTranslate(_controller.value),
+              ),
+              borderRadius: BorderRadius.circular(widget.height / 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.shade400.withOpacity(0.3),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _GradientTranslate extends GradientTransform {
+  final double dx;
+  const _GradientTranslate(this.dx);
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.translationValues(dx * bounds.width, 0.0, 0.0);
+  }
+}
+
