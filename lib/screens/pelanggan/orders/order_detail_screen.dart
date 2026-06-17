@@ -7703,43 +7703,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isDropOff && isReadyForDelivery && dbMetodeBayar == 'CASH' && !isPaid) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    dbMetodeBayar == 'QRIS' ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded,
-                    color: Colors.amber.shade800,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      dbMetodeBayar == 'QRIS'
-                          ? (isEn
-                              ? 'Please complete your QRIS payment first to collect your laundry.'
-                              : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
-                          : (isEn
-                              ? 'Please pick up your laundry at our store outlet.'
-                              : 'Silakan ambil cucian Anda di outlet toko.'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           if (isOrderStillPendingAcceptance) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -7836,77 +7799,27 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ],
               ),
             ),
-          ] else if (isPaymentMethodConfirmed && dbMetodeBayar == 'QRIS' && !isPaid) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: Colors.amber.shade800,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      isDropOff
-                          ? (isEn
-                              ? 'Please complete your QRIS payment first to collect your laundry.'
-                              : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
-                          : (isEn
-                              ? 'Please complete your QRIS payment first so the courier can deliver your laundry.'
-                              : 'Silakan lakukan pembayaran QRIS terlebih dahulu agar kurir dapat mengantarkan cucian Anda.'),
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else if (!isPaymentMethodConfirmed && _selectedPaymentMethod == null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: Colors.amber.shade800,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      isEn
-                          ? 'Please select a payment method (Cash/QRIS) to proceed with your order & logistics.'
-                          : 'Silakan pilih metode pembayaran (Cash/QRIS) terlebih dahulu untuk memproses pesanan & pengiriman.',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else if (lowerCurrent.contains('antar') || lowerCurrent.contains('kirim') || lowerCurrent.contains('siap diantar')) ...[
-            if (!isDropOff)
-              Container(
+          ] else if (!isPaymentMethodConfirmed) ...[
+            (() {
+              final IconData icon = _selectedPaymentMethod == null
+                  ? Icons.info_outline_rounded
+                  : (_selectedPaymentMethod == 'QRIS'
+                      ? Icons.qr_code_scanner_rounded
+                      : Icons.payments_rounded);
+
+              final String text = _selectedPaymentMethod == null
+                  ? (isEn
+                      ? 'Please select a payment method (Cash/QRIS) to proceed.'
+                      : 'Silakan pilih metode pembayaran (Cash/QRIS) terlebih dahulu untuk memproses pesanan & pengiriman.')
+                  : (_selectedPaymentMethod == 'QRIS'
+                      ? (isEn
+                          ? 'Please complete your QRIS payment first to proceed.'
+                          : 'Silakan lakukan pembayaran QRIS terlebih dahulu untuk melanjutkan.')
+                      : (isEn
+                          ? 'Please click the Confirm button below to confirm Cash payment.'
+                          : 'Silakan klik tombol Konfirmasi di bawah untuk mengonfirmasi metode pembayaran Cash.'));
+
+              return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
@@ -7917,40 +7830,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      (isPaymentMethodConfirmed && dbMetodeBayar == 'QRIS' && !isPaid)
-                          ? Icons.qr_code_scanner_rounded
-                          : Icons.info_outline_rounded,
+                      icon,
                       color: Colors.amber.shade800,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        (_currentOrder['is_courier_arrived'] == true && isPaymentMethodConfirmed)
-                            ? (() {
-                                final pembayaran = _currentOrder['Pembayaran'];
-                                final bool isPaidStatus = pembayaran != null &&
-                                    (pembayaran['status_pembayaran'] == 'Lunas' ||
-                                     pembayaran['status_pembayaran'] == 'Paid');
-                                return isPaidStatus
-                                    ? (isEn
-                                        ? 'Courier has arrived at your location! Please show the barcode below to the courier to receive your clothes.'
-                                        : 'Kurir telah sampai di lokasi Anda! Silakan tunjukkan barcode di bawah kepada kurir untuk menerima pakaian.')
-                                    : (isEn
-                                        ? 'Courier has arrived at your location! Please pay and receive your laundry.'
-                                        : 'Kurir telah sampai di lokasi Anda! Silakan bayar dan terima cucian.');
-                              })()
-                            : (!isPaymentMethodConfirmed
-                                ? (isEn
-                                    ? 'Please select a payment method (Cash/QRIS) to proceed.'
-                                    : 'Silakan pilih metode pembayaran (Cash/QRIS) untuk melanjutkan.')
-                                : (dbMetodeBayar == 'QRIS' && !isPaid
-                                    ? (isEn
-                                        ? 'Please complete your QRIS payment first so the courier can deliver your laundry.'
-                                        : 'Silakan lakukan pembayaran QRIS terlebih dahulu agar kurir dapat mengantarkan cucian Anda.')
-                                    : (isEn
-                                        ? 'Awaiting courier to deliver your laundry.'
-                                        : 'Menunggu kurir mengantarkan cucian Anda.'))),
+                        text,
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: Colors.amber.shade900,
@@ -7960,7 +7847,121 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ),
                   ],
                 ),
-              ),
+              );
+            })(),
+          ] else if (isDropOff && isReadyForDelivery && !isPaid) ...[
+            (() {
+              final String activeMethod = _selectedPaymentMethod ?? dbMetodeBayar;
+              final bool isMethodSelected = activeMethod.isNotEmpty && activeMethod != 'BELUM DIBAYAR';
+              
+              final IconData icon = !isMethodSelected
+                  ? Icons.info_outline_rounded
+                  : (activeMethod == 'QRIS' ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded);
+                  
+              final String text = !isMethodSelected
+                  ? (isEn
+                      ? 'Please select a payment method (Cash/QRIS) to proceed.'
+                      : 'Silakan pilih metode pembayaran (Cash/QRIS) untuk melanjutkan.')
+                  : (activeMethod == 'QRIS'
+                      ? (isEn
+                          ? 'Please complete your QRIS payment first to collect your laundry.'
+                          : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
+                      : (isEn
+                          ? 'Please pick up your laundry at our store outlet.'
+                          : 'Silakan ambil cucian Anda di outlet toko.'));
+                          
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      icon,
+                      color: Colors.amber.shade800,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.amber.shade900,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            })(),
+          ] else if (lowerCurrent.contains('antar') || lowerCurrent.contains('kirim') || lowerCurrent.contains('siap diantar')) ...[
+            if (!isDropOff)
+              (() {
+                final String activeMethod = _selectedPaymentMethod ?? dbMetodeBayar;
+                final bool isMethodSelected = activeMethod.isNotEmpty && activeMethod != 'BELUM DIBAYAR';
+                
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        (isMethodSelected && activeMethod == 'QRIS' && !isPaid)
+                            ? Icons.qr_code_scanner_rounded
+                            : Icons.info_outline_rounded,
+                        color: Colors.amber.shade800,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          (_currentOrder['is_courier_arrived'] == true && isMethodSelected)
+                              ? (() {
+                                  final pembayaran = _currentOrder['Pembayaran'];
+                                  final bool isPaidStatus = pembayaran != null &&
+                                      (pembayaran['status_pembayaran'] == 'Lunas' ||
+                                       pembayaran['status_pembayaran'] == 'Paid');
+                                  return isPaidStatus
+                                      ? (isEn
+                                          ? 'Courier has arrived at your location! Please show the barcode below to the courier to receive your clothes.'
+                                          : 'Kurir telah sampai di lokasi Anda! Silakan tunjukkan barcode di bawah kepada kurir untuk menerima pakaian.')
+                                      : (isEn
+                                          ? 'Courier has arrived at your location! Please pay and receive your laundry.'
+                                          : 'Kurir telah sampai di lokasi Anda! Silakan bayar dan terima cucian.');
+                                })()
+                              : (!isMethodSelected
+                                  ? (isEn
+                                      ? 'Please select a payment method (Cash/QRIS) to proceed.'
+                                      : 'Silakan pilih metode pembayaran (Cash/QRIS) untuk melanjutkan.')
+                                  : (activeMethod == 'QRIS' && !isPaid
+                                      ? (isEn
+                                          ? 'Please complete your QRIS payment first so the courier can deliver your laundry.'
+                                          : 'Silakan lakukan pembayaran QRIS terlebih dahulu agar kurir dapat mengantarkan cucian Anda.')
+                                      : (isEn
+                                          ? 'Awaiting courier to deliver your laundry.'
+                                          : 'Menunggu kurir mengantarkan cucian Anda.'))),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: Colors.amber.shade900,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              })(),
           ],
           if (isOrderStillPendingAcceptance) ...[
             SizedBox(
@@ -8143,7 +8144,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                                         updatedOrder,
                                                       );
                                                   _selectedPaymentMethod =
-                                                      'QRIS';
+                                                      null;
                                                 });
                                               } catch (e) {
                                                 if (context.mounted) {
