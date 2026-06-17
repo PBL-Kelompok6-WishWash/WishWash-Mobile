@@ -7703,7 +7703,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (isDropOff && !isPaid) ...[
+          if (isDropOff && isReadyForDelivery && dbMetodeBayar == 'CASH' && !isPaid) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               margin: const EdgeInsets.only(bottom: 12),
@@ -7715,34 +7715,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Row(
                 children: [
                   Icon(
-                    !isPaymentMethodConfirmed
-                        ? Icons.info_outline_rounded
-                        : (dbMetodeBayar == 'QRIS' ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded),
+                    dbMetodeBayar == 'QRIS' ? Icons.qr_code_scanner_rounded : Icons.storefront_rounded,
                     color: Colors.amber.shade800,
                     size: 20,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      !isPaymentMethodConfirmed
+                      dbMetodeBayar == 'QRIS'
                           ? (isEn
-                              ? 'Please select a payment method (Cash/QRIS) to proceed.'
-                              : 'Silakan pilih metode pembayaran (Cash/QRIS) untuk melanjutkan.')
-                          : (dbMetodeBayar == 'QRIS'
-                              ? (isReadyForDelivery
-                                  ? (isEn
-                                      ? 'Please complete your QRIS payment first to collect your laundry.'
-                                      : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
-                                  : (isEn
-                                      ? 'Laundry is being processed. Please complete your QRIS payment.'
-                                      : 'Cucian sedang diproses. Silakan lakukan pembayaran QRIS Anda.'))
-                              : (isReadyForDelivery
-                                  ? (isEn
-                                      ? 'Please pick up your laundry at our store outlet.'
-                                      : 'Silakan ambil cucian Anda di outlet toko.')
-                                  : (isEn
-                                      ? 'Laundry is being processed. You can pay cash at the store when picking up.'
-                                      : 'Cucian sedang diproses. Silakan bayar tunai di toko saat mengambil nanti.'))),
+                              ? 'Please complete your QRIS payment first to collect your laundry.'
+                              : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
+                          : (isEn
+                              ? 'Please pick up your laundry at our store outlet.'
+                              : 'Silakan ambil cucian Anda di outlet toko.'),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.amber.shade900,
@@ -7840,6 +7826,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       isEn
                           ? 'Awaiting weighing process by store employee.'
                           : 'Menunggu cucian ditimbang oleh outlet.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isPaymentMethodConfirmed && dbMetodeBayar == 'QRIS' && !isPaid) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: Colors.amber.shade800,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isDropOff
+                          ? (isEn
+                              ? 'Please complete your QRIS payment first to collect your laundry.'
+                              : 'Silakan selesaikan pembayaran QRIS terlebih dahulu untuk mengambil cucian.')
+                          : (isEn
+                              ? 'Please complete your QRIS payment first so the courier can deliver your laundry.'
+                              : 'Silakan lakukan pembayaran QRIS terlebih dahulu agar kurir dapat mengantarkan cucian Anda.'),
                       style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: Colors.amber.shade900,
