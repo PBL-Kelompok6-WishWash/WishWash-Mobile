@@ -320,6 +320,13 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
         return const Color(0xFF0288D1);
       case 'selesai':
         return const Color(0xFF2E7D32);
+      case 'batal':
+      case 'dibatalkan':
+      case 'cancelled':
+      case 'cancel':
+      case 'ditolak':
+      case 'reject':
+        return Colors.red.shade700;
       default:
         return Colors.grey;
     }
