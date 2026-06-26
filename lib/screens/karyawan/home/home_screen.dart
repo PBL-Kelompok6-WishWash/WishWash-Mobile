@@ -1156,12 +1156,16 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                               ),
                               if (timeText.isNotEmpty) ...[
                                 const SizedBox(width: 6),
-                                Text(
-                                  "•  $timeText",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 10,
-                                    color: Colors.grey.shade400,
-                                    fontWeight: FontWeight.w500,
+                                Flexible(
+                                  child: Text(
+                                    "•  $timeText",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      color: Colors.grey.shade400,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -1170,6 +1174,8 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                           const SizedBox(height: 2),
                           Text(
                             customerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -1179,6 +1185,8 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                           const SizedBox(height: 2),
                           Text(
                             "$serviceName  •  ${((order['kuantitas'] as num?)?.toDouble() ?? 0.0) > 0.0 ? '${((order['kuantitas'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(((order['kuantitas'] as num?)?.toDouble() ?? 0.0) % 1 == 0 ? 0 : 1)} kg' : '- kg'}  •  ${((order['total_bayar'] as num?)?.toDouble() ?? 0.0) > 0.0 ? _formatPrice(((order['total_bayar'] as num?)?.toDouble() ?? 0.0)) : 'Rp -'}",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.grey.shade600,
@@ -1189,21 +1197,26 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        TranslationService.translateStatus(status),
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusBg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            TranslationService.translateStatus(status),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
                         ),
                       ),
                     ),
