@@ -1494,77 +1494,99 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               // Badges (Operasional & Pembayaran)
-                              Row(
-                                children: [
-                                  // Status Operasional
-                                  (() {
-                                    final bool isCancelled = status.toLowerCase().contains('batal') ||
-                                        status.toLowerCase().contains('cancel') ||
-                                        status.toLowerCase().contains('tolak') ||
-                                        status.toLowerCase().contains('reject');
-                                    final bool isCompleted = status.toLowerCase() == 'selesai' ||
-                                        status.toLowerCase().contains('completed') ||
-                                        status.toLowerCase().contains('success');
+                              Flexible(
+                                flex: 7,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Status Operasional
+                                    Flexible(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: (() {
+                                          final bool isCancelled = status.toLowerCase().contains('batal') ||
+                                              status.toLowerCase().contains('cancel') ||
+                                              status.toLowerCase().contains('tolak') ||
+                                              status.toLowerCase().contains('reject');
+                                          final bool isCompleted = status.toLowerCase() == 'selesai' ||
+                                              status.toLowerCase().contains('completed') ||
+                                              status.toLowerCase().contains('success');
 
-                                    final Color bgCol = isCancelled
-                                        ? const Color(0xFFFF3B30)
-                                        : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.08));
-                                    final Color textCol = (isCancelled || isCompleted)
-                                        ? Colors.white
-                                        : statusColor;
-                                    final Color borderCol = isCancelled
-                                        ? const Color(0xFFFF3B30)
-                                        : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.15));
+                                          final Color bgCol = isCancelled
+                                              ? const Color(0xFFFF3B30)
+                                              : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.08));
+                                          final Color textCol = (isCancelled || isCompleted)
+                                              ? Colors.white
+                                              : statusColor;
+                                          final Color borderCol = isCancelled
+                                              ? const Color(0xFFFF3B30)
+                                              : (isCompleted ? const Color(0xFF4CAF50) : statusColor.withOpacity(0.15));
 
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: bgCol,
-                                        borderRadius: BorderRadius.circular(30),
-                                        border: Border.all(
-                                          color: borderCol,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        translatedStatus,
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: textCol,
-                                        ),
-                                      ),
-                                    );
-                                  })(),
-                                  const SizedBox(width: 8),
-
-                                  // Status Pembayaran
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: paymentBg,
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(color: paymentText.withOpacity(0.15), width: 1),
-                                    ),
-                                    child: Text(
-                                      paymentLabel,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: paymentText,
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: bgCol,
+                                              borderRadius: BorderRadius.circular(30),
+                                              border: Border.all(
+                                                color: borderCol,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              translatedStatus,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: textCol,
+                                              ),
+                                            ),
+                                          );
+                                        })(),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+
+                                    // Status Pembayaran
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                        decoration: BoxDecoration(
+                                          color: paymentBg,
+                                          borderRadius: BorderRadius.circular(30),
+                                          border: Border.all(color: paymentText.withOpacity(0.15), width: 1),
+                                        ),
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            paymentLabel,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: paymentText,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
 
                               // Harga Total
-                              Text(
-                                priceStr,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w900,
-                                  color: totalBayar == 0.0 ? Colors.grey.shade400 : const Color(0xFF2E7D32),
+                              Flexible(
+                                flex: 3,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    priceStr,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w900,
+                                      color: totalBayar == 0.0 ? Colors.grey.shade400 : const Color(0xFF2E7D32),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
