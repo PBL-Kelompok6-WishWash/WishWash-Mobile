@@ -135,7 +135,7 @@ class _LandingPageState extends State<LandingPage> {
                                     child: Column(
                                       children: [
                                         SizedBox(
-                                          height: 120, // Reduced from 160 to 120 for closer spacing
+                                          height: 140,
                                           child: PageView.builder(
                                             controller: _pageController,
                                             onPageChanged: (int index) {
@@ -153,13 +153,17 @@ class _LandingPageState extends State<LandingPage> {
                                                   mainAxisAlignment: MainAxisAlignment.end, // Closer to indicators
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Text(
-                                                      TranslationService.translate(slide['title']!),
-                                                      textAlign: TextAlign.left,
-                                                      style: const TextStyle(
-                                                        fontSize: 24,
-                                                        fontWeight: FontWeight.w900,
-                                                        color: Constants.colorDarkBlue,
+                                                    FittedBox(
+                                                      fit: BoxFit.scaleDown,
+                                                      alignment: Alignment.centerLeft,
+                                                      child: Text(
+                                                        TranslationService.translate(slide['title']!),
+                                                        textAlign: TextAlign.left,
+                                                        style: const TextStyle(
+                                                          fontSize: 24,
+                                                          fontWeight: FontWeight.w900,
+                                                          color: Constants.colorDarkBlue,
+                                                        ),
                                                       ),
                                                     ),
                                                     const SizedBox(height: 8),
