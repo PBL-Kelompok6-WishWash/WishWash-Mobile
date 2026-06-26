@@ -1144,38 +1144,36 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                "#$orderCode",
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: cyanColor,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Text(
+                                  "#$orderCode",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: cyanColor,
+                                  ),
                                 ),
-                              ),
-                              if (timeText.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
+                                if (timeText.isNotEmpty) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
                                     "•  $timeText",
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.poppins(
                                       fontSize: 10,
                                       color: Colors.grey.shade400,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             customerName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -1185,8 +1183,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                           const SizedBox(height: 2),
                           Text(
                             "$serviceName  •  ${((order['kuantitas'] as num?)?.toDouble() ?? 0.0) > 0.0 ? '${((order['kuantitas'] as num?)?.toDouble() ?? 0.0).toStringAsFixed(((order['kuantitas'] as num?)?.toDouble() ?? 0.0) % 1 == 0 ? 0 : 1)} kg' : '- kg'}  •  ${((order['total_bayar'] as num?)?.toDouble() ?? 0.0) > 0.0 ? _formatPrice(((order['total_bayar'] as num?)?.toDouble() ?? 0.0)) : 'Rp -'}",
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.grey.shade600,
@@ -1198,17 +1194,17 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     ),
                     const SizedBox(width: 8),
                     Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusBg,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
                           child: Text(
                             TranslationService.translateStatus(status),
                             style: GoogleFonts.poppins(
