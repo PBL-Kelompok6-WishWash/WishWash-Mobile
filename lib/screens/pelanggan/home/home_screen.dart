@@ -559,7 +559,10 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
 
     final bool isSelesai = (rawStatus.toLowerCase().contains('selesai') || 
                            rawStatus.toLowerCase().contains('completed') || 
-                           rawStatus.toLowerCase().contains('success')) &&
+                           rawStatus.toLowerCase().contains('success') ||
+                           rawStatus.toLowerCase().contains('batal') || 
+                           rawStatus.toLowerCase().contains('tolak') || 
+                           rawStatus.toLowerCase().contains('reject')) &&
                            !isCompletedByKaryawanOnly;
 
     return {
@@ -740,25 +743,23 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                                           ),
                                           child: _buildServicesSection(),
                                         ),
-                                        if (_isLoadingActiveOrders || _activeOrders.isNotEmpty) ...[
-                                          const SizedBox(height: 20),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 20),
-                                            clipBehavior: Clip.antiAlias,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(24),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.04),
-                                                  blurRadius: 12,
-                                                  offset: const Offset(0, 6),
-                                                ),
-                                              ],
-                                            ),
-                                            child: _buildOrderStatusSection(),
+                                        const SizedBox(height: 20),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 20),
+                                          clipBehavior: Clip.antiAlias,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(24),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(0.04),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 6),
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                          child: _buildOrderStatusSection(),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -1760,7 +1761,67 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     }
 
     if (_activeOrders.isEmpty) {
-      return const SizedBox.shrink();
+      final isEn = TranslationService.currentLang == 'en';
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              isEn ? 'Your Order Status' : 'Status Pesanan Anda',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0D47A1),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE0F7FA),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.dry_cleaning_rounded,
+                      color: Color(0xFF42C6D4),
+                      size: 42,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    isEn ? 'No Active Orders' : 'Belum Ada Pesanan Aktif',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0C4B8E),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isEn
+                        ? 'Start washing your dirty clothes today!'
+                        : 'Yuk, mulai cuci pakaian kotormu hari ini!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     return Column(
@@ -1889,31 +1950,43 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Order #$orderId',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    color: orderColor,
-                    fontSize: 12,
+                Expanded(
+                  child: Text(
+                    'Order #$orderId',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: orderColor,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.access_time,
-                      size: 13,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Est: $estDate',
-                      style: const TextStyle(
-                        fontSize: 10,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 13,
                         color: Colors.redAccent,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          'Est: $estDate',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

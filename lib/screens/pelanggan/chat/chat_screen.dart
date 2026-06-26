@@ -356,32 +356,37 @@ class _ChatScreenState extends State<ChatScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Flexible(
                               child: Text(
                                 name,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: navyColor),
                               ),
                             ),
                             if (platNomor.isNotEmpty && platNomor != '-') ...[
                               const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(color: const Color(0xFFEBF8FA), borderRadius: BorderRadius.circular(6)),
-                                child: Text(
-                                  platNomor, 
-                                  style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF42C6D4)),
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(color: const Color(0xFFEBF8FA), borderRadius: BorderRadius.circular(6)),
+                                  child: Text(
+                                    platNomor, 
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFF42C6D4)),
+                                  ),
                                 ),
                               ),
                             ],
                           ],
                         ),
                       ),
-                      if (time.isNotEmpty)
+                      if (time.isNotEmpty) ...[
+                        const SizedBox(width: 8),
                         Text(
                           time,
                           style: GoogleFonts.poppins(
@@ -390,6 +395,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.w500,
                           ),
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),

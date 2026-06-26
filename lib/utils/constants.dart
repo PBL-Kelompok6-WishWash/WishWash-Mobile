@@ -22,7 +22,7 @@ class Constants {
         debugPrint("Koneksi berhasil ke Localhost via ADB Reverse: $baseUrl");
       } catch (_) {
         // 3. Fallback ke IP Wi-Fi PC/Laptop
-        baseUrl = 'http://172.16.95.192:8080/api/v1';
+        baseUrl = 'http://172.16.161.61:8080/api/v1';
         debugPrint("Gagal konek ke emulator & localhost, fallback ke IP PC: $baseUrl");
       }
     }

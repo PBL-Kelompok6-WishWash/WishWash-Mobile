@@ -417,12 +417,18 @@ class _PreferencesLanguageScreenState extends State<PreferencesLanguageScreen> {
                         icon: Icon(Icons.arrow_back_ios_new_rounded, color: navyColor, size: 22),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      Text(
-                        TranslationService.translate('preferences'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: navyColor,
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            TranslationService.translate('preferences'),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 48), // Spacer to balance layout

@@ -768,13 +768,19 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                     children: [
                       Icon(Icons.access_time_rounded, color: Colors.grey.shade500, size: 12),
                       const SizedBox(width: 4),
-                      Text(
-                        TranslationService.currentLang == 'en' 
-                            ? 'Processing: $duration Hours' 
-                            : 'Estimasi: $duration Jam',
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey.shade600,
-                          fontSize: 11,
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            TranslationService.currentLang == 'en' 
+                                ? 'Processing: $duration Hours' 
+                                : 'Estimasi: $duration Jam',
+                            style: GoogleFonts.poppins(
+                              color: Colors.grey.shade600,
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ),
                     ],

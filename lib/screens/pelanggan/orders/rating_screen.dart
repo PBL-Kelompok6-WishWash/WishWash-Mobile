@@ -231,46 +231,62 @@ class _RatingScreenState extends State<RatingScreen> {
         Row(
           mainAxisAlignment: isLarge ? MainAxisAlignment.center : MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: isLarge ? MainAxisAlignment.center : MainAxisAlignment.start,
-              children: List.generate(5, (index) {
-                final starVal = index + 1;
-                final isSelected = starVal <= currentValue;
-                return GestureDetector(
-                  onTap: () => onSelected(starVal),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    curve: Curves.easeIn,
-                    margin: const EdgeInsets.only(right: 6.0),
-                    transform: Matrix4.identity()..scale(isSelected ? 1.05 : 0.95),
-                    child: Icon(
-                      isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-                      color: isSelected ? Colors.amber : Colors.grey.shade400,
-                      size: isLarge ? 54 : 38,
-                    ),
-                  ),
-                );
-              }),
-            ),
-            if (!isLarge)
-              Text(
-                currentValue == 0
-                    ? (isEn ? 'Tap to rate' : 'Pilih rating')
-                    : currentValue == 5
-                        ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
-                        : currentValue == 4
-                            ? (isEn ? 'Good' : 'Bagus')
-                            : currentValue == 3
-                                ? (isEn ? 'Average' : 'Cukup')
-                                : currentValue == 2
-                                    ? (isEn ? 'Poor' : 'Kurang')
-                                    : (isEn ? 'Very Bad' : 'Sangat Kurang'),
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  color: currentValue == 0 ? Colors.grey.shade500 : cyanColor,
+            Flexible(
+              flex: 7,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: isLarge ? Alignment.center : Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (index) {
+                    final starVal = index + 1;
+                    final isSelected = starVal <= currentValue;
+                    return GestureDetector(
+                      onTap: () => onSelected(starVal),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeIn,
+                        margin: const EdgeInsets.only(right: 6.0),
+                        transform: Matrix4.identity()..scale(isSelected ? 1.05 : 0.95),
+                        child: Icon(
+                          isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                          color: isSelected ? Colors.amber : Colors.grey.shade400,
+                          size: isLarge ? 54 : 38,
+                        ),
+                      ),
+                    );
+                  }),
                 ),
               ),
+            ),
+            if (!isLarge) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                flex: 3,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    currentValue == 0
+                        ? (isEn ? 'Tap to rate' : 'Pilih rating')
+                        : currentValue == 5
+                            ? (isEn ? 'Excellent!' : 'Sangat Bagus!')
+                            : currentValue == 4
+                                ? (isEn ? 'Good' : 'Bagus')
+                                : currentValue == 3
+                                    ? (isEn ? 'Average' : 'Cukup')
+                                    : currentValue == 2
+                                        ? (isEn ? 'Poor' : 'Kurang')
+                                        : (isEn ? 'Very Bad' : 'Sangat Kurang'),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: currentValue == 0 ? Colors.grey.shade500 : cyanColor,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ],
@@ -416,49 +432,61 @@ class _RatingScreenState extends State<RatingScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  isEn ? 'Order #$orderId' : 'Pesanan #$orderId',
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.bold,
-                                    color: orderColor,
-                                    fontSize: 12,
+                                Expanded(
+                                  child: Text(
+                                    isEn ? 'Order #$orderId' : 'Pesanan #$orderId',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold,
+                                      color: orderColor,
+                                      fontSize: 12,
+                                    ),
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    if (isCancelled || statusInfo['is_selesai'] == true) ...[
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isCancelled
-                                              ? const Color(0xFFFF3B30)
-                                              : const Color(0xFF4CAF50),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Text(
-                                          isCancelled
-                                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
-                                              : (isEn ? 'Completed' : 'Selesai'),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 10,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isCancelled || statusInfo['is_selesai'] == true) ...[
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: isCancelled
+                                                ? const Color(0xFFFF3B30)
+                                                : const Color(0xFF4CAF50),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            isCancelled
+                                                ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                                                : (isEn ? 'Completed' : 'Selesai'),
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ] else ...[
-                                      const Icon(Icons.access_time_rounded, size: 14, color: Colors.redAccent),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 10,
-                                          color: Colors.redAccent,
-                                          fontWeight: FontWeight.bold,
+                                      ] else ...[
+                                        const Icon(Icons.access_time_rounded, size: 14, color: Colors.redAccent),
+                                        const SizedBox(width: 4),
+                                        Flexible(
+                                          child: Text(
+                                            isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              color: Colors.redAccent,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -484,75 +512,86 @@ class _RatingScreenState extends State<RatingScreen> {
                             ],
                             const SizedBox(height: 8),
                              Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      price,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        color: orderColor.withValues(alpha: 0.7),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    if (kuantitas > 0.0) ...[
-                                      const SizedBox(width: 8),
-                                      (() {
-                                        final pembayaran = widget.order['Pembayaran'];
-                                        final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
-                                        final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
-                                        final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
-                                        final String capLabel = isLunas 
-                                            ? (isEn ? 'Paid' : 'Lunas')
-                                            : (isEn ? 'Unpaid' : 'Belum Lunas');
-                                        
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: capBg,
-                                            borderRadius: BorderRadius.circular(30),
-                                            border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
-                                          ),
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Flexible(
+                                    flex: 4,
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        Flexible(
                                           child: Text(
-                                            capLabel,
+                                            price,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: GoogleFonts.poppins(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: capText,
+                                              fontSize: 13,
+                                              color: orderColor.withValues(alpha: 0.7),
+                                              fontWeight: FontWeight.w600,
                                             ),
                                           ),
-                                        );
-                                      })(),
-                                    ],
-                                  ],
-                                ),
-                                if (statusInfo['is_selesai'] == true)
-                                  Text(
-                                    isEn
-                                        ? 'Finished: ${_getCompletionTime(widget.order)}'
-                                        : 'Selesai: ${_getCompletionTime(widget.order)}',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      color: orderColor.withValues(alpha: 0.7),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                else if (isCancelled)
-                                  Text(
-                                    isEn
-                                        ? 'Cancelled: $cancelTime'
-                                        : 'Dibatalkan: $cancelTime',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 11,
-                                      color: Colors.red.shade800,
-                                      fontWeight: FontWeight.bold,
+                                        ),
+                                        if (kuantitas > 0.0) ...[
+                                          const SizedBox(width: 8),
+                                          (() {
+                                            final pembayaran = widget.order['Pembayaran'];
+                                            final bool isLunas = pembayaran != null && pembayaran['status_pembayaran'] == 'Lunas';
+                                            final Color capBg = isLunas ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0);
+                                            final Color capText = isLunas ? const Color(0xFF2E7D32) : const Color(0xFFE65100);
+                                            final String capLabel = isLunas 
+                                                ? (isEn ? 'Paid' : 'Lunas')
+                                                : (isEn ? 'Unpaid' : 'Belum Lunas');
+                                            
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: capBg,
+                                                borderRadius: BorderRadius.circular(30),
+                                                border: Border.all(color: capText.withValues(alpha: 0.2), width: 1),
+                                              ),
+                                              child: Text(
+                                                capLabel,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: capText,
+                                                ),
+                                              ),
+                                            );
+                                          })(),
+                                        ],
+                                      ],
                                     ),
                                   ),
-                              ],
-                            ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    flex: 6,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        statusInfo['is_selesai'] == true
+                                            ? (isEn
+                                                ? 'Finished: ${_getCompletionTime(widget.order)}'
+                                                : 'Selesai: ${_getCompletionTime(widget.order)}')
+                                            : (isCancelled
+                                                ? (isEn
+                                                    ? 'Cancelled: $cancelTime'
+                                                    : 'Dibatalkan: $cancelTime')
+                                                : ''),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 10,
+                                          color: isCancelled ? Colors.red.shade800 : orderColor.withValues(alpha: 0.7),
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             const SizedBox(height: 24),
 
                             // Stepper Tracker (Garis nyambung perfect)

@@ -414,34 +414,39 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                               // Bottom price pill with custom tag icon
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: bgColor,
-                                      borderRadius: BorderRadius.circular(30),
-                                      border: Border.all(
-                                        color: baseColor.withOpacity(0.2),
-                                        width: 1,
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: bgColor,
+                                        borderRadius: BorderRadius.circular(30),
+                                        border: Border.all(
+                                          color: baseColor.withOpacity(0.2),
+                                          width: 1,
+                                        ),
                                       ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.local_offer_outlined,
-                                          size: 11,
-                                          color: textColor,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.local_offer_outlined,
+                                              size: 11,
+                                              color: textColor,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${_formatPrice(price)} / $unit',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '${_formatPrice(price)} / $unit',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: textColor,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
                                 ],

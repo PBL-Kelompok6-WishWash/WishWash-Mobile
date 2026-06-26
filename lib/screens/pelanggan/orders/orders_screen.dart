@@ -1043,27 +1043,38 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Order #$orderId',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: orderColor,
-                  fontSize: 12,
+              Expanded(
+                child: Text(
+                  'Order #$orderId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: orderColor,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: Colors.redAccent),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Est: $estDate',
-                    style: GoogleFonts.poppins(
-                      fontSize: 10,
-                      color: Colors.redAccent,
-                      fontWeight: FontWeight.bold,
-                    ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_rounded, size: 13, color: Colors.redAccent),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Est: $estDate',
+                        style: GoogleFonts.poppins(
+                          fontSize: 9,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ],
           ),
@@ -1275,30 +1286,39 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Order #$orderId',
-                style: GoogleFonts.poppins(
-                  fontWeight: FontWeight.bold,
-                  color: isCancelled ? Colors.red.shade700 : orderColor,
-                  fontSize: 12,
+              Expanded(
+                child: Text(
+                  'Order #$orderId',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    color: isCancelled ? Colors.red.shade700 : orderColor,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: isCancelled
-                      ? const Color(0xFFFF3B30)
-                      : const Color(0xFF4CAF50), // Soft / Light Green
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  isCancelled
-                      ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
-                      : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isCancelled
+                        ? const Color(0xFFFF3B30)
+                        : const Color(0xFF4CAF50), // Soft / Light Green
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    isCancelled
+                        ? (TranslationService.currentLang == 'en' ? 'Cancelled' : 'Dibatalkan')
+                        : (TranslationService.currentLang == 'en' ? 'Completed' : 'Selesai'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -1328,7 +1348,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (!isCancelled)
+              if (!isCancelled) ...[
                 Text(
                   price,
                   style: GoogleFonts.poppins(
@@ -1337,14 +1357,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              Text(
-                isCancelled
-                    ? (TranslationService.currentLang == 'en' ? 'Cancelled: $endDate' : 'Dibatalkan: $endDate')
-                    : 'Selesai: $endDate',
-                style: GoogleFonts.poppins(
-                  fontSize: 10,
-                  color: isCancelled ? Colors.red.shade700 : orderColor,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  isCancelled
+                      ? (TranslationService.currentLang == 'en' ? 'Cancelled: $endDate' : 'Dibatalkan: $endDate')
+                      : 'Selesai: $endDate',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    color: isCancelled ? Colors.red.shade700 : orderColor,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],

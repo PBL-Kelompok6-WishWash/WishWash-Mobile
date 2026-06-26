@@ -5345,81 +5345,95 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        price,
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: orderColor.withValues(alpha: 0.8),
-                          fontWeight: FontWeight.w600,
+                  Flexible(
+                    flex: 4,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            price,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: orderColor.withValues(alpha: 0.8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                      (() {
-                        final double kuantitas =
-                            (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-                        if (kuantitas > 0.0) {
-                          final pembayaran = order['Pembayaran'];
-                          final bool isLunas =
-                              pembayaran != null &&
-                              pembayaran['status_pembayaran'] == 'Lunas';
-                          final Color capBg = isLunas
-                              ? const Color(0xFFE8F5E9)
-                              : const Color(0xFFFFF3E0);
-                          final Color capText = isLunas
-                              ? const Color(0xFF2E7D32)
-                              : const Color(0xFFE65100);
-                          final String capLabel = isLunas
-                              ? (TranslationService.currentLang == 'en'
-                                    ? 'Paid'
-                                    : 'Lunas')
-                              : (TranslationService.currentLang == 'en'
-                                    ? 'Unpaid'
-                                    : 'Belum Lunas');
+                        (() {
+                          final double kuantitas =
+                              (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+                          if (kuantitas > 0.0) {
+                            final pembayaran = order['Pembayaran'];
+                            final bool isLunas =
+                                pembayaran != null &&
+                                pembayaran['status_pembayaran'] == 'Lunas';
+                            final Color capBg = isLunas
+                                ? const Color(0xFFE8F5E9)
+                                : const Color(0xFFFFF3E0);
+                            final Color capText = isLunas
+                                ? const Color(0xFF2E7D32)
+                                : const Color(0xFFE65100);
+                            final String capLabel = isLunas
+                                ? (TranslationService.currentLang == 'en'
+                                      ? 'Paid'
+                                      : 'Lunas')
+                                : (TranslationService.currentLang == 'en'
+                                      ? 'Unpaid'
+                                      : 'Belum Lunas');
 
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: capBg,
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: capText.withValues(alpha: 0.2),
-                                    width: 1,
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: capBg,
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(
+                                      color: capText.withValues(alpha: 0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    capLabel,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: capText,
+                                    ),
                                   ),
                                 ),
-                                child: Text(
-                                  capLabel,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: capText,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      })(),
-                    ],
+                              ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        })(),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   if (statusInfo['is_selesai'] == true)
-                    Text(
-                      isEn
-                          ? 'Finished: ${_getCompletionTime(order)}'
-                          : 'Selesai: ${_getCompletionTime(order)}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: orderColor.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.bold,
+                    Flexible(
+                      flex: 6,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          isEn
+                              ? 'Finished: ${_getCompletionTime(order)}'
+                              : 'Selesai: ${_getCompletionTime(order)}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: orderColor.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -6837,50 +6851,69 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'WISHWASH LAUNDRY',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900,
-                            color: charBlack,
-                            letterSpacing: 1.0,
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'WISHWASH LAUNDRY',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                color: charBlack,
+                                letterSpacing: 1.0,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Order #$orderId',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0C4B8E),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Order #$orderId',
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0C4B8E),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          isEn ? 'DATE' : 'TANGGAL',
-                          style: GoogleFonts.poppins(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: slateGray,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            isEn ? 'DATE' : 'TANGGAL',
+                            style: GoogleFonts.poppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: slateGray,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          orderDate,
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: charBlack,
+                          const SizedBox(height: 3),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              orderDate,
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: charBlack,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
