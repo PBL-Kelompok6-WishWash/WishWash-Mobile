@@ -1216,6 +1216,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                             fit: BoxFit.scaleDown,
                             child: Text(
                               TranslationService.translateStatus(status),
+                              textAlign: TextAlign.right,
                               style: GoogleFonts.poppins(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
