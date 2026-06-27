@@ -5248,75 +5248,96 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               });
             },
             borderRadius: BorderRadius.circular(8),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 4,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      TranslationService.currentLang == 'en'
-                          ? 'Order #$orderId'
-                          : 'Pesanan #$orderId',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        color: isCancelled ? Colors.red.shade800 : orderColor,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isProgressExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: isCancelled ? Colors.red.shade800 : orderColor,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isCancelled || statusInfo['is_selesai'] == true) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isCancelled
-                              ? const Color(0xFFFF3B30)
-                              : const Color(0xFF4CAF50),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                Flexible(
+                  flex: 5,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
                         child: Text(
-                          isCancelled
-                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
-                              : (isEn ? 'Completed' : 'Selesai'),
+                          TranslationService.currentLang == 'en'
+                              ? 'Order #$orderId'
+                              : 'Pesanan #$orderId',
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            color: isCancelled ? Colors.red.shade800 : orderColor,
+                            fontSize: 12,
                           ),
                         ),
                       ),
-                    ] else ...[
-                      const Icon(
-                        Icons.access_time_rounded,
-                        size: 14,
-                        color: Colors.redAccent,
-                      ),
                       const SizedBox(width: 4),
-                      Text(
-                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Icon(
+                        _isProgressExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: isCancelled ? Colors.red.shade800 : orderColor,
                       ),
                     ],
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  flex: 6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isCancelled || statusInfo['is_selesai'] == true) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCancelled
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF4CAF50),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            isCancelled
+                                ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                                : (isEn ? 'Completed' : 'Selesai'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2.0),
+                              child: Icon(
+                                Icons.access_time_rounded,
+                                size: 14,
+                                color: Colors.redAccent,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                                textAlign: TextAlign.right,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
