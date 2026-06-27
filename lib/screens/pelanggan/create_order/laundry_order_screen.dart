@@ -1917,6 +1917,84 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     );
   }
 
+  void _showWarningDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.orange.shade200, width: 1.5),
+                  ),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange.shade700,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  TranslationService.currentLang == 'en' ? 'Alert' : 'Pemberitahuan',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cyanColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      'OK',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // Pre-order confirmation dialog — shows order summary before placing
   void _showPreOrderConfirmDialog() {
     final isEn = TranslationService.currentLang == 'en';
@@ -2220,35 +2298,26 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
             ? null
             : () {
                 if (!isWalkIn && selectedPickupAddress == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(TranslationService.currentLang == 'en'
-                          ? 'Please select pickup address first!'
-                          : 'Silakan pilih alamat penjemputan terlebih dahulu!'),
-                      backgroundColor: Colors.redAccent,
-                    ),
+                  _showWarningDialog(
+                    TranslationService.currentLang == 'en'
+                        ? 'Please select pickup address first!'
+                        : 'Silakan pilih alamat penjemputan terlebih dahulu!',
                   );
                   return;
                 }
                 if (selectedPackageMap == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(TranslationService.currentLang == 'en'
-                          ? 'Please select laundry package first!'
-                          : 'Silakan pilih paket laundry terlebih dahulu!'),
-                      backgroundColor: Colors.redAccent,
-                    ),
+                  _showWarningDialog(
+                    TranslationService.currentLang == 'en'
+                        ? 'Please select laundry package first!'
+                        : 'Silakan pilih paket laundry terlebih dahulu!',
                   );
                   return;
                 }
                 if (selectedPerfume == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(TranslationService.currentLang == 'en'
-                          ? 'Please select a fabric perfume first!'
-                          : 'Silakan pilih parfum pakaian terlebih dahulu!'),
-                      backgroundColor: Colors.redAccent,
-                    ),
+                  _showWarningDialog(
+                    TranslationService.currentLang == 'en'
+                        ? 'Please select a fabric perfume first!'
+                        : 'Silakan pilih parfum pakaian terlebih dahulu!',
                   );
                   return;
                 }
