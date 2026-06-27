@@ -84,7 +84,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
   }
 
   Map<String, dynamic>? selectedPackageMap;
-  String selectedPerfume = 'Lavender Bliss';
+  String? selectedPerfume;
   int selectedDateIndex = 0;
   String selectedTime = 'Morning';
 
@@ -218,13 +218,6 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
       setState(() {
         perfumes = tempPerfumes;
-        // Auto select first perfume if available, otherwise default to selectedPerfume
-        if (perfumes.isNotEmpty) {
-          final hasDefault = perfumes.any((p) => p['name'] == selectedPerfume);
-          if (!hasDefault) {
-            selectedPerfume = perfumes.first['name'];
-          }
-        }
         isLoadingPerfumes = false;
       });
     } catch (e) {
@@ -2243,6 +2236,17 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                       content: Text(TranslationService.currentLang == 'en'
                           ? 'Please select laundry package first!'
                           : 'Silakan pilih paket laundry terlebih dahulu!'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                  return;
+                }
+                if (selectedPerfume == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(TranslationService.currentLang == 'en'
+                          ? 'Please select a fabric perfume first!'
+                          : 'Silakan pilih parfum pakaian terlebih dahulu!'),
                       backgroundColor: Colors.redAccent,
                     ),
                   );
