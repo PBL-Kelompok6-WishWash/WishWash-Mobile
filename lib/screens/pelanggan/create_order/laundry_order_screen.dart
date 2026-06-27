@@ -1971,7 +1971,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: cyanColor,
+                      backgroundColor: navyColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
