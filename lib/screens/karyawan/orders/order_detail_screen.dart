@@ -1895,10 +1895,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               });
             },
             borderRadius: BorderRadius.circular(8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       TranslationService.currentLang == 'en'
@@ -1921,6 +1925,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   ],
                 ),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (isCancelled || isSelesai) ...[
                       Container(
