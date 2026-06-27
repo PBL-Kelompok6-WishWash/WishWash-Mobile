@@ -5308,34 +5308,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                           ),
                         ),
-                      ] else ...[
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 2.0),
-                              child: Icon(
-                                Icons.access_time_rounded,
-                                size: 14,
-                                color: Colors.redAccent,
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 1.0),
+                                  child: const Icon(
+                                    Icons.access_time_rounded,
+                                    size: 14,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
-                                textAlign: TextAlign.right,
+                              const WidgetSpan(child: SizedBox(width: 4)),
+                              TextSpan(
+                                text: isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
                                 style: GoogleFonts.poppins(
                                   fontSize: 10,
                                   color: Colors.redAccent,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          textAlign: TextAlign.right,
                         ),
-                      ],
                     ],
                   ),
                 ),
