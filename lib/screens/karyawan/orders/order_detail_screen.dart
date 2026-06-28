@@ -1695,8 +1695,31 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       _buildCustomerCard(pelanggan),
                       const SizedBox(height: 16),
 
-                      // 3. Clean Order Preview Card (Tinjau Pesanan) with Slide-Up Receipt Modal Button
+                      // 3. Clean Order Preview Card (Tinjau Pesanan) or Receipt Section if Cancelled
                       (() {
+                        final bool isCancelled =
+                            currentStatus.toLowerCase().contains('batal') ||
+                            currentStatus.toLowerCase().contains('tolak') ||
+                            currentStatus.toLowerCase().contains('reject');
+                        
+                        if (isCancelled) {
+                          return _buildReceiptSection(
+                            order: _currentOrder,
+                            orderId: orderId,
+                            orderDate: orderDate,
+                            customerName: customerName,
+                            packageName: packageName,
+                            perfumeName: perfumeName,
+                            logistikType:
+                                _currentOrder['tipe_logistik'] ?? 'Courier Delivery',
+                            totalBayar: totalBayar,
+                            price: priceStr,
+                            catatan: _currentOrder['catatan_order'] ?? '',
+                            navyColor: navyColor,
+                            currentStatus: currentStatus,
+                          );
+                        }
+
                         final List<dynamic> _historyList = _currentOrder['RiwayatStatusDetail'] ?? [];
                         final bool isEn = TranslationService.currentLang == 'en';
                         String pickupDateDisplay = isEn ? 'Pending Pickup' : 'Belum dijemput';
@@ -1895,75 +1918,94 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               });
             },
             borderRadius: BorderRadius.circular(8),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 4,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      TranslationService.currentLang == 'en'
-                          ? 'Order #$orderId'
-                          : 'Pesanan #$orderId',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        color: isCancelled ? Colors.red.shade800 : orderColor,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isProgressExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: isCancelled ? Colors.red.shade800 : orderColor,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isCancelled || isSelesai) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isCancelled
-                              ? const Color(0xFFFF3B30)
-                              : const Color(0xFF4CAF50),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
                         child: Text(
-                          isCancelled
-                              ? (isEn ? 'Cancelled' : 'Dibatalkan')
-                              : (isEn ? 'Completed' : 'Selesai'),
+                          TranslationService.currentLang == 'en'
+                              ? 'Order #$orderId'
+                              : 'Pesanan #$orderId',
+                          overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            color: isCancelled ? Colors.red.shade800 : orderColor,
+                            fontSize: 12,
                           ),
                         ),
                       ),
-                    ] else ...[
-                      const Icon(
-                        Icons.access_time_rounded,
-                        size: 14,
-                        color: Colors.redAccent,
-                      ),
                       const SizedBox(width: 4),
-                      Text(
-                        isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          color: Colors.redAccent,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Icon(
+                        _isProgressExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: isCancelled ? Colors.red.shade800 : orderColor,
                       ),
                     ],
-                  ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isCancelled || isSelesai) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isCancelled
+                                ? const Color(0xFFFF3B30)
+                                : const Color(0xFF4CAF50),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            isCancelled
+                                ? (isEn ? 'Cancelled' : 'Dibatalkan')
+                                : (isEn ? 'Completed' : 'Selesai'),
+                            style: GoogleFonts.poppins(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Text.rich(
+                          TextSpan(
+                            children: [
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 4.0),
+                                  child: Icon(
+                                    Icons.access_time_rounded,
+                                    size: 14,
+                                    color: Colors.redAccent,
+                                  ),
+                                ),
+                              ),
+                              TextSpan(
+                                text: isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 10,
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.end,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -2084,43 +2126,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 ),
               ),
             ],
-            if (isCancelled &&
-                order['catatan_order'] != null &&
-                order['catatan_order'].toString().isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200, width: 1),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade800,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      order['catatan_order'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red.shade900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
             const SizedBox(height: 24),
 
             // Stepper Tracker Horizontal Persis Punya Pelanggan
@@ -2290,43 +2296,57 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                               width: 14,
                               height: 14,
                               decoration: BoxDecoration(
-                                color: isDone
-                                    ? orderColor
-                                    : (isCurrent ? Colors.white : Colors.transparent),
+                                color: isCancelled
+                                    ? const Color(0xFFFF3B30)
+                                    : (isDone
+                                        ? orderColor
+                                        : (isCurrent ? Colors.white : Colors.transparent)),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isDone || isCurrent ? orderColor : Colors.grey.shade300,
+                                  color: isCancelled
+                                      ? const Color(0xFFFF3B30)
+                                      : (isDone || isCurrent ? orderColor : Colors.grey.shade300),
                                   width: 1.5,
                                 ),
                               ),
-                              child: isDone
+                              child: isCancelled
                                   ? const Center(
                                       child: Icon(
-                                        Icons.check,
+                                        Icons.close_rounded,
                                         size: 9,
                                         color: Colors.white,
                                       ),
                                     )
-                                  : (isCurrent
-                                      ? Center(
-                                          child: Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: BoxDecoration(
-                                              color: orderColor,
-                                              shape: BoxShape.circle,
-                                            ),
+                                  : (isDone
+                                      ? const Center(
+                                          child: Icon(
+                                            Icons.check,
+                                            size: 9,
+                                            color: Colors.white,
                                           ),
                                         )
-                                      : null),
+                                      : (isCurrent
+                                          ? Center(
+                                              child: Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: BoxDecoration(
+                                                  color: orderColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            )
+                                          : null)),
                             ),
                             if (!isLast)
                               Container(
                                 width: 2.0,
                                 height: 34,
-                                color: (index < activeIdx || isSelesai)
-                                    ? orderColor
-                                    : Colors.grey.shade300,
+                                color: isCancelled
+                                    ? Colors.red.shade400
+                                    : ((index < activeIdx || isSelesai)
+                                        ? orderColor
+                                        : Colors.grey.shade300),
                               ),
                           ],
                         ),
@@ -2339,8 +2359,10 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                                 _translateStatusWithLogistics(rawName),
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
-                                  fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
-                                  color: isCurrent || isDone ? orderColor : Colors.grey.shade400,
+                                  fontWeight: isCancelled || isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
+                                  color: isCancelled
+                                      ? Colors.red.shade800
+                                      : (isCurrent || isDone ? orderColor : Colors.grey.shade400),
                                 ),
                               ),
                               (() {

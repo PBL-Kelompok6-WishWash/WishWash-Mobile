@@ -1926,7 +1926,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               (!(statusInfo['is_selesai'] == true ||
                                   statusInfo['raw_status'].toString().toLowerCase().contains('selesai')) ||
                                   order['Penilaian'] == null))
-                          ? 140
+                          ? 190
                           : 30,
                     ),
                     child: Column(
@@ -3636,8 +3636,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   child: Text(
                     qtyText,
+                    textScaler: const TextScaler.linear(1.0),
                     style: GoogleFonts.poppins(
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -5250,10 +5251,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             borderRadius: BorderRadius.circular(8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Flexible(
-                  flex: 5,
+                Expanded(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -5283,7 +5283,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
                 const SizedBox(width: 8),
                 Flexible(
-                  flex: 6,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     mainAxisSize: MainAxisSize.min,
@@ -5308,21 +5307,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                           ),
                         ),
+                      ] else ...[
                         Text.rich(
                           TextSpan(
                             children: [
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
                                 child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 1.0),
-                                  child: const Icon(
+                                  padding: const EdgeInsets.only(right: 4.0),
+                                  child: Icon(
                                     Icons.access_time_rounded,
                                     size: 14,
                                     color: Colors.redAccent,
                                   ),
                                 ),
                               ),
-                              const WidgetSpan(child: SizedBox(width: 4)),
                               TextSpan(
                                 text: isEn ? 'Est: $estDate' : 'Estimasi: $estDate',
                                 style: GoogleFonts.poppins(
@@ -5335,6 +5334,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           ),
                           textAlign: TextAlign.right,
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -5476,43 +5476,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ),
             ],
-            if (isCancelled &&
-                order['catatan_order'] != null &&
-                order['catatan_order'].toString().isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50.withValues(alpha: 0.8),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200, width: 1),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isEn ? 'REJECTION REASON:' : 'ALASAN PENOLAKAN:',
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red.shade800,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      order['catatan_order'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red.shade900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
             const SizedBox(height: 24),
             // Stepper Tracker
             (() {
@@ -5674,43 +5638,57 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                               width: 14,
                               height: 14,
                               decoration: BoxDecoration(
-                                color: isDone
-                                    ? orderColor
-                                    : (isCurrent ? Colors.white : Colors.transparent),
+                                color: isCancelled
+                                    ? const Color(0xFFFF3B30)
+                                    : (isDone
+                                        ? orderColor
+                                        : (isCurrent ? Colors.white : Colors.transparent)),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: isDone || isCurrent ? orderColor : Colors.grey.shade300,
+                                  color: isCancelled
+                                      ? const Color(0xFFFF3B30)
+                                      : (isDone || isCurrent ? orderColor : Colors.grey.shade300),
                                   width: 1.5,
                                 ),
                               ),
-                              child: isDone
+                              child: isCancelled
                                   ? const Center(
                                       child: Icon(
-                                        Icons.check,
+                                        Icons.close_rounded,
                                         size: 9,
                                         color: Colors.white,
                                       ),
                                     )
-                                  : (isCurrent
-                                      ? Center(
-                                          child: Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: BoxDecoration(
-                                              color: orderColor,
-                                              shape: BoxShape.circle,
-                                            ),
+                                  : (isDone
+                                      ? const Center(
+                                          child: Icon(
+                                            Icons.check,
+                                            size: 9,
+                                            color: Colors.white,
                                           ),
                                         )
-                                      : null),
+                                      : (isCurrent
+                                          ? Center(
+                                              child: Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: BoxDecoration(
+                                                  color: orderColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            )
+                                          : null)),
                             ),
                             if (!isLast)
                               Container(
                                 width: 2.0,
                                 height: 34,
-                                color: (index < activeIdx || isSelesai)
-                                    ? orderColor
-                                    : Colors.grey.shade300,
+                                color: isCancelled
+                                    ? Colors.red.shade400
+                                    : ((index < activeIdx || isSelesai)
+                                        ? orderColor
+                                        : Colors.grey.shade300),
                               ),
                           ],
                         ),
@@ -5723,8 +5701,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 _translateStatusWithLogistics(rawName),
                                 style: GoogleFonts.poppins(
                                   fontSize: 11,
-                                  fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
-                                  color: isCurrent || isDone ? orderColor : Colors.grey.shade400,
+                                  fontWeight: isCancelled || isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
+                                  color: isCancelled
+                                      ? Colors.red.shade800
+                                      : (isCurrent || isDone ? orderColor : Colors.grey.shade400),
                                 ),
                               ),
                               (() {

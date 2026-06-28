@@ -1839,22 +1839,26 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: MediaQuery.of(context).size.width >= 600 ? 275 : 260,
-          child: PageView.builder(
-            controller: _activeOrderController,
-            itemCount: _activeOrders.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentActiveOrderIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              final order = _activeOrders[index];
-              return _buildActiveOrderCardItem(order);
-            },
-          ),
-        ),
+        (() {
+          final double scaleFactor = (MediaQuery.textScalerOf(context).scale(10) / 10).clamp(1.0, 1.3);
+          final double baseHeight = MediaQuery.of(context).size.width >= 600 ? 275 : 255;
+          return SizedBox(
+            height: baseHeight * scaleFactor,
+            child: PageView.builder(
+              controller: _activeOrderController,
+              itemCount: _activeOrders.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentActiveOrderIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final order = _activeOrders[index];
+                return _buildActiveOrderCardItem(order);
+              },
+            ),
+          );
+        })(),
         if (_activeOrders.length > 1) ...[
           const SizedBox(height: 10),
           Center(
@@ -1922,9 +1926,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
     final price = _formatRupiah(totalBayar);
 
-    return Align(
-      alignment: Alignment.center,
-      child: Container(
+    return Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
         padding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -1964,28 +1966,31 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                 ),
                 const SizedBox(width: 8),
                 Flexible(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 13,
-                        color: Colors.redAccent,
-                      ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          'Est: $estDate',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        const WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: EdgeInsets.only(right: 4.0),
+                            child: Icon(
+                              Icons.access_time,
+                              size: 13,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'Est: $estDate',
                           style: const TextStyle(
                             fontSize: 10,
                             color: Colors.redAccent,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    textAlign: TextAlign.right,
                   ),
                 ),
               ],
@@ -2054,7 +2059,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               ],
             ),
             
-            const SizedBox(height: 16),
+            const Spacer(),
 
             // Stepper Tracker (DYNAMICAL DATABASE ALIGNED - GARIS NYAMBUNG PERFECT)
             (() {
@@ -2100,7 +2105,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               );
             })(),
 
-            const SizedBox(height: 16),
+            const Spacer(),
             // Tombol View Detail
             SizedBox(
               width: double.infinity,
@@ -2133,7 +2138,6 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
               ),
             ),
           ],
-        ),
       ),
     );
   }

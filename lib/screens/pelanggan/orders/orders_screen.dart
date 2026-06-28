@@ -1375,33 +1375,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
             ],
           ),
-          if (isCancelled && order['catatan_order'] != null && order['catatan_order'].toString().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.red.shade100, width: 0.8),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, color: Colors.red.shade700, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      order['catatan_order'],
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+
           const SizedBox(height: 16),
           (() {
             final lang = TranslationService.currentLang;
