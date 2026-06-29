@@ -3429,7 +3429,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         final bool isMorning = scheduledDate.hour < 12;
         final String timeRange = isMorning 
             ? '08:00 AM - 12:00 PM' 
-            : '12:00 PM - 04:00 PM';
+            : '12:00 PM - 05:00 PM';
         jadwalLabel = '$dateFormatted, $timeRange';
       } catch (_) {
         jadwalLabel = _formatDateOnly(jadwalPickupStr);
@@ -5062,7 +5062,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 final bool isMorning = scheduledDate.hour < 12;
                 final String timeRange = isMorning 
                     ? '08:00 AM - 12:00 PM' 
-                    : '12:00 PM - 04:00 PM';
+                    : '12:00 PM - 05:00 PM';
                 final String displaySchedule = '$dateFormatted, $timeRange';
 
                 final String warningContent = isEn
@@ -5238,7 +5238,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 final bool isMorning = scheduledDate.hour < 12;
                 final String timeRange = isMorning 
                     ? '08:00 AM - 12:00 PM' 
-                    : '12:00 PM - 04:00 PM';
+                    : '12:00 PM - 05:00 PM';
                 scheduleLabel = '$dateFormatted, $timeRange';
               } catch (_) {
                 scheduleLabel = _formatDateOnly(jadwalPickupStr);

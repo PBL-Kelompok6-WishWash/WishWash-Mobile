@@ -581,14 +581,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  void _showSuccessAutoDismissDialog(String message) {
+  void _showSuccessAutoDismissDialog(String message, {VoidCallback? onDismiss}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        Future.delayed(const Duration(seconds: 2), () {
+        Future.delayed(const Duration(milliseconds: 1200), () {
           if (Navigator.canPop(context)) {
             Navigator.pop(context);
+            if (onDismiss != null) {
+              onDismiss();
+            }
           }
         });
 
@@ -818,12 +821,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 isEn
                                     ? 'Order successfully completed!'
                                     : 'Pesanan berhasil diselesaikan!',
+                                onDismiss: () {
+                                  if (mounted) {
+                                    _navigateToRatingScreen();
+                                  }
+                                },
                               );
-                              Future.delayed(const Duration(milliseconds: 2100), () {
-                                if (mounted) {
-                                  _navigateToRatingScreen();
-                                }
-                              });
                             }
                           } catch (e) {
                             if (mounted) {
@@ -3516,7 +3519,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final bool isMorning = scheduledDate.hour < 12;
         final String timeRange = isMorning 
             ? '08:00 AM - 12:00 PM' 
-            : '12:00 PM - 04:00 PM';
+            : '12:00 PM - 05:00 PM';
         jadwalLabel = '$dateFormatted, $timeRange';
       } catch (_) {
         jadwalLabel = _formatDateOnly(jadwalPickupStr);

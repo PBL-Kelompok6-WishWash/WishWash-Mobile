@@ -162,7 +162,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
 
     // Automatically switch default selectedDateIndex & selectedTime based on current hour
     final now = DateTime.now();
-    if (now.hour >= 16) {
+    if (now.hour >= 17) {
       selectedDateIndex = 1;
       selectedTime = 'Morning';
     } else if (now.hour >= 12) {
@@ -1544,7 +1544,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
       children: [
         Expanded(child: _buildTimeOption('Morning', '08:00 - 12:00 am', themeColor)),
         const SizedBox(width: 12),
-        Expanded(child: _buildTimeOption('Afternoon', '12:00 - 16:00 pm', themeColor)),
+        Expanded(child: _buildTimeOption('Afternoon', '12:00 - 17:00 pm', themeColor)),
       ],
     );
   }
@@ -1555,7 +1555,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     final bool isToday = dates.isNotEmpty && dates[selectedDateIndex]['fullDate'] == DateTime.now().toIso8601String().split('T')[0];
     final bool isOptionDisabled = isToday && (
       (isMorning && DateTime.now().hour >= 12) ||
-      (!isMorning && DateTime.now().hour >= 16)
+      (!isMorning && DateTime.now().hour >= 17)
     );
 
     Color cardBgColor = Colors.white;
@@ -1735,7 +1735,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     final bool isMorning = selectedTime == 'Morning';
     final bool isOptionDisabled = isToday && (
       (isMorning && DateTime.now().hour >= 12) ||
-      (!isMorning && DateTime.now().hour >= 16)
+      (!isMorning && DateTime.now().hour >= 17)
     );
 
     if (isOptionDisabled && !isWalkIn) {
@@ -2005,7 +2005,7 @@ class _LaundryOrderScreenState extends State<LaundryOrderScreen> {
     final String dateStr = dates.isNotEmpty ? dates[selectedDateIndex]['fullDate'] ?? '-' : '-';
     final String timeLabel = selectedTime == 'Morning'
         ? (isEn ? 'Morning (08:00–12:00)' : 'Pagi (08:00–12:00)')
-        : (isEn ? 'Afternoon (12:00–16:00)' : 'Siang (12:00–16:00)');
+        : (isEn ? 'Afternoon (12:00–17:00)' : 'Siang (12:00–17:00)');
     final String address = selectedPickupAddress?['alamat_lengkap'] ?? '-';
     final String recipient = selectedPickupAddress?['nama_penerima'] ?? '-';
 
