@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile/services/translation_service.dart';
@@ -42,6 +43,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
   bool _isProgressExpanded = true;
   bool _isHistoryExpanded = false;
   bool _hasArrivedAtDestination = false;
+  int? _currentUserId;
 
   @override
   void initState() {
@@ -49,6 +51,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     // Salin data order lokal agar modifikasi state aman secara interaktif
     _currentOrder = Map<String, dynamic>.from(widget.order);
     _loadArrivedStatus();
+    _loadCurrentUserId();
+  }
+
+  Future<void> _loadCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _currentUserId = prefs.getInt('id_user');
+      });
+    }
   }
 
   Future<void> _loadArrivedStatus() async {
@@ -4786,6 +4798,162 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final bool isWaitingCustomer = statusInfo['is_waiting_customer_confirm'] == true;
+
+    // Check if assigned to another employee
+    final assignedKaryawan = _currentOrder['Karyawan'];
+    final assignedKaryawanId = _currentOrder['id_karyawan'] ?? (assignedKaryawan != null ? assignedKaryawan['id_karyawan'] : null);
+    final assignedUserId = assignedKaryawan != null ? assignedKaryawan['id_user'] : null;
+
+    final bool isAssignedToOther = assignedKaryawanId != null && 
+        assignedKaryawanId != 0 && 
+        _currentUserId != null && 
+        assignedUserId != _currentUserId;
+
+    if (isAssignedToOther) {
+      final String employeeName = assignedKaryawan['nama_karyawan'] ?? (isEn ? 'Another Employee' : 'Karyawan Lain');
+      final String employeePhone = assignedKaryawan['no_telp'] ?? '-';
+      final String rawFoto = (assignedKaryawan['foto_karyawan'] ?? '').toString();
+
+      final String staticHost = Constants.baseUrl.replaceAll('/api/v1', '');
+      String fotoUrl = '';
+      if (rawFoto.isNotEmpty) {
+        if (rawFoto.startsWith('http://') || rawFoto.startsWith('https://')) {
+          fotoUrl = rawFoto;
+        } else if (rawFoto.startsWith('/')) {
+          fotoUrl = '$staticHost$rawFoto';
+        } else {
+          fotoUrl = '$staticHost/$rawFoto';
+        }
+      }
+
+      final List<String> nameParts = employeeName.trim().split(' ');
+      final String initials = nameParts.length >= 2
+          ? '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase()
+          : (nameParts.isNotEmpty && nameParts[0].isNotEmpty
+                ? nameParts[0][0].toUpperCase()
+                : '?');
+
+      return Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(28),
+            topRight: Radius.circular(28),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Info text above the card
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0, left: 4.0),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded, size: 16, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEn
+                          ? 'This order is currently being processed by another employee.'
+                          : 'Pesanan ini sedang diproses oleh karyawan lain.',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // White card with cyan border and shadow
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: const Color(0xFF42C6D4).withValues(alpha: 0.25),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: navyColor.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: navyColor.withValues(alpha: 0.1),
+                    backgroundImage: fotoUrl.isNotEmpty ? NetworkImage(fotoUrl) : null,
+                    child: fotoUrl.isEmpty
+                        ? Text(
+                            initials,
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.bold,
+                              color: navyColor,
+                              fontSize: 14,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEn ? 'ASSIGNED EMPLOYEE' : 'KARYAWAN BERTUGAS',
+                          style: GoogleFonts.poppins(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          employeeName,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: navyColor,
+                          ),
+                        ),
+                        if (employeePhone != '-') ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            employeePhone,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     // Deteksi apakah kurir sedang di jalan (rute aktif)
     final bool isCourierOnWay = _currentOrder['is_courier_on_way'] == true;
