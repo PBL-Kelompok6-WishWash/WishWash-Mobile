@@ -53,8 +53,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
   Map<String, dynamic>? _previewOrder;
   Map<String, dynamic>? _currentRoomOrder;
 
-  Map<String, dynamic>? _pendingTrackerToSend;
-
   bool _isTargetTyping = false;
   bool _isTyping = false;
   Timer? _typingTimer;
@@ -155,7 +153,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           }
 
           if (!alreadySent) {
-            _pendingTrackerToSend = order;
+            _sendTrackerDirectly(order);
           }
         }
 
@@ -174,9 +172,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     _channel = WebSocketChannel.connect(
       Uri.parse('$wsUrlStr/chat/room/${widget.roomChatID}/ws?id_user=$currentUserID'),
     );
-
-    // Send pending tracker immediately once WebSocket is connected
-    _sendPendingTracker();
 
     _channel!.stream.listen((message) {
       final incomingData = json.decode(message);
@@ -227,46 +222,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     }, onDone: () {
       debugPrint("WebSocket Koneksi Terputus.");
     });
-  }
-
-  void _sendPendingTracker() {
-    if (_pendingTrackerToSend != null && _channel != null) {
-      final order = _pendingTrackerToSend!;
-      _pendingTrackerToSend = null; // Clear first to prevent duplicate sends
-      
-      final orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
-      final searchPattern = '[Order Tracker] $orderCode';
-      
-      final String serviceName = order['Layanan'] != null 
-          ? (order['Layanan']['nama_layanan'] ?? 'Layanan') 
-          : 'Layanan';
-      final String status = _getOrderStatusForTracker(order);
-      final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
-      final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
-      final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-      final String unit = (order['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
-      final bool isPcs = unit.toLowerCase() == 'pcs';
-      final String qtyLabel = isPcs ? 'Quantity' : 'Weight';
-      final String qtyStr = kuantitas > 0 
-          ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg') 
-          : (isPcs ? 'Pending Count' : 'Pending Weight');
-      
-      final String trackerMessage = 
-          '📦 $searchPattern\n'
-          '🔹 Service: $serviceName\n'
-          '🔹 $qtyLabel: $qtyStr\n'
-          '🔹 Status: $status\n'
-          '🔹 Total: $priceStr\n'
-          '🔹 Order ID: ${order['id_order']}';
-
-      try {
-        _channel!.sink.add(json.encode({
-          'teks_pesan': trackerMessage,
-        }));
-      } catch (e) {
-        debugPrint("Gagal mengirim tracker otomatis: $e");
-      }
-    }
   }
 
   void _onTextChanged() {
@@ -1236,6 +1191,50 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _sendTrackerDirectly(Map<String, dynamic> order) async {
+    final orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
+    final searchPattern = '[Order Tracker] $orderCode';
+    
+    final String serviceName = order['Layanan'] != null 
+        ? (order['Layanan']['nama_layanan'] ?? 'Layanan') 
+        : 'Layanan';
+    final String status = _getOrderStatusForTracker(order);
+    final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
+    final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
+    final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String unit = (order['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = unit.toLowerCase() == 'pcs';
+    final String qtyLabel = isPcs ? 'Quantity' : 'Weight';
+    final String qtyStr = kuantitas > 0 
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg') 
+        : (isPcs ? 'Pending Count' : 'Pending Weight');
+    
+    final String trackerMessage = 
+        '📦 $searchPattern\n'
+        '🔹 Service: $serviceName\n'
+        '🔹 $qtyLabel: $qtyStr\n'
+        '🔹 Status: $status\n'
+        '🔹 Total: $priceStr\n'
+        '🔹 Order ID: ${order['id_order']}';
+
+    int retries = 0;
+    while (_channel == null && retries < 15) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      retries++;
+    }
+
+    if (_channel != null) {
+      try {
+        _channel!.sink.add(json.encode({
+          'teks_pesan': trackerMessage,
+        }));
+        debugPrint("⚡ Auto-sent order tracker card for order $orderCode");
+      } catch (e) {
+        debugPrint("Gagal auto-send order tracker: $e");
+      }
+    }
   }
 
   void _prepareOrderTrackerPreview(Map<String, dynamic> order) {
