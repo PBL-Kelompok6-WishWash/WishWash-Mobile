@@ -220,38 +220,142 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
   Widget _buildDropdownField(
     String selectedValue,
     List<String> options,
-    Function(String?) onChanged,
+    Function(String) onChanged,
     IconData icon,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200, width: 1),
-      ),
-      child: DropdownButtonFormField<String>(
-        value: selectedValue.isEmpty || !options.contains(selectedValue) ? options.first : selectedValue,
-        onChanged: onChanged,
-        style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.transparent,
-          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-        ),
-        icon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade500, size: 24),
-        items: options.map<DropdownMenuItem<String>>((String value) {
-          return DropdownMenuItem<String>(
-            value: value,
-            child: Text(
-              value,
-              style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+    IconData getOptionIcon(String option) {
+      switch (option) {
+        case 'Motor':
+          return Icons.motorcycle_rounded;
+        case 'Mobil':
+          return Icons.directions_car_rounded;
+        case 'Pick Up':
+          return Icons.local_shipping_rounded;
+        default:
+          return Icons.directions_bike_rounded;
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.white,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
             ),
-          );
-        }).toList(),
+          ),
+          builder: (context) {
+            final isEn = TranslationService.currentLang == 'en';
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isEn ? 'Select Vehicle Type' : 'Pilih Jenis Kendaraan',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: navyColor,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...options.map((option) {
+                      final bool isSelected = option == selectedValue;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF42C6D4).withOpacity(0.08) : Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF42C6D4) : Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: Icon(
+                            getOptionIcon(option),
+                            color: isSelected ? const Color(0xFF0C4B8E) : Colors.grey.shade500,
+                          ),
+                          title: Text(
+                            option,
+                            style: GoogleFonts.poppins(
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? const Color(0xFF0C4B8E) : Colors.grey.shade800,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Color(0xFF42C6D4),
+                                )
+                              : null,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          onTap: () {
+                            onChanged(option);
+                            Navigator.pop(context);
+                          },
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selectedValue == 'Mobil'
+                  ? Icons.directions_car_rounded
+                  : (selectedValue == 'Pick Up'
+                      ? Icons.local_shipping_rounded
+                      : Icons.motorcycle_rounded),
+              color: Colors.grey.shade500,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                selectedValue.isEmpty ? 'Motor' : selectedValue,
+                style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+              ),
+            ),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.grey.shade500,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
