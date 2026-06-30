@@ -136,20 +136,20 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           _messages = historyMessages;
         });
 
-        // Cek apakah orderToTrack perlu dilampirkan otomatis (jika belum pernah dikirim sama sekali di history)
+        // Cek apakah orderToTrack perlu dilampirkan otomatis (belum pernah terkirim di chat)
         if (widget.orderToTrack != null) {
           final order = widget.orderToTrack!;
           final orderId = order['id_order'];
           final orderCode = order['kode_order'] ?? 'WW-$orderId';
 
-          final String oIdStr = orderId.toString().trim();
+          final String oIdStr = "order id: ${orderId.toString().trim()}".toLowerCase();
           final String oCodeStr = orderCode.toString().trim().toLowerCase();
 
           bool alreadySent = false;
           for (var msg in historyMessages) {
             final String text = (msg['teks_pesan'] ?? '').toString().toLowerCase();
             if (text.contains('[order tracker]') &&
-                (text.contains('order id: $oIdStr') || text.contains(oCodeStr))) {
+                (text.contains(oIdStr) || text.contains(oCodeStr))) {
               alreadySent = true;
               break;
             }
