@@ -129,9 +129,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
         headers: {'Authorization': 'Bearer $token'},
       );
 
-      debugPrint("🔍 [Chat Tracker] HTTP Response Status: ${response.statusCode}");
-      debugPrint("🔍 [Chat Tracker] HTTP Body: ${response.body}");
-
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         final List<dynamic> historyMessages = data['data'] ?? [];
@@ -140,7 +137,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
         });
 
         // Cek apakah orderToTrack perlu dilampirkan otomatis (jika pesan terakhir bukan tracker order ini)
-        debugPrint("🔍 [Chat Tracker] Checking auto attachment. orderToTrack: ${widget.orderToTrack}");
         if (widget.orderToTrack != null) {
           final order = widget.orderToTrack!;
           final orderId = order['id_order'];
@@ -148,7 +144,6 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
 
           final String oIdStr = orderId.toString().trim();
           final String oCodeStr = orderCode.toString().trim().toLowerCase();
-          debugPrint("🔍 [Chat Tracker] Target Order ID: $oIdStr, Code: $oCodeStr");
 
           bool alreadySent = false;
           if (historyMessages.isNotEmpty) {
@@ -158,14 +153,11 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
             
             if (lastText.contains('[order tracker]') &&
                 (lastText.contains('order id: $oIdStr') || lastText.contains(oCodeStr))) {
-              debugPrint("🔍 [Chat Tracker] Last message is already tracker for this order: $lastText");
               alreadySent = true;
             }
           }
 
-          debugPrint("🔍 [Chat Tracker] alreadySent result: $alreadySent");
           if (!alreadySent) {
-            debugPrint("🔍 [Chat Tracker] Preparing preview card now...");
             _prepareOrderTrackerPreview(order);
           }
         }
