@@ -142,11 +142,14 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           final orderId = order['id_order'];
           final orderCode = order['kode_order'] ?? 'WW-$orderId';
 
+          final String oIdStr = orderId.toString().trim();
+          final String oCodeStr = orderCode.toString().trim().toLowerCase();
+
           bool alreadySent = false;
           for (var msg in historyMessages) {
-            final String text = msg['teks_pesan'] ?? '';
-            if (text.contains('[Order Tracker]') &&
-                (text.contains('Order ID: $orderId') || text.contains(orderCode))) {
+            final String text = (msg['teks_pesan'] ?? '').toString().toLowerCase();
+            if (text.contains('[order tracker]') &&
+                (text.contains('order id: $oIdStr') || text.contains(oCodeStr))) {
               alreadySent = true;
               break;
             }
@@ -965,16 +968,17 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
                           ),
                         ),
                       ),
+                    
+                    if (_previewTrackerMessage != null && _previewOrder != null)
+                      Positioned(
+                        bottom: 10, left: 20, right: 20,
+                        child: _buildOrderTrackerPreviewCard(),
+                      ),
                   ],
                 ),
               ),
             ),
           ),
-          if (_previewTrackerMessage != null && _previewOrder != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: _buildOrderTrackerPreviewCard(),
-            ),
           
           // --- BOTTOM INPUT AREA ---
           Container(
@@ -1068,31 +1072,30 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     final orderCode = order['kode_order'] ?? 'WW-${order['id_order']}';
     final layanan = order['Layanan'] ?? {};
     final String serviceName = TranslationService.translateService(layanan['nama_layanan'] ?? 'Layanan');
-    final isEn = TranslationService.currentLang == 'en';
-
+    
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: navyColor.withOpacity(0.18), width: 1.5),
+        border: Border.all(color: navyColor.withOpacity(0.15), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: navyColor.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 22),
+            child: Icon(Icons.receipt_long_rounded, color: navyColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1101,54 +1104,25 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isEn ? 'Attach Order Summary' : 'Kirim Ringkasan Pesanan',
+                  TranslationService.translate('attach_order_summary'),
                   style: GoogleFonts.poppins(
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: navyColor,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
                   '$orderCode • $serviceName',
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          // Tombol Kirim (Send)
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: navyColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: _sendMessage,
-            child: Text(
-              isEn ? 'Send' : 'Kirim',
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-          // Tombol Batal/Close
           IconButton(
-            icon: Icon(Icons.close_rounded, color: Colors.grey.shade400, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            icon: Icon(Icons.close_rounded, color: Colors.grey.shade500, size: 20),
             onPressed: () {
               setState(() {
                 _previewTrackerMessage = null;
