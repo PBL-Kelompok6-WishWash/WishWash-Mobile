@@ -1193,12 +1193,17 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
     final double totalBayar = (order['total_bayar'] as num?)?.toDouble() ?? 0.0;
     final String priceStr = totalBayar > 0 ? 'Rp ${totalBayar.toInt()}' : 'Pending Weight';
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
-    final String qtyStr = kuantitas > 0 ? '${kuantitas.toStringAsFixed(1)} kg' : 'Pending Weight';
+    final String unit = (order['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = unit.toLowerCase() == 'pcs';
+    final String qtyLabel = isPcs ? 'Quantity' : 'Weight';
+    final String qtyStr = kuantitas > 0 
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg') 
+        : (isPcs ? 'Pending Count' : 'Pending Weight');
     
     final String trackerMessage = 
         '📦 $searchPattern\n'
         '🔹 Service: $serviceName\n'
-        '🔹 Weight: $qtyStr\n'
+        '🔹 $qtyLabel: $qtyStr\n'
         '🔹 Status: $status\n'
         '🔹 Total: $priceStr\n'
         '🔹 Order ID: ${order['id_order']}';

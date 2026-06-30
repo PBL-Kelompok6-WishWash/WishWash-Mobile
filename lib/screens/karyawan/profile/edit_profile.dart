@@ -220,39 +220,140 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
   Widget _buildDropdownField(
     String selectedValue,
     List<String> options,
-    Function(String?) onChanged,
+    Function(String) onSelected,
     IconData icon,
   ) {
-    return DropdownButtonFormField<String>(
-      value: selectedValue.isEmpty || !options.contains(selectedValue) ? options.first : selectedValue,
-      onChanged: onChanged,
-      style: GoogleFonts.poppins(fontSize: 14, color: navyColor, fontWeight: FontWeight.w500),
-      dropdownColor: Colors.white,
-      icon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade500, size: 22),
-      borderRadius: BorderRadius.circular(16),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.grey.shade50,
-        prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(
+    return GestureDetector(
+      onTap: () => _showVehicleTypeBottomSheet(selectedValue, options, onSelected),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: cyanColor, width: 1.5),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.grey.shade500, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                selectedValue.isEmpty ? 'Motor' : selectedValue,
+                style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+              ),
+            ),
+            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade500, size: 20),
+          ],
         ),
       ),
-      items: options.map<DropdownMenuItem<String>>((String value) {
-        return DropdownMenuItem<String>(
-          value: value,
-          child: Text(
-            value,
-            style: GoogleFonts.poppins(fontSize: 14, color: navyColor, fontWeight: FontWeight.w500),
+    );
+  }
+
+  void _showVehicleTypeBottomSheet(
+    String selectedValue,
+    List<String> options,
+    Function(String) onSelected,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      builder: (context) {
+        final isEn = TranslationService.currentLang == 'en';
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  isEn ? 'Select Vehicle Type' : 'Pilih Jenis Kendaraan',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...options.map((opt) {
+                  final bool isSelected = opt == selectedValue;
+                  IconData optIcon = Icons.motorcycle_outlined;
+                  if (opt == 'Mobil') {
+                    optIcon = Icons.directions_car_filled_outlined;
+                  } else if (opt == 'Pick Up') {
+                    optIcon = Icons.local_shipping_outlined;
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: InkWell(
+                      onTap: () {
+                        onSelected(opt);
+                        Navigator.pop(context);
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF42C6D4).withOpacity(0.08) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF42C6D4) : Colors.grey.shade200,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              optIcon,
+                              color: isSelected ? const Color(0xFF42C6D4) : Colors.grey.shade500,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                opt,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                  color: isSelected ? navyColor : Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF42C6D4),
+                                size: 20,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
           ),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -558,12 +659,10 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
                           _buildDropdownField(
                             _vehicleTypeController.text.isEmpty ? 'Motor' : _vehicleTypeController.text,
                             ['Motor', 'Mobil', 'Pick Up'],
-                            (String? val) {
-                              if (val != null) {
-                                setState(() {
-                                  _vehicleTypeController.text = val;
-                                });
-                              }
+                            (String val) {
+                              setState(() {
+                                _vehicleTypeController.text = val;
+                              });
                             },
                             Icons.motorcycle_outlined,
                           ),

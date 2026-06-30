@@ -64,6 +64,7 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   String _alamatLengkap = 'Memuat alamat...';
   String _tipeAlamat = 'Rumah';
   List<dynamic> _services = [];
+  int _currentServicePage = 0;
   bool _isLoadingServices = true;
   bool _isSeeAllPressed = false;
   bool _isNotificationVisible = false;
@@ -729,7 +730,9 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
                                     child: Column(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.all(20),
+                                          padding: (_services.length / 4).ceil() > 1
+                                              ? const EdgeInsets.symmetric(vertical: 20)
+                                              : const EdgeInsets.all(20),
                                           decoration: BoxDecoration(
                                             color: Colors.white,
                                             borderRadius: BorderRadius.circular(24),
@@ -1479,135 +1482,209 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
   }
 
   Widget _buildServicesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final bool hasMultiplePages = (_services.length / 4).ceil() > 1;
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final int crossAxisCount = screenWidth >= 600 ? 3 : 2;
+    final double childAspectRatio = screenWidth >= 600
+        ? 2.3
+        : (screenWidth < 360 ? 1.75 : 2.1);
+    final double spacing = 12.0;
+    final double totalPadding = 40.0; // 20 left + 20 right
+    final double itemWidth = (screenWidth - totalPadding - (crossAxisCount - 1) * spacing) / crossAxisCount;
+    final double itemHeight = itemWidth / childAspectRatio;
+    final double gridHeight = (itemHeight * 2) + spacing;
+
+    Widget header = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              TranslationService.translate('our_services'),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: const Color(0xFF0D47A1),
-              ),
-            ),
-            GestureDetector(
-              onTapDown: (_) {
-                setState(() {
-                  _isSeeAllPressed = true;
-                });
-              },
-              onTapCancel: () {
+        Text(
+          TranslationService.translate('our_services'),
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            color: const Color(0xFF0D47A1),
+          ),
+        ),
+        GestureDetector(
+          onTapDown: (_) {
+            setState(() {
+              _isSeeAllPressed = true;
+            });
+          },
+          onTapCancel: () {
+            setState(() {
+              _isSeeAllPressed = false;
+            });
+          },
+          onTap: () {
+            setState(() {
+              _isSeeAllPressed = true;
+            });
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
+            ).then((_) {
+              if (mounted) {
                 setState(() {
                   _isSeeAllPressed = false;
                 });
-              },
-              onTap: () {
-                setState(() {
-                  _isSeeAllPressed = true;
-                });
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateOrderScreen()),
-                ).then((_) {
-                  if (mounted) {
-                    setState(() {
-                      _isSeeAllPressed = false;
-                    });
-                  }
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 2),
-                child: Text(
-                  TranslationService.currentLang == 'en' ? 'See All' : 'Lihat Semua',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0C4B8E),
-                    decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
-                    decorationColor: const Color(0xFF0C4B8E),
-                    decorationThickness: _isSeeAllPressed ? 2.5 : null,
-                  ),
-                ),
+              }
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              TranslationService.currentLang == 'en' ? 'See All' : 'Lihat Semua',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF0C4B8E),
+                decoration: _isSeeAllPressed ? TextDecoration.underline : TextDecoration.none,
+                decorationColor: const Color(0xFF0C4B8E),
+                decorationThickness: _isSeeAllPressed ? 2.5 : null,
               ),
             ),
-          ],
+          ),
         ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        hasMultiplePages
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: header,
+              )
+            : header,
         const SizedBox(height: 12),
         _isLoadingServices
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: CircularProgressIndicator(),
+                  padding: EdgeInsets.symmetric(vertical: 24, horizontal: hasMultiplePages ? 20 : 0),
+                  child: const CircularProgressIndicator(),
                 ),
               )
             : _services.isEmpty
-                ? const Center(
+                ? Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
+                      padding: EdgeInsets.symmetric(vertical: 24, horizontal: hasMultiplePages ? 20 : 0),
+                      child: const Text(
                         'Tidak ada layanan yang tersedia',
                         style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
                       ),
                     ),
                   )
-                : GridView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 3 : 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: MediaQuery.of(context).size.width >= 600
-                          ? 2.3
-                          : (MediaQuery.of(context).size.width < 360 ? 1.75 : 2.1),
-                    ),
-                    itemCount: _services.length,
-                    itemBuilder: (context, index) {
-                      final service = _services[index];
-                      final String rawName = service['nama_layanan'] ?? '';
-                      final String name = TranslationService.translateService(rawName);
-                      final String hexColor = service['warna_layanan'] ?? '#00BCD4';
-                      final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
+                : Column(
+                    children: [
+                      SizedBox(
+                        height: gridHeight,
+                        child: PageView.builder(
+                          itemCount: (_services.length / 4).ceil(),
+                          onPageChanged: (int index) {
+                            setState(() {
+                              _currentServicePage = index;
+                            });
+                          },
+                          itemBuilder: (context, pageIndex) {
+                            final int startIndex = pageIndex * 4;
+                            final int endIndex = (startIndex + 4 < _services.length)
+                                ? startIndex + 4
+                                : _services.length;
+                            final pageServices = _services.sublist(startIndex, endIndex);
 
-                      // Parse hex color to Flutter Color
-                      final Color baseColor = _parseHexColor(hexColor);
-                      // Generate background color (soft 15% opacity) & text color
-                      final Color bgColor = baseColor.withOpacity(0.15);
-                      final Color textColor = _getDarkenedTextColor(baseColor);
+                            Widget grid = GridView.builder(
+                              padding: EdgeInsets.zero,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: MediaQuery.of(context).size.width >= 600 ? 3 : 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: MediaQuery.of(context).size.width >= 600
+                                    ? 2.3
+                                    : (MediaQuery.of(context).size.width < 360 ? 1.75 : 2.1),
+                              ),
+                              itemCount: pageServices.length,
+                              itemBuilder: (context, index) {
+                                final service = pageServices[index];
+                                final String rawName = service['nama_layanan'] ?? '';
+                                final String name = TranslationService.translateService(rawName);
+                                final String hexColor = service['warna_layanan'] ?? '#00BCD4';
+                                final String imagePath = service['gambar_layanan'] ?? 'assets/images/services/wash_only.png';
 
-                      // Format name to display with newlines
-                      String formattedName = name;
-                      if (name.contains(' & ')) {
-                        formattedName = name.replaceAll(' & ', ' &\n');
-                      } else if (name.contains(' and ')) {
-                        formattedName = name.replaceAll(' and ', ' and\n');
-                      } else if (name.contains(' ')) {
-                        formattedName = name.replaceAll(' ', '\n');
-                      }
+                                // Parse hex color to Flutter Color
+                                final Color baseColor = _parseHexColor(hexColor);
+                                // Generate background color (soft 15% opacity) & text color
+                                final Color bgColor = baseColor.withOpacity(0.15);
+                                final Color textColor = _getDarkenedTextColor(baseColor);
 
-                      final VoidCallback cardOnTap = () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LaundryOrderScreen(service: service),
+                                // Format name to display with newlines
+                                String formattedName = name;
+                                if (name.contains(' & ')) {
+                                  formattedName = name.replaceAll(' & ', ' &\n');
+                                } else if (name.contains(' and ')) {
+                                  formattedName = name.replaceAll(' and ', ' and\n');
+                                } else if (name.contains(' ')) {
+                                  formattedName = name.replaceAll(' ', '\n');
+                                }
+
+                                final VoidCallback cardOnTap = () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LaundryOrderScreen(service: service),
+                                    ),
+                                  );
+                                };
+
+                                return _buildServiceCard(
+                                  formattedName,
+                                  bgColor,
+                                  textColor,
+                                  imagePath,
+                                  cardOnTap,
+                                );
+                              },
+                            );
+
+                            return hasMultiplePages
+                                ? Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    child: grid,
+                                  )
+                                : grid;
+                          },
+                        ),
+                      ),
+                      if (hasMultiplePages) ...[
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(
+                              (_services.length / 4).ceil(),
+                              (index) => AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                                width: _currentServicePage == index ? 18 : 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: _currentServicePage == index
+                                      ? const Color(0xFF0C4B8E)
+                                      : Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
                           ),
-                        );
-                      };
-
-                      return _buildServiceCard(
-                        formattedName,
-                        bgColor,
-                        textColor,
-                        imagePath,
-                        cardOnTap,
-                      );
-                    },
+                        ),
+                      ],
+                    ],
                   ),
       ],
     );
@@ -1917,13 +1994,17 @@ class PelangganHomeScreenState extends State<PelangganHomeScreen> {
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
     final bool isEn = TranslationService.currentLang == 'en';
+    final String jenisSatuan = (layanan['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = jenisSatuan.toLowerCase() == 'pcs';
     final String qtyStr = kuantitas > 0.0
-        ? '$kuantitas kg'
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg')
         : (rawStatus.contains('diterima') || rawStatus.contains('received')
             ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
             : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
                 ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
-                : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
+                : (isEn 
+                    ? (isPcs ? 'Pending Count' : 'Pending Weight') 
+                    : (isPcs ? 'Menunggu Hitung' : 'Menunggu Timbang'))));
     final price = _formatRupiah(totalBayar);
 
     return Container(

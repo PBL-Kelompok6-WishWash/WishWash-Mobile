@@ -186,6 +186,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     if (status.contains('timbang') || status.contains('weigh')) {
       return isEn ? 'Weigh' : 'Timbang';
     }
+    if (status.contains('hitung') || status.contains('count')) {
+      return isEn ? 'Count' : 'Hitung';
+    }
     if (status.contains('cuci') || status.contains('wash')) {
       return isEn ? 'Wash' : 'Cuci';
     }
@@ -539,7 +542,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     return 'Rp $formatted';
   }
 
-  Color _getServiceColor(String serviceName) {
+  Color _getServiceColor(String serviceName, {String? hexColor}) {
+    if (hexColor != null && hexColor.isNotEmpty) {
+      String hex = hexColor.replaceAll('#', '');
+      if (hex.length == 6) {
+        hex = 'FF' + hex;
+      }
+      try {
+        return Color(int.parse(hex, radix: 16));
+      } catch (_) {}
+    }
     final name = serviceName.toLowerCase();
     if (name.contains('lipat') || name.contains('dry clean')) {
       return const Color(0xFF00BCD4); // Cyan (#00BCD4)
@@ -1142,6 +1154,26 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         (_currentOrder['PaketLayanan']['nama_paket'] as String?) ??
         'Paket Laundry';
     final isEn = TranslationService.currentLang == 'en';
+    final String jenisSatuan = (_currentOrder['Layanan']['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = jenisSatuan.toLowerCase() == 'pcs';
+
+    final String dialogTitle = isEn
+        ? (isPcs ? 'Count Laundry' : 'Weigh Laundry')
+        : (isPcs ? 'Hitung Satuan' : 'Timbang Cucian');
+
+    final String dialogDesc = isEn
+        ? (isPcs ? 'Enter actual laundry quantity in Pcs' : 'Enter actual laundry weight in kilograms')
+        : (isPcs ? 'Masukkan jumlah cucian riil dalam Pcs' : 'Masukkan berat cucian riil dalam kilogram');
+
+    final String labelText = isEn
+        ? (isPcs ? 'Laundry Quantity' : 'Laundry Weight')
+        : (isPcs ? 'Jumlah Cucian' : 'Berat Cucian');
+
+    final String priceLabel = isEn ? 'Price/$jenisSatuan' : 'Harga/$jenisSatuan';
+
+    final String invalidErrorMsg = isEn
+        ? (isPcs ? 'Please enter a valid quantity!' : 'Please enter a valid weight number!')
+        : (isPcs ? 'Harap masukkan jumlah pcs yang valid!' : 'Harap masukkan angka berat yang valid!');
 
     String? validationError;
     showDialog(
@@ -1197,14 +1229,14 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.scale_rounded,
+                        isPcs ? Icons.inventory_2_outlined : Icons.scale_rounded,
                         color: navyColor,
                         size: 36,
                       ),
                     ),
                     const SizedBox(height: 18),
                     Text(
-                      isEn ? 'Weigh Laundry' : 'Timbang Cucian',
+                      dialogTitle,
                       style: GoogleFonts.poppins(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -1213,9 +1245,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     ),
                     const SizedBox(height: 6),
                      Text(
-                      isEn
-                          ? 'Enter actual laundry weight in kilograms'
-                          : 'Masukkan berat cucian riil dalam kilogram',
+                      dialogDesc,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 12,
@@ -1272,9 +1302,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       ],
                       onChanged: (_) => setStateDialog(() {}),
                       decoration: InputDecoration(
-                        labelText: isEn ? 'Laundry Weight' : 'Berat Cucian',
+                        labelText: labelText,
                         labelStyle: GoogleFonts.poppins(color: navyColor),
-                        suffixText: 'Kg',
+                        suffixText: jenisSatuan,
                         suffixStyle: GoogleFonts.poppins(
                           color: navyColor,
                           fontWeight: FontWeight.bold,
@@ -1314,7 +1344,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                isEn ? 'Price/Kg' : 'Harga/Kg',
+                                priceLabel,
                                 style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: Colors.grey.shade600,
@@ -1398,9 +1428,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                           );
                           if (weight == null || weight <= 0.0) {
                             setStateDialog(() {
-                              validationError = isEn
-                                  ? 'Please enter a valid weight number!'
-                                  : 'Harap masukkan angka berat yang valid!';
+                              validationError = invalidErrorMsg;
                             });
                             Timer(const Duration(seconds: 3), () {
                               if (context.mounted) {
@@ -1527,15 +1555,17 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
     final bool isEn = TranslationService.currentLang == 'en';
+    final String jenisSatuan = (layanan['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = jenisSatuan.toLowerCase() == 'pcs';
     final String qtyStr = kuantitas > 0.0
-        ? '$kuantitas kg'
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg')
         : (rawStatus.contains('diterima') || rawStatus.contains('received')
             ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
             : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
                 ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
                 : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
     final serviceName = TranslationService.translateService(rawServiceName);
-    final baseColor = _getServiceColor(rawServiceName);
+    final baseColor = _getServiceColor(rawServiceName, hexColor: (layanan['warna_layanan'] ?? '').toString());
     final orderColor = _getDarkenedTextColor(baseColor);
 
     final double totalBayar =
@@ -3170,8 +3200,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
             _formatRupiah(subtotalCucian),
             detailText: kuantitas > 0.0
-                ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
-                : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+                ? (() {
+                    final String unit = (_currentOrder['Layanan']?['jenis_satuan'] ?? 'Kg').toString().toLowerCase();
+                    final bool localIsPcs = unit == 'pcs';
+                    return localIsPcs 
+                        ? '${kuantitas.toInt()} pcs x ${_formatRupiah(hargaPerSatuan)}/pcs' 
+                        : '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg';
+                  })()
+                : (isEn 
+                    ? (_currentOrder['Layanan']?['jenis_satuan']?.toString().toLowerCase() == 'pcs' ? 'Pending Count' : 'Pending Weight') 
+                    : (_currentOrder['Layanan']?['jenis_satuan']?.toString().toLowerCase() == 'pcs' ? 'Menunggu Hitung' : 'Menunggu Timbang')),
             isBoldLabel: false,
           ),
           const SizedBox(height: 8),
@@ -3400,9 +3438,15 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final bool isDropOff = logistikType == 'Drop-off' || logistikType == 'Self Pickup';
     final double kuantitasVal =
         (_currentOrder['kuantitas'] as num?)?.toDouble() ?? 0.0;
+    final String unit = (_currentOrder['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = unit.toLowerCase() == 'pcs';
     final String qtyText = kuantitasVal == 0.0
-        ? (isEn ? 'Pending Weight' : 'Menunggu Timbang')
-        : '$kuantitasVal kg';
+        ? (isEn 
+            ? (isPcs ? 'Pending Count' : 'Pending Weight') 
+            : (isPcs ? 'Menunggu Hitung' : 'Menunggu Timbang'))
+        : (isPcs 
+            ? '${kuantitasVal.toInt()} pcs' 
+            : '$kuantitasVal kg');
 
     final statusInfo = _getCurrentStatusInfo(_currentOrder);
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
@@ -3538,14 +3582,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       ),
                       if (hargaPerSatuan > 0) ...[
                         const SizedBox(height: 2),
-                        Text(
-                          '${_formatRupiah(hargaPerSatuan)} / kg',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
+                        (() {
+                          final lay = _currentOrder['Layanan'] ?? {};
+                          final String unit = (lay['jenis_satuan'] ?? 'kg').toString().toLowerCase();
+                          return Text(
+                            '${_formatRupiah(hargaPerSatuan)} / $unit',
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade600,
+                            ),
+                          );
+                        })(),
                       ],
                     ],
                   ),
@@ -4409,8 +4457,16 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                       isEn ? 'Subtotal (Laundry)' : 'Subtotal (Cucian)',
                       _formatRupiah(subtotalCucian),
                       detailText: kuantitas > 0.0
-                          ? '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg'
-                          : (isEn ? 'Pending Weight' : 'Menunggu Timbang'),
+                          ? (() {
+                              final String unit = (_currentOrder['Layanan']?['jenis_satuan'] ?? 'Kg').toString().toLowerCase();
+                              final bool localIsPcs = unit == 'pcs';
+                              return localIsPcs 
+                                  ? '${kuantitas.toInt()} pcs x ${_formatRupiah(hargaPerSatuan)}/pcs' 
+                                  : '${kuantitas.toStringAsFixed(1)} kg x ${_formatRupiah(hargaPerSatuan)}/kg';
+                            })()
+                          : (isEn 
+                              ? (_currentOrder['Layanan']?['jenis_satuan']?.toString().toLowerCase() == 'pcs' ? 'Pending Count' : 'Pending Weight') 
+                              : (_currentOrder['Layanan']?['jenis_satuan']?.toString().toLowerCase() == 'pcs' ? 'Menunggu Hitung' : 'Menunggu Timbang')),
                       isBoldLabel: false,
                     ),
                     const SizedBox(height: 8),
@@ -5187,16 +5243,21 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
       nextStatus = lowerNext;
 
+      final String jenisSatuan = (_currentOrder['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+      final bool isPcs = jenisSatuan.toLowerCase() == 'pcs';
+
       // Map button label dynamically
       if (status.contains('timbang') ||
           status.contains('weigh') ||
-          ((lowerNext.contains('timbang') || lowerNext.contains('weigh')) &&
+          status.contains('hitung') ||
+          status.contains('count') ||
+          ((lowerNext.contains('timbang') || lowerNext.contains('weigh') || lowerNext.contains('hitung') || lowerNext.contains('count')) &&
               !(status.contains('jemput') ||
                   status.contains('pickup') ||
                   status.contains('penjemputan')))) {
         actionBtnText = TranslationService.currentLang == 'en'
-            ? 'Start Weighing Laundry'
-            : 'Mulai Timbang Cucian';
+            ? (isPcs ? 'Count Laundry Now' : 'Start Weighing Laundry')
+            : (isPcs ? 'Hitung Satuan Sekarang' : 'Mulai Timbang Cucian');
         customAction = _showWeighingDialog;
       } else if (status.contains('jemput') ||
           status.contains('pickup') ||

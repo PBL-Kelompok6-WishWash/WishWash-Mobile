@@ -483,9 +483,39 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
     return s == 'selesai' || s.contains('completed') || s.contains('success') || s.contains('batal') || s.contains('cancel') || s.contains('tolak') || s.contains('reject');
   }
 
+  DateTime _getCompletionDateTime(Map<String, dynamic> order) {
+    String endDateTimeStr = order['tgl_pesanan'] ?? '';
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      dynamic completionEntry;
+      for (var history in historyList) {
+        final refStatus = history['ReferensiStatus'];
+        if (refStatus != null && refStatus is Map) {
+          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+          if (statusName.contains('selesai') ||
+              statusName.contains('completed') ||
+              statusName.contains('success') ||
+              statusName.contains('batal') ||
+              statusName.contains('cancel') ||
+              statusName.contains('tolak') ||
+              statusName.contains('reject')) {
+            completionEntry = history;
+            break;
+          }
+        }
+      }
+      final timeSource = completionEntry ?? historyList.last;
+      final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
+      if (rawTime != null) {
+        endDateTimeStr = rawTime.toString();
+      }
+    }
+    return DateTime.tryParse(endDateTimeStr) ?? DateTime(1970);
+  }
+
   List<Map<String, dynamic>> get _filteredOrders {
     final list = _orders.map((e) => Map<String, dynamic>.from(e)).toList();
-    return list.where((order) {
+    final filtered = list.where((order) {
       final status = _getOrderStatus(order);
       final pelanggan = order['Pelanggan'] as Map<String, dynamic>? ?? {};
       final customerName = (pelanggan['nama_lengkap'] ?? '').toString().toLowerCase();
@@ -548,6 +578,16 @@ class _OrderScreenKaryawanState extends State<OrderScreenKaryawan> {
 
       return matchesTab && matchesSearch;
     }).toList();
+
+    if (_activeTabIndex == 4) {
+      filtered.sort((a, b) {
+        final dateA = _getCompletionDateTime(a);
+        final dateB = _getCompletionDateTime(b);
+        return dateB.compareTo(dateA);
+      });
+    }
+
+    return filtered;
   }
 
   int get _baruCount => _orders.where((o) {

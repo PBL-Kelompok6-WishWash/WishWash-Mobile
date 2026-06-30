@@ -879,7 +879,22 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
   Future<void> _confirmArrival() async {
     final status = _getOrderStatus(widget.order).toLowerCase();
     final bool isEn = TranslationService.currentLang == 'en';
+    
+    // Dynamic next status determination based on the service's reference statuses
     String nextStatus = 'proses timbang';
+    final refStatuses = _getSortedReferenceStatuses(widget.order);
+    int currentIdx = -1;
+    for (int i = 0; i < refStatuses.length; i++) {
+      final name = (refStatuses[i]['nama_status'] ?? '').toString().toLowerCase().trim();
+      if (name == 'penjemputan' || name.contains('jemput')) {
+        currentIdx = i;
+        break;
+      }
+    }
+    if (currentIdx != -1 && currentIdx < refStatuses.length - 1) {
+      nextStatus = refStatuses[currentIdx + 1]['nama_status'];
+    }
+
     String successMsg = isEn
         ? 'You have arrived at the pickup location!'
         : 'Anda telah sampai di lokasi penjemputan!';
@@ -1038,6 +1053,39 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
       return refStatus['nama_status'] ?? 'Pesanan Diterima';
     }
     return 'Pesanan Diterima';
+  }
+
+  List<Map<String, dynamic>> _getSortedReferenceStatuses(
+    Map<String, dynamic> order,
+  ) {
+    final layanan = order['Layanan'];
+    final List<dynamic>? refList = layanan != null
+        ? (layanan['referensi_status'] ?? layanan['ReferensiStatus'])
+        : null;
+
+    List<Map<String, dynamic>> sortedList = [];
+    if (refList == null || refList.isEmpty) {
+      sortedList = [
+        {'nama_status': 'Pesanan Diterima', 'urutan_tahap': 1},
+        {'nama_status': 'Penjemputan', 'urutan_tahap': 2},
+        {'nama_status': 'Proses Timbang', 'urutan_tahap': 3},
+        {'nama_status': 'Proses Cuci', 'urutan_tahap': 4},
+        {'nama_status': 'Proses Kering', 'urutan_tahap': 5},
+        {'nama_status': 'Proses Lipat', 'urutan_tahap': 6},
+        {'nama_status': 'Siap Diantar', 'urutan_tahap': 7},
+        {'nama_status': 'Selesai', 'urutan_tahap': 8},
+      ];
+    } else {
+      sortedList = List<Map<String, dynamic>>.from(
+        refList.map((item) => Map<String, dynamic>.from(item)),
+      );
+      sortedList.sort((a, b) {
+        final valA = a['urutan_tahap'] as num? ?? 0;
+        final valB = b['urutan_tahap'] as num? ?? 0;
+        return valA.compareTo(valB);
+      });
+    }
+    return sortedList;
   }
 
   @override

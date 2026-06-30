@@ -227,7 +227,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Color _getServiceColor(String serviceName) {
+  Color _getServiceColor(String serviceName, {String? hexColor}) {
+    if (hexColor != null && hexColor.isNotEmpty) {
+      String hex = hexColor.replaceAll('#', '');
+      if (hex.length == 6) {
+        hex = 'FF' + hex;
+      }
+      try {
+        return Color(int.parse(hex, radix: 16));
+      } catch (_) {}
+    }
     final name = serviceName.toLowerCase();
     if (name.contains('lipat') || name.contains('dry clean')) {
       return const Color(0xFF00BCD4); // Cyan (#00BCD4)
@@ -896,11 +905,47 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  DateTime _getCompletionDateTime(Map<String, dynamic> order) {
+    String endDateTimeStr = order['tgl_pesanan'] ?? '';
+    final historyList = order['RiwayatStatusDetail'];
+    if (historyList != null && historyList is List && historyList.isNotEmpty) {
+      dynamic completionEntry;
+      for (var history in historyList) {
+        final refStatus = history['ReferensiStatus'];
+        if (refStatus != null && refStatus is Map) {
+          final String statusName = (refStatus['nama_status'] ?? '').toString().toLowerCase();
+          if (statusName.contains('selesai') ||
+              statusName.contains('completed') ||
+              statusName.contains('success') ||
+              statusName.contains('batal') ||
+              statusName.contains('cancel') ||
+              statusName.contains('tolak') ||
+              statusName.contains('reject')) {
+            completionEntry = history;
+            break;
+          }
+        }
+      }
+      final timeSource = completionEntry ?? historyList.last;
+      final rawTime = timeSource['waktu_update'] ?? timeSource['WaktuUpdate'];
+      if (rawTime != null) {
+        endDateTimeStr = rawTime.toString();
+      }
+    }
+    return DateTime.tryParse(endDateTimeStr) ?? DateTime(1970);
+  }
+
   Widget _buildCompletedOrders(Color navyColor) {
     final completedOrders = _allOrders.where((order) {
       final statusInfo = _getCurrentStatusInfo(order);
       return statusInfo['is_selesai'] == true;
     }).toList();
+
+    completedOrders.sort((a, b) {
+      final dateA = _getCompletionDateTime(a);
+      final dateB = _getCompletionDateTime(b);
+      return dateB.compareTo(dateA);
+    });
 
     if (completedOrders.isEmpty) {
       return RefreshIndicator(
@@ -1006,22 +1051,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required Map<String, dynamic> statusInfo,
     required Color navyColor,
   }) {
-    final baseColor = _getServiceColor(serviceName);
+    final baseColor = _getServiceColor(serviceName, hexColor: (order['Layanan']?['warna_layanan'] ?? '').toString());
     final orderColor = _getDarkenedTextColor(baseColor);
 
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final String rawStatus = (statusInfo['raw_status'] ?? '').toString().toLowerCase();
     final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('cancel') || rawStatus.contains('tolak') || rawStatus.contains('reject');
     final bool isEn = TranslationService.currentLang == 'en';
+    final String unit = (order['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = unit.toLowerCase() == 'pcs';
     final String qtyStr = kuantitas > 0.0
-        ? '$kuantitas kg'
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg')
         : (isCancelled
             ? ''
             : (rawStatus.contains('diterima') || rawStatus.contains('received')
                 ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
                 : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
                     ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
-                    : (isEn ? 'Pending Weight' : 'Menunggu Timbang'))));
+                    : (isEn 
+                        ? (isPcs ? 'Pending Count' : 'Pending Weight') 
+                        : (isPcs ? 'Menunggu Hitung' : 'Menunggu Timbang')))));
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -1232,7 +1281,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     required String price,
     required Color navyColor,
   }) {
-    final baseColor = _getServiceColor(serviceName);
+    final baseColor = _getServiceColor(serviceName, hexColor: (order['Layanan']?['warna_layanan'] ?? '').toString());
     final orderColor = _getDarkenedTextColor(baseColor);
 
     final statusInfo = _getCurrentStatusInfo(order);
@@ -1241,15 +1290,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     final double kuantitas = (order['kuantitas'] as num?)?.toDouble() ?? 0.0;
     final bool isEn = TranslationService.currentLang == 'en';
+    final String unit = (order['Layanan']?['jenis_satuan'] ?? 'Kg').toString();
+    final bool isPcs = unit.toLowerCase() == 'pcs';
     final String qtyStr = kuantitas > 0.0
-        ? '$kuantitas kg'
+        ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg')
         : (isCancelled
             ? ''
             : (rawStatus.contains('diterima') || rawStatus.contains('received')
                 ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
                 : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
                     ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
-                    : (isEn ? 'Pending Weight' : 'Menunggu Timbang'))));
+                    : (isEn 
+                        ? (isPcs ? 'Pending Count' : 'Pending Weight') 
+                        : (isPcs ? 'Menunggu Hitung' : 'Menunggu Timbang')))));
 
     return GestureDetector(
       onTap: () async {
