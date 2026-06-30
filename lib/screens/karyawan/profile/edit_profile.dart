@@ -217,6 +217,45 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
     );
   }
 
+  Widget _buildDropdownField(
+    String selectedValue,
+    List<String> options,
+    Function(String?) onChanged,
+    IconData icon,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200, width: 1),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: selectedValue.isEmpty || !options.contains(selectedValue) ? options.first : selectedValue,
+        onChanged: onChanged,
+        style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.transparent,
+          prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 20),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+        ),
+        icon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade500, size: 24),
+        items: options.map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(
+            value: value,
+            child: Text(
+              value,
+              style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Future<void> _saveChanges() async {
     final String name = _nameController.text.trim();
     final String phone = _phoneController.text.trim();
@@ -516,10 +555,17 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
                           ),
 
                           _buildInputLabel(TranslationService.currentLang == 'en' ? 'Vehicle Type' : 'Jenis Kendaraan'),
-                          _buildTextField(
-                            _vehicleTypeController, 
-                            TranslationService.currentLang == 'en' ? 'Enter vehicle type (e.g. Honda Beat)' : 'Masukkan jenis kendaraan (contoh: Honda Beat)', 
-                            Icons.motorcycle_outlined
+                          _buildDropdownField(
+                            _vehicleTypeController.text.isEmpty ? 'Motor' : _vehicleTypeController.text,
+                            ['Motor', 'Mobil', 'Pick Up'],
+                            (String? val) {
+                              if (val != null) {
+                                setState(() {
+                                  _vehicleTypeController.text = val;
+                                });
+                              }
+                            },
+                            Icons.motorcycle_outlined,
                           ),
 
                           _buildInputLabel(TranslationService.currentLang == 'en' ? 'Plate Number' : 'Plat Nomor'),
