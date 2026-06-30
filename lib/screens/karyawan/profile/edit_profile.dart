@@ -219,111 +219,11 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
 
   Widget _buildDropdownField(
     String selectedValue,
-    List<String> options,
-    Function(String) onChanged,
     IconData icon,
+    VoidCallback onTap,
   ) {
-    IconData getOptionIcon(String option) {
-      switch (option) {
-        case 'Motor':
-          return Icons.motorcycle_rounded;
-        case 'Mobil':
-          return Icons.directions_car_rounded;
-        case 'Pick Up':
-          return Icons.local_shipping_rounded;
-        default:
-          return Icons.directions_bike_rounded;
-      }
-    }
-
     return GestureDetector(
-      onTap: () {
-        showModalBottomSheet(
-          context: context,
-          backgroundColor: Colors.white,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
-          builder: (context) {
-            final isEn = TranslationService.currentLang == 'en';
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      isEn ? 'Select Vehicle Type' : 'Pilih Jenis Kendaraan',
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: navyColor,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...options.map((option) {
-                      final bool isSelected = option == selectedValue;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFF42C6D4).withOpacity(0.08) : Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected ? const Color(0xFF42C6D4) : Colors.grey.shade200,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            getOptionIcon(option),
-                            color: isSelected ? const Color(0xFF0C4B8E) : Colors.grey.shade500,
-                          ),
-                          title: Text(
-                            option,
-                            style: GoogleFonts.poppins(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                              color: isSelected ? const Color(0xFF0C4B8E) : Colors.grey.shade800,
-                              fontSize: 14,
-                            ),
-                          ),
-                          trailing: isSelected
-                              ? const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Color(0xFF42C6D4),
-                                )
-                              : null,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          onTap: () {
-                            onChanged(option);
-                            Navigator.pop(context);
-                          },
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
@@ -333,15 +233,7 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
         ),
         child: Row(
           children: [
-            Icon(
-              selectedValue == 'Mobil'
-                  ? Icons.directions_car_rounded
-                  : (selectedValue == 'Pick Up'
-                      ? Icons.local_shipping_rounded
-                      : Icons.motorcycle_rounded),
-              color: Colors.grey.shade500,
-              size: 20,
-            ),
+            Icon(icon, color: Colors.grey.shade500, size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -349,14 +241,136 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
                 style: GoogleFonts.poppins(fontSize: 14, color: navyColor),
               ),
             ),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Colors.grey.shade500,
-              size: 20,
-            ),
+            Icon(Icons.keyboard_arrow_down_rounded, color: Colors.grey.shade500, size: 22),
           ],
         ),
       ),
+    );
+  }
+
+  void _showVehicleTypePicker() {
+    final bool isEn = TranslationService.currentLang == 'en';
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) {
+        final List<Map<String, dynamic>> options = [
+          {
+            'name': 'Motor',
+            'icon': Icons.motorcycle_outlined,
+            'desc': 'Kendaraan roda dua untuk pengantaran cepat'
+          },
+          {
+            'name': 'Mobil',
+            'icon': Icons.directions_car_outlined,
+            'desc': 'Mobil penumpang untuk kapasitas sedang'
+          },
+          {
+            'name': 'Pick Up',
+            'icon': Icons.local_shipping_outlined,
+            'desc': 'Mobil bak terbuka untuk kapasitas besar'
+          },
+        ];
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  isEn ? 'Select Vehicle Type' : 'Pilih Jenis Kendaraan',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: navyColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...options.map((opt) {
+                  final String name = opt['name'];
+                  final IconData icon = opt['icon'];
+                  final String desc = opt['desc'];
+                  final bool isSelected = _vehicleTypeController.text == name || 
+                      (_vehicleTypeController.text.isEmpty && name == 'Motor');
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF42C6D4).withOpacity(0.08) : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected ? const Color(0xFF42C6D4) : Colors.grey.shade200,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: ListTile(
+                      onTap: () {
+                        setState(() {
+                          _vehicleTypeController.text = name;
+                        });
+                        Navigator.pop(context);
+                      },
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF42C6D4).withOpacity(0.15) : Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          icon,
+                          color: isSelected ? navyColor : Colors.grey.shade600,
+                          size: 22,
+                        ),
+                      ),
+                      title: Text(
+                        name,
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: navyColor,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isEn ? name : desc,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(
+                              Icons.check_circle_rounded,
+                              color: navyColor,
+                              size: 22,
+                            )
+                          : null,
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -660,16 +674,9 @@ class _EditProfileScreenKaryawanState extends State<EditProfileScreenKaryawan> {
 
                           _buildInputLabel(TranslationService.currentLang == 'en' ? 'Vehicle Type' : 'Jenis Kendaraan'),
                           _buildDropdownField(
-                            _vehicleTypeController.text.isEmpty ? 'Motor' : _vehicleTypeController.text,
-                            ['Motor', 'Mobil', 'Pick Up'],
-                            (String? val) {
-                              if (val != null) {
-                                setState(() {
-                                  _vehicleTypeController.text = val;
-                                });
-                              }
-                            },
+                            _vehicleTypeController.text,
                             Icons.motorcycle_outlined,
+                            _showVehicleTypePicker,
                           ),
 
                           _buildInputLabel(TranslationService.currentLang == 'en' ? 'Plate Number' : 'Plat Nomor'),
