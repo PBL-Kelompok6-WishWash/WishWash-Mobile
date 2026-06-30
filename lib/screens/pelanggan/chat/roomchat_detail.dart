@@ -136,7 +136,7 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           _messages = historyMessages;
         });
 
-        // Cek apakah orderToTrack perlu dilampirkan otomatis (belum pernah terkirim di chat)
+        // Cek apakah orderToTrack perlu dilampirkan otomatis (jika tracker terakhir bukan order ini)
         if (widget.orderToTrack != null) {
           final order = widget.orderToTrack!;
           final orderId = order['id_order'];
@@ -146,12 +146,15 @@ class _RoomChatDetailScreenState extends State<RoomChatDetailScreen> {
           final String oCodeStr = orderCode.toString().trim().toLowerCase();
 
           bool alreadySent = false;
-          for (var msg in historyMessages) {
-            final String text = (msg['teks_pesan'] ?? '').toString().toLowerCase();
-            if (text.contains('[order tracker]') &&
-                (text.contains(oIdStr) || text.contains(oCodeStr))) {
-              alreadySent = true;
-              break;
+          // Cari pesan tracker terakhir dari bawah ke atas
+          for (int i = historyMessages.length - 1; i >= 0; i--) {
+            final String text = (historyMessages[i]['teks_pesan'] ?? '').toString().toLowerCase();
+            if (text.contains('[order tracker]')) {
+              // Menemukan tracker paling terakhir yang dikirim di room chat
+              if (text.contains(oIdStr) || text.contains(oCodeStr)) {
+                alreadySent = true;
+              }
+              break; // Hentikan loop karena tracker terakhir sudah ditemukan
             }
           }
 
