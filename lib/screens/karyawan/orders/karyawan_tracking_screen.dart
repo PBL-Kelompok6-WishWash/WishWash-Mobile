@@ -1903,7 +1903,16 @@ class _KaryawanTrackingScreenState extends State<KaryawanTrackingScreen>
 
   Map<String, dynamic>? _getCurrentManeuver() {
     if (_navigationSteps.isEmpty) return null;
-    if (_currentGpsPosition == null) return _navigationSteps.first;
+    if (_currentGpsPosition == null) {
+      final firstStep = _navigationSteps.first;
+      final String name = firstStep['name'] ?? '';
+      final String streetSuffix = name.isNotEmpty ? ' ke $name' : '';
+      return {
+        'instruction': 'Mulai perjalanan$streetSuffix',
+        'icon': Icons.trip_origin_rounded,
+        'distance': (firstStep['distance'] as num?)?.toDouble() ?? 0.0,
+      };
+    }
 
     // Find the next step ahead of the courier.
     double minDist = double.infinity;

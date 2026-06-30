@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/utils/constants.dart';
 import 'package:mobile/screens/pelanggan/chat/roomchat_detail.dart';
 import 'package:mobile/services/translation_service.dart';
+import 'package:mobile/utils/notification_listener.dart';
 
 class KaryawanChatScreen extends StatefulWidget {
   const KaryawanChatScreen({super.key});
@@ -24,6 +25,20 @@ class _KaryawanChatScreenState extends State<KaryawanChatScreen> {
   void initState() {
     super.initState();
     fetchChatRooms();
+    NotificationListenerManager().addCallback(_onNotificationReceived);
+  }
+
+  @override
+  void dispose() {
+    NotificationListenerManager().removeCallback(_onNotificationReceived);
+    super.dispose();
+  }
+
+  void _onNotificationReceived(Map<String, dynamic> notif) {
+    final String judul = (notif['judul'] ?? '').toString().toLowerCase();
+    if (judul.contains('pesan baru') || judul.contains('chat')) {
+      fetchChatRooms();
+    }
   }
 
   Future<void> fetchChatRooms() async {
