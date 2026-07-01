@@ -5125,6 +5125,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     String nextStatus = '';
     VoidCallback? customAction;
 
+    final bool isSiapDiantar = status == 'siap diantar' || status == 'kirim';
+
     final refStatuses = _getSortedReferenceStatuses(_currentOrder);
     final currentStatusIdx = refStatuses.indexWhere(
       (element) =>
@@ -5144,7 +5146,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
             paymentMethod == 'COD' ||
             (paymentMethod == 'QRIS' && paymentStatus == 'Lunas'));
 
-    if (status == 'siap diantar' && !isDropOff) {
+    if (isSiapDiantar && !isDropOff) {
       if (!canDeliver || (!isCourierOnWay && !_hasArrivedAtDestination)) {
         // Belum mulai perjalanan
         actionBtnText = TranslationService.currentLang == 'en'
@@ -5476,9 +5478,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
     final bool hasMapButton =
         status == 'penjemputan' ||
-        (status == 'siap diantar' && !isDropOff) ||
+        (isSiapDiantar && !isDropOff) ||
         nextStatus == 'penjemputan';
-    final bool isSiapDiantar = status == 'siap diantar';
     if (actionBtnText.isEmpty && !showTandaiLunas && !hasMapButton && !isSiapDiantar) {
       return const SizedBox.shrink();
     }
@@ -5586,7 +5587,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               ),
             ),
           ],
-          if (status == 'siap diantar' && isDropOff) ...[
+          if (isSiapDiantar && isDropOff) ...[
             if (!isPaymentConfirmed) ...[
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -5681,7 +5682,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               })(),
             ],
           ],
-          if (status == 'siap diantar' && !isDropOff && !canDeliver) ...[
+          if (isSiapDiantar && !isDropOff && !canDeliver) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),
@@ -5821,7 +5822,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                (status == 'siap diantar' ||
+                                (isSiapDiantar ||
                                         status == 'penjemputan' ||
                                         nextStatus == 'penjemputan')
                                     ? (isDropOff
@@ -5976,7 +5977,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        (status == 'siap diantar' ||
+                        (isSiapDiantar ||
                                 status == 'penjemputan' ||
                                 nextStatus == 'penjemputan')
                             ? (isDropOff
@@ -5999,8 +6000,9 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               );
             })(),
           ],
-          if ((status == 'penjemputan' && (isCourierOnWay || _isPickupStarted)) ||
-              (status == 'siap diantar' && !isDropOff && (isCourierOnWay || _isDeliveryStarted))) ...[
+          if ((isSiapDiantar && isCourierOnWay) ||
+              (((status == 'penjemputan' && _isPickupStarted) ||
+              (isSiapDiantar && _isDeliveryStarted)) && !isCourierOnWay)) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
@@ -6033,7 +6035,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                 },
                 icon: const Icon(Icons.map_outlined),
                 label: Text(
-                  status == 'siap diantar'
+                  isSiapDiantar
                       ? (TranslationService.currentLang == 'en'
                             ? 'Open Delivery Map'
                             : 'Buka Peta Pengantaran')
@@ -6048,7 +6050,7 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
 
           if (showTandaiLunas) ...[
             if (actionBtnText.isNotEmpty ||
-                (status == 'penjemputan' || status == 'siap diantar'))
+                (status == 'penjemputan' || isSiapDiantar))
               const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
