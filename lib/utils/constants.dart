@@ -22,14 +22,14 @@ class Constants {
         debugPrint("Koneksi berhasil ke Localhost via ADB Reverse: $baseUrl");
       } catch (_) {
         // 3. Fallback ke IP Wi-Fi PC/Laptop
-        baseUrl = 'http://192.168.1.7:8080/api/v1';
+        baseUrl = 'http://172.16.160.224:8080/api/v1';
         debugPrint("Gagal konek ke emulator & localhost, fallback ke IP PC: $baseUrl");
       }
     }
   }
 
   // --- Color Palette WishWash ---
-  static const Color colorLightIce = Color(0xFFD2FAFB);
+  static const Color colorLightIce = Color(0xFFD2FAFB); 
   static const Color colorCyan = Color(0xFF5ACFD6);
   static const Color colorBlue = Color(0xFF189BFA);
   static const Color colorDarkBlue = Color(0xFF0C4B8E);

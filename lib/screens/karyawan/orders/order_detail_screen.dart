@@ -1557,13 +1557,18 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
     final bool isEn = TranslationService.currentLang == 'en';
     final String jenisSatuan = (layanan['jenis_satuan'] ?? 'Kg').toString();
     final bool isPcs = jenisSatuan.toLowerCase() == 'pcs';
+    final bool isCancelled = rawStatus.contains('batal') || rawStatus.contains('cancel') || rawStatus.contains('tolak') || rawStatus.contains('reject');
     final String qtyStr = kuantitas > 0.0
         ? (isPcs ? '${kuantitas.toInt()} pcs' : '${kuantitas.toStringAsFixed(1)} kg')
-        : (rawStatus.contains('diterima') || rawStatus.contains('received')
-            ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
-            : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
-                ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
-                : (isEn ? 'Pending Weight' : 'Menunggu Timbang')));
+        : (isCancelled
+            ? ''
+            : (rawStatus.contains('diterima') || rawStatus.contains('received')
+                ? (isEn ? 'Awaiting Confirmation' : 'Menunggu Konfirmasi')
+                : (rawStatus.contains('jemput') || rawStatus.contains('pickup') || rawStatus.contains('penjemputan')
+                    ? (isEn ? 'Awaiting Pickup' : 'Menunggu Dijemput')
+                    : (isEn 
+                        ? (isPcs ? 'Pending Count' : 'Pending Weight') 
+                        : (isPcs ? 'Menunggu Hitung' : 'Menunggu Timbang')))));
     final serviceName = TranslationService.translateService(rawServiceName);
     final baseColor = _getServiceColor(rawServiceName, hexColor: (layanan['warna_layanan'] ?? '').toString());
     final orderColor = _getDarkenedTextColor(baseColor);
@@ -2167,6 +2172,48 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              (() {
+                final catatan = _currentOrder['catatan_order']?.toString() ?? '';
+                if (catatan.startsWith('Ditolak:')) {
+                  final reason = catatan.replaceFirst('Ditolak:', '').trim();
+                  if (reason.isNotEmpty) {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.shade200.withValues(alpha: 0.8),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: 14,
+                            color: Colors.red.shade800,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isEn ? 'Reason: "$reason"' : 'Alasan: "$reason"',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.red.shade900,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              })(),
             ],
 
             const SizedBox(height: 24),
@@ -5952,8 +5999,8 @@ class _OrderDetailScreenKaryawanState extends State<OrderDetailScreenKaryawan> {
               );
             })(),
           ],
-          if (((status == 'penjemputan' && _isPickupStarted) ||
-              (status == 'siap diantar' && _isDeliveryStarted)) && !isCourierOnWay) ...[
+          if ((status == 'penjemputan' && (isCourierOnWay || _isPickupStarted)) ||
+              (status == 'siap diantar' && !isDropOff && (isCourierOnWay || _isDeliveryStarted))) ...[
             const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,

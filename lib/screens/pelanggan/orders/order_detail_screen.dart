@@ -5525,6 +5525,48 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              (() {
+                final catatan = order['catatan_order']?.toString() ?? '';
+                if (catatan.startsWith('Ditolak:')) {
+                  final reason = catatan.replaceFirst('Ditolak:', '').trim();
+                  if (reason.isNotEmpty) {
+                    return Container(
+                      margin: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.shade200.withValues(alpha: 0.8),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            size: 14,
+                            color: Colors.red.shade800,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isEn ? 'Reason: "$reason"' : 'Alasan: "$reason"',
+                              style: GoogleFonts.poppins(
+                                fontSize: 11,
+                                color: Colors.red.shade900,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                }
+                return const SizedBox.shrink();
+              })(),
             ],
 
             const SizedBox(height: 24),
