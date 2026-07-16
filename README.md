@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/brand/logo.png" alt="WishWash Logo" width="120" />
+  <img src="assets/images/brand/logo.png" alt="WishWash Logo" width="120" style="background: white; border-radius: 24px; padding: 10px;" />
 </p>
 
 # 📱 WishWash Mobile Application
