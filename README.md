@@ -150,7 +150,7 @@ flutter run
 
 | Nama | NIM | Peran |
 | :--- | :--- | :--- |
-| Muhammad Rafa Enrico | 4.33.24.2.15 | Lead Developer & Full-Stack Developer |
+| Muhammad Rafa Enrico | 4.33.24.2.15 | Full-Stack Developer |
 | Annisa Naelil Izati | 4.33.24.2.03 | Full-Stack Developer |
 | Devi Ibnu Nabila | 4.33.24.2.06 | Full-Stack Developer |
 | Siti Miftahus Sa'diyah | 4.33.24.2.21 | Full-Stack Developer |
