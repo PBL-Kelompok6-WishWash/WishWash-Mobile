@@ -2,50 +2,78 @@
   <img src="assets/images/brand/logo.png" alt="WishWash Logo" width="120" style="background: white; border-radius: 24px; padding: 10px;" />
 </p>
 
-# 📱 WishWash Mobile Application
-**Flutter Cross-Platform Application for WishWash Customers & Karyawan (Couriers)**
+<h3 align="center">WishWash Mobile Application</h3>
+<p align="center">Flutter Cross-Platform App for WishWash Customers & Karyawan (Couriers)</p>
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
-[![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
-[![Android](https://img.shields.io/badge/Android-Ready-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#)
-[![iOS](https://img.shields.io/badge/iOS-Ready-000000?style=for-the-badge&logo=ios&logoColor=white)](#)
-
-Repositori ini berisi kode sumber untuk **Aplikasi Mobile WishWash** berbasis Flutter. Aplikasi ini mencakup dua peran antarmuka (*dual-role UI*) dinamis yang menyesuaikan peran pengguna saat masuk (*login*): **Aplikasi Pelanggan (Customer)** dan **Aplikasi Karyawan (Kurir)**.
+<p align="center">
+  <a href="https://flutter.dev/"><img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" /></a>
+  <a href="https://dart.dev/"><img src="https://img.shields.io/badge/Dart-3.10-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/Android-Ready-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android" /></a>
+  <a href="#"><img src="https://img.shields.io/badge/iOS-Ready-000000?style=for-the-badge&logo=ios&logoColor=white" alt="iOS" /></a>
+</p>
 
 ---
 
-## 📱 Fitur Utama Aplikasi Mobile
+## 📋 Deskripsi
+
+Repositori ini berisi kode sumber **Aplikasi Mobile WishWash** berbasis Flutter. Aplikasi ini mengimplementasikan arsitektur *dual-role UI* — satu kode sumber menghasilkan dua antarmuka dinamis yang secara otomatis menyesuaikan peran pengguna saat login: **Aplikasi Pelanggan (Customer)** untuk memesan laundry dan **Aplikasi Karyawan (Kurir)** untuk mengelola tugas penjemputan, pencucian, dan pengantaran.
+
+---
+
+## 📱 Fitur Utama
 
 ### 👦 Antarmuka Pelanggan (Customer App)
-*   **Pemesanan Laundry Mudah**: Pilih jenis layanan (Kiloan/Satuan), paket durasi (Express/Reguler), serta preferensi parfum langsung dari aplikasi.
-*   **Multi-Address & Primary Address**: Daftarkan beberapa alamat pengambilan/penyerahan laundry dan pilih salah satu sebagai alamat utama.
-*   **Pelacakan Real-time (Live Tracking)**: Pantau status perjalanan kurir dan proses pencucian di timeline status pesanan.
-*   **Chat Terintegrasi**: Kirim pesan langsung ke kurir yang bertugas menangani pesanan Anda.
-*   **Riwayat Pesanan Tertata**: Semua transaksi yang dibatalkan, ditolak (beserta alasan penolakannya), atau selesai diurutkan secara runtut berdasarkan tanggal pembaruan terakhir.
+*   **Pemesanan Laundry** — Pilih jenis layanan (Kiloan/Satuan), paket durasi (Express/Reguler), serta preferensi parfum.
+*   **Multi-Address & Primary Address** — Daftarkan beberapa alamat (rumah, kos, kantor) dan pilih satu sebagai alamat utama.
+*   **Pelacakan Real-time (Live Tracking)** — Pantau posisi kurir secara langsung di peta saat penjemputan maupun pengantaran menggunakan OpenStreetMap.
+*   **Chat Terintegrasi** — Kirim pesan langsung ke kurir yang bertugas menangani pesanan.
+*   **Riwayat Pesanan Tertata** — Seluruh transaksi (selesai, dibatalkan, ditolak beserta alasan penolakan) diurutkan secara kronologis berdasarkan tanggal pembaruan terakhir.
+*   **Voucher & Promo** — Gunakan kode promo saat pemesanan untuk mendapatkan potongan harga.
+*   **Penilaian & Rating** — Berikan bintang dan komentar setelah pesanan selesai.
 
 ### 🛵 Antarmuka Karyawan / Kurir (Courier App)
-*   **Manajemen Tugas**: Menerima tugas penjemputan (*pickup*) dan pengantaran (*delivery*) pakaian.
-*   **Navigasi Peta Rute**: Buka peta penunjuk arah (*Google Maps integration*) langsung dari detail pesanan saat melakukan penjemputan atau pengantaran.
-*   **QR Code Scanner**: Lakukan konfirmasi penerimaan laundry di lokasi pelanggan dengan memindai barcode/QR Code nota pesanan.
-*   **Proses Timbang**: Memulai proses penimbangan berat cucian pelanggan langsung dari aplikasi kurir (khusus layanan kiloan).
+*   **Manajemen Tugas Penjemputan & Pengantaran** — Terima tugas otomatis dari admin dan lihat detail pesanan.
+*   **Navigasi Peta Rute** — Buka peta penunjuk arah rute penjemputan/pengantaran langsung dari halaman detail pesanan (OpenStreetMap via `flutter_map`).
+*   **QR/Barcode Scanner** — Konfirmasi penyerahan laundry dengan memindai barcode nota pesanan menggunakan kamera smartphone.
+*   **Proses Timbang Cucian** — Memulai penimbangan berat cucian pelanggan langsung dari aplikasi (khusus layanan kiloan).
+*   **Update Status Pesanan** — Perbarui status pesanan secara bertahap (Jemput → Timbang → Cuci → Kering → Lipat → Antar → Selesai).
+*   **Tandai Pembayaran Lunas** — Konfirmasi penerimaan pembayaran COD/Cash saat sampai di lokasi pelanggan.
 
 ---
 
-## 📂 Struktur Folder Mobile
+## 📂 Struktur Folder
 
 ```text
 WishWash-Mobile/
-├── assets/              # Aset visual (logo, ilustrasi onboarding, ikon)
+├── assets/
+│   ├── images/
+│   │   ├── brand/       # Logo aplikasi & adaptive icon
+│   │   ├── backgrounds/ # Ilustrasi latar belakang onboarding
+│   │   ├── icons/       # Ikon-ikon custom
+│   │   ├── promos/      # Gambar banner promo
+│   │   └── services/    # Gambar ilustrasi layanan
+│   ├── lottie/          # Animasi Lottie JSON (loading, success, dsb.)
+│   └── audio/           # Efek suara notifikasi
 ├── lib/
-│   ├── screens/         # Halaman antarmuka terbagi atas:
-│   │   ├── auth/        # Logika login & pendaftaran akun
-│   │   ├── pelanggan/   # Fitur & halaman untuk peran Pelanggan
-│   │   └── karyawan/    # Fitur & halaman untuk peran Kurir/Karyawan
-│   ├── services/        # Service integrasi REST API, WebSockets, & Translate bahasa
-│   ├── utils/           # Konfigurasi konstan, warna tema, & deteksi alamat API
-│   └── widgets/         # Komponen UI dinamis (Card, Loader, Bottom Sheet)
-├── pubspec.yaml         # File manajer paket pustaka/dependensi Flutter
-└── README.md            # Dokumentasi utama repositori Mobile
+│   ├── screens/
+│   │   ├── auth/        # Halaman login & pendaftaran akun
+│   │   ├── pelanggan/   # Semua halaman peran Pelanggan
+│   │   │   ├── home/          # Beranda, notifikasi, chat
+│   │   │   ├── orders/        # Daftar pesanan, detail, riwayat
+│   │   │   ├── create_order/  # Formulir pembuatan pesanan baru
+│   │   │   ├── profile/       # Profil & pengaturan akun
+│   │   │   └── address/       # Manajemen alamat
+│   │   └── karyawan/    # Semua halaman peran Karyawan/Kurir
+│   │       ├── home/          # Beranda kurir, notifikasi, scanner
+│   │       ├── orders/        # Tugas pesanan, detail, pelacakan
+│   │       └── profile/       # Profil karyawan
+│   ├── services/        # Service layer (REST API client, WebSocket, Translation)
+│   ├── utils/           # Konfigurasi konstan, deteksi otomatis alamat API server
+│   └── widgets/         # Komponen UI reusable (Navbar, Background, Dialog)
+├── android/             # Konfigurasi native Android (Gradle, Manifest)
+├── ios/                 # Konfigurasi native iOS
+├── pubspec.yaml         # Manajer dependensi Flutter
+└── README.md            # Dokumentasi repositori ini
 ```
 
 ---
@@ -53,45 +81,86 @@ WishWash-Mobile/
 ## 🛠️ Panduan Memulai (Quick Start)
 
 ### 1. Prasyarat Sistem
-*   **Flutter SDK** (Versi 3.22 ke atas)
-*   **Dart SDK** (Versi 3.x)
-*   Perangkat simulator (Android Emulator / iOS Simulator) atau perangkat HP fisik yang terhubung dengan kabel USB.
+| Software | Versi Minimum |
+| :--- | :--- |
+| [Flutter SDK](https://docs.flutter.dev/get-started/install) | v3.22+ |
+| [Dart SDK](https://dart.dev/) | v3.10+ |
+| Android Studio / VS Code | Terbaru |
+| Perangkat fisik / Emulator | Android 5.0+ atau iOS 12+ |
 
 ### 2. Konfigurasi Endpoint Backend API
-Aplikasi mobile mendeteksi alamat server API secara dinamis berdasarkan prioritas koneksi Anda.
-Untuk menyesuaikan IP lokal komputer Anda, buka file:
-👉 **[lib/utils/constants.dart](lib/utils/constants.dart)**
+Aplikasi mobile mendeteksi alamat server API secara otomatis dengan urutan prioritas:
+1. **Emulator** (`10.0.2.2:8080`) — Untuk Android Emulator
+2. **ADB Reverse** (`127.0.0.1:8080`) — Untuk HP fisik via USB
+3. **Fallback IP Wi-Fi** — Untuk HP fisik via jaringan lokal
 
-Ubah nilai fallback IP Wi-Fi PC/Laptop Anda pada variabel `baseUrl`:
+Untuk menyesuaikan IP fallback, ubah file 👉 **[lib/utils/constants.dart](lib/utils/constants.dart)**:
 ```dart
-// Contoh pada lib/utils/constants.dart
-baseUrl = 'http://IP_PC_LAPTOP_ANDA:8080/api/v1';
+baseUrl = 'http://IP_PC_ANDA:8080/api/v1';
 ```
-> 💡 **Tips Pengujian Dual-Device**: Jika menguji dengan HP Fisik, pastikan HP dan PC/Laptop terhubung ke jaringan Wi-Fi yang sama, atau jalankan perintah `adb reverse tcp:8080 tcp:8080` untuk memetakan localhost PC langsung ke perangkat Android Anda.
 
-### 3. Instalasi Paket Dependensi
-Jalankan perintah ini di dalam folder root `WishWash-Mobile/` untuk mengunduh semua pustaka:
+> 💡 **Tips**: Jika menggunakan HP fisik via USB, cukup jalankan:
+> ```bash
+> adb reverse tcp:8080 tcp:8080
+> ```
+
+### 3. Instalasi Dependensi
 ```bash
 flutter pub get
 ```
 
 ### 4. Menjalankan Aplikasi
-Mulai jalankan aplikasi ke emulator atau perangkat fisik Anda:
 ```bash
 flutter run
 ```
 
 ---
 
-## 📦 Pustaka Pihak Ketiga Utama (Key Packages)
-*   `google_maps_flutter`: Integrasi Google Maps untuk menampilkan rute penjemputan/pengantaran.
-*   `location` & `geolocator`: Mengambil titik koordinat GPS real-time kurir.
-*   `web_socket_channel`: Komunikasi dua arah dengan WebSocket Server Go untuk live tracking.
-*   `qr_code_scanner`: Pemindai barcode nota order fisik menggunakan kamera smartphone.
+## 📚 Dependensi Utama
+
+| Package | Fungsi |
+| :--- | :--- |
+| `http` | HTTP client untuk komunikasi REST API |
+| `web_socket_channel` | Komunikasi WebSocket dua arah untuk live tracking |
+| `flutter_map` + `latlong2` | Peta interaktif OpenStreetMap untuk navigasi rute kurir |
+| `geolocator` + `geocoding` | Akses GPS & konversi koordinat ke alamat |
+| `mobile_scanner` | Pemindai QR Code/Barcode via kamera |
+| `barcode_widget` | Generate barcode pada nota pesanan |
+| `shared_preferences` | Penyimpanan lokal ringan (token, preferensi) |
+| `google_fonts` | Tipografi Poppins & font Google lainnya |
+| `lottie` | Animasi Lottie JSON (loading, success, dsb.) |
+| `audioplayers` | Efek suara notifikasi masuk |
+| `image_picker` | Ambil foto dari kamera/galeri untuk upload profil |
+| `pdf` + `share_plus` | Generate & bagikan nota pesanan dalam format PDF |
+| `intl` | Formatting tanggal & mata uang Rupiah (id_ID) |
+| `url_launcher` | Buka link eksternal (WhatsApp, telepon, dsb.) |
+
+---
+
+## 🔗 Repositori Terkait
+
+| Repositori | Deskripsi |
+| :--- | :--- |
+| [WishWash-Backend](https://github.com/PBL-Kelompok6-WishWash/WishWash-Backend) | Backend API Server (Go / Gin / GORM) |
+| [WishWash-Web](https://github.com/PBL-Kelompok6-WishWash/WishWash-Web) | Web Admin Dashboard (Next.js / React) |
+
+---
+
+## 👥 Tim Pengembang
+
+| Nama | Peran |
+| :--- | :--- |
+| Muhammad Rafa Enrico | Lead Developer, Full-Stack Developer & System Architect |
+| Devi Ibnu Nabila | Web UI/UX Designer & Frontend Developer |
+| Annisa Naelil Izati | Mobile UI/UX Designer & Frontend Developer |
+| Siti Miftahus Sa'diyah | Mobile UI/UX Designer & Frontend Developer |
 
 ---
 
 <div align="center">
-  <b>PBL Kelompok 6 - WishWash Laundry</b><br>
-  Teknologi Rekayasa Komputer, Politeknik Negeri Semarang
+  <b>PBL Kelompok 6 — WishWash Laundry</b><br>
+  Program Studi D4 Teknologi Rekayasa Komputer<br>
+  Jurusan Elektro<br>
+  Politeknik Negeri Semarang<br>
+  Semester Genap 2025/2026
 </div>
