@@ -148,12 +148,19 @@ flutter run
 
 ## 👥 Tim Pengembang
 
-| Nama | Peran |
-| :--- | :--- |
-| Muhammad Rafa Enrico | Lead Developer, Full-Stack Developer & System Architect |
-| Devi Ibnu Nabila | Web UI/UX Designer & Frontend Developer |
-| Annisa Naelil Izati | Mobile UI/UX Designer & Frontend Developer |
-| Siti Miftahus Sa'diyah | Mobile UI/UX Designer & Frontend Developer |
+| Nama | NIM | Peran |
+| :--- | :--- | :--- |
+| Muhammad Rafa Enrico | 4.33.24.2.15 | Lead Developer & Full-Stack Developer |
+| Annisa Naelil Izati | 4.33.24.2.03 | Full-Stack Developer |
+| Devi Ibnu Nabila | 4.33.24.2.06 | Full-Stack Developer |
+| Siti Miftahus Sa'diyah | 4.33.24.2.21 | Full-Stack Developer |
+
+---
+
+## 👨‍🏫 Dosen Pembimbing
+
+*   **Suko Tyas Pernanda, S.ST., M.Cs** (Dosen Pembimbing Utama)
+*   **Wiktasari, S.T., M.Kom** (Dosen Pembimbing Pendamping)
 
 ---
 
